@@ -11,12 +11,6 @@ interface NfsSearchMapProps {
 let scriptLoaded = false;
 let scriptPromise: Promise<void> | null = null;
 
-declare global {
-  interface Window {
-    google?: typeof google;
-  }
-}
-
 function loadGoogleMaps(): Promise<void> {
   if (scriptLoaded && window.google?.maps) return Promise.resolve();
   if (scriptPromise) return scriptPromise;
@@ -40,6 +34,81 @@ function loadGoogleMaps(): Promise<void> {
   });
 
   return scriptPromise;
+}
+
+// ── Price label overlay ────────────────────────────────────────────
+// Custom overlay that renders a price pill on the map
+let PriceLabelOverlay: any = null;
+
+function ensureOverlayClass() {
+  if (PriceLabelOverlay) return;
+  if (!window.google?.maps) return;
+
+  PriceLabelOverlay = class extends window.google.maps.OverlayView {
+    private position: google.maps.LatLng;
+    private div: HTMLDivElement | null = null;
+    private text: string;
+    private onClick: () => void;
+
+    constructor(position: google.maps.LatLng, text: string, map: google.maps.Map, onClick: () => void) {
+      super();
+      this.position = position;
+      this.text = text;
+      this.onClick = onClick;
+      this.setMap(map);
+    }
+
+    onAdd() {
+      this.div = document.createElement("div");
+      this.div.style.position = "absolute";
+      this.div.style.cursor = "pointer";
+      this.div.style.transform = "translate(-50%, -50%)";
+      this.div.innerHTML = `<span style="
+        background: white;
+        color: #1a1a1a;
+        font-size: 12px;
+        font-weight: 600;
+        padding: 4px 10px;
+        border-radius: 9999px;
+        border: 1px solid #e5e5e5;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+        white-space: nowrap;
+        display: inline-block;
+        transition: all 0.15s;
+      ">${this.text}</span>`;
+
+      this.div.addEventListener("mouseenter", () => {
+        const span = this.div?.querySelector("span") as HTMLElement;
+        if (span) { span.style.background = "#1a1a1a"; span.style.color = "white"; }
+      });
+      this.div.addEventListener("mouseleave", () => {
+        const span = this.div?.querySelector("span") as HTMLElement;
+        if (span) { span.style.background = "white"; span.style.color = "#1a1a1a"; }
+      });
+      this.div.addEventListener("click", this.onClick);
+
+      const panes = this.getPanes();
+      panes?.overlayMouseTarget.appendChild(this.div);
+    }
+
+    draw() {
+      if (!this.div) return;
+      const projection = this.getProjection();
+      if (!projection) return;
+      const point = projection.fromLatLngToDivPixel(this.position);
+      if (point) {
+        this.div.style.left = `${point.x}px`;
+        this.div.style.top = `${point.y}px`;
+      }
+    }
+
+    onRemove() {
+      if (this.div) {
+        this.div.parentNode?.removeChild(this.div);
+        this.div = null;
+      }
+    }
+  };
 }
 
 // ── Placeholder fallback (shown when API key is missing) ───────────
@@ -76,7 +145,7 @@ function MapPlaceholder({ properties }: NfsSearchMapProps) {
 export function NfsSearchMap({ properties }: NfsSearchMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
-  const markersRef = useRef<google.maps.marker.AdvancedMarkerElement[]>([]);
+  const overlaysRef = useRef<any[]>([]);
   const infoRef = useRef<google.maps.InfoWindow | null>(null);
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -93,7 +162,7 @@ export function NfsSearchMap({ properties }: NfsSearchMapProps) {
   // Initialize map
   useEffect(() => {
     if (!ready || !containerRef.current || !window.google?.maps) return;
-    if (mapRef.current) return; // already initialized
+    if (mapRef.current) return;
 
     mapRef.current = new window.google.maps.Map(containerRef.current, {
       center: { lat: 40, lng: 10 },
@@ -110,15 +179,16 @@ export function NfsSearchMap({ properties }: NfsSearchMapProps) {
     });
 
     infoRef.current = new window.google.maps.InfoWindow();
+    ensureOverlayClass();
   }, [ready]);
 
   // Update markers when properties change
   const updateMarkers = useCallback(() => {
-    if (!mapRef.current || !window.google?.maps) return;
+    if (!mapRef.current || !window.google?.maps || !PriceLabelOverlay) return;
 
-    // Clear old markers
-    markersRef.current.forEach(m => (m as any).setMap?.(null) || (m.map = null));
-    markersRef.current = [];
+    // Clear old overlays
+    overlaysRef.current.forEach(o => o.setMap(null));
+    overlaysRef.current = [];
 
     if (properties.length === 0) return;
 
@@ -126,43 +196,12 @@ export function NfsSearchMap({ properties }: NfsSearchMapProps) {
 
     properties.forEach((p) => {
       const currency = CURRENCIES.find(c => c.code === p.base_rate_currency);
-      const position = { lat: p.lat, lng: p.lng };
+      const position = new window.google.maps.LatLng(p.lat, p.lng);
       bounds.extend(position);
 
-      // Create price label marker
-      const label = document.createElement("div");
-      label.className = "nfs-map-marker";
-      label.innerHTML = `<span style="
-        background: white;
-        color: #1a1a1a;
-        font-size: 12px;
-        font-weight: 600;
-        padding: 4px 10px;
-        border-radius: 9999px;
-        border: 1px solid #e5e5e5;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.12);
-        white-space: nowrap;
-        cursor: pointer;
-        display: inline-block;
-        transition: all 0.15s;
-      ">${currency?.symbol ?? "£"}${p.base_rate_amount}</span>`;
+      const priceText = `${currency?.symbol ?? "£"}${p.base_rate_amount}`;
 
-      label.addEventListener("mouseenter", () => {
-        const span = label.querySelector("span") as HTMLElement;
-        if (span) { span.style.background = "#1a1a1a"; span.style.color = "white"; }
-      });
-      label.addEventListener("mouseleave", () => {
-        const span = label.querySelector("span") as HTMLElement;
-        if (span) { span.style.background = "white"; span.style.color = "#1a1a1a"; }
-      });
-
-      const marker = new window.google.maps.marker.AdvancedMarkerElement({
-        map: mapRef.current!,
-        position,
-        content: label,
-      });
-
-      marker.addListener("click", () => {
+      const overlay = new PriceLabelOverlay(position, priceText, mapRef.current!, () => {
         const coverImg = p.images.find(img => img.is_cover)?.url ?? p.images[0]?.url ?? "";
         infoRef.current?.setContent(`
           <div style="max-width:220px;font-family:Inter,system-ui,sans-serif;">
@@ -172,13 +211,14 @@ export function NfsSearchMap({ properties }: NfsSearchMapProps) {
             <div style="font-weight:700;font-size:14px;">${currency?.symbol ?? "£"}${p.base_rate_amount}<span style="font-weight:400;font-size:11px;color:#737373;"> / night</span></div>
           </div>
         `);
-        infoRef.current?.open(mapRef.current!, marker);
+        infoRef.current?.setPosition(position);
+        infoRef.current?.open(mapRef.current!);
       });
 
-      markersRef.current.push(marker);
+      overlaysRef.current.push(overlay);
     });
 
-    // Fit bounds with padding
+    // Fit bounds
     if (properties.length === 1) {
       mapRef.current.setCenter(bounds.getCenter());
       mapRef.current.setZoom(13);
