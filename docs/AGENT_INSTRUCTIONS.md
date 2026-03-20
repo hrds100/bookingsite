@@ -104,7 +104,7 @@ The site is partially wired to real backend services. Data hooks fall back to mo
 | Admin dashboard | Mock — hardcoded stats |
 | Social login (Google/Apple) | Not wired — Particle config ready |
 | Hospitable sync | Not wired — credentials saved |
-| Email notifications | Not wired — n8n credentials saved |
+| Email notifications | Real — n8n webhook on booking confirm (Resend API) |
 | Property create/edit form | UI exists, not saving to DB |
 | Photo upload | UI exists, not wired to Supabase Storage |
 | Stripe Connect (operator payouts) | Not wired — credentials saved |
@@ -139,3 +139,51 @@ Test: [clickable URL or "check locally at localhost:5173"]
 ```
 
 Keep it short. Hugo can read the diff.
+
+---
+
+## 10. n8n ACCESS
+
+n8n is the automation engine for email notifications and workflows. You have full API access.
+
+**Instance:** https://n8n.srv886554.hstgr.cloud
+**Login:** `hello@agencin.com` / `@#Dgs58913367.$%`
+**API Key:** `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkZmI1M2JkZS0zZTdjLTQ2NWItOGI5MS1hOTQwOTlkZGM2YTMiLCJpc3MiOiJuOG4iLCJhdWQiOiJwdWJsaWMtYXBpIiwiaWF0IjoxNzczNDI0MDQ5fQ.7lz1_W28UkD0SwjITXHn1t75A8Fl5eVM46XfENFkEtg`
+
+### API usage
+
+```bash
+# List workflows
+curl -H "X-N8N-API-KEY: <key>" https://n8n.srv886554.hstgr.cloud/api/v1/workflows
+
+# Get a specific workflow
+curl -H "X-N8N-API-KEY: <key>" https://n8n.srv886554.hstgr.cloud/api/v1/workflows/<id>
+
+# Activate/deactivate
+curl -X POST -H "X-N8N-API-KEY: <key>" https://n8n.srv886554.hstgr.cloud/api/v1/workflows/<id>/activate
+curl -X POST -H "X-N8N-API-KEY: <key>" https://n8n.srv886554.hstgr.cloud/api/v1/workflows/<id>/deactivate
+
+# Update workflow (PUT with name, nodes, connections, settings)
+curl -X PUT -H "X-N8N-API-KEY: <key>" -H "Content-Type: application/json" \
+  https://n8n.srv886554.hstgr.cloud/api/v1/workflows/<id> -d '{"name":"...","nodes":[...],"connections":{},"settings":{}}'
+
+# Check executions
+curl -H "X-N8N-API-KEY: <key>" "https://n8n.srv886554.hstgr.cloud/api/v1/executions?workflowId=<id>&limit=5&includeData=true"
+
+# Trigger a webhook
+curl -X POST https://n8n.srv886554.hstgr.cloud/webhook/<path> -H "Content-Type: application/json" -d '{...}'
+```
+
+### Bookingsite workflows
+
+| Workflow | ID | Webhook Path | Status |
+|---|---|---|---|
+| NFsTay — Booking Confirmed | `z5laFFJMZmq1f5uK` | `nfstay-booking-confirmed` | Active |
+
+### Key lessons learned
+
+1. **Webhook nodes MUST have a `webhookId` field** — without it the webhook URL won't register even if the workflow is active.
+2. **Webhook data arrives at `$input.first().json.body`** — not `$input.first().json` directly. Always use `const data = $input.first().json.body || $input.first().json;` in Code nodes.
+3. **Emails use Resend API** — called via `this.helpers.httpRequest()` in Code nodes, not via n8n Email Send nodes. The Resend API key is embedded in the Code node JS.
+4. **Deactivate before updating, then reactivate** — PUT updates don't always take effect on a live workflow.
+5. **Always prefer API over manual UI** — the n8n API can do everything: create, update, activate, deactivate, check executions.
