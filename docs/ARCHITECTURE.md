@@ -84,30 +84,59 @@ src/components/
 └── ui/                    ← 39 shadcn/ui primitives
 ```
 
-## Data Layer (current)
+## Data Layer
 
-All data is **mock/local** — no backend connected yet.
+Data flows through **React Query hooks** that query Supabase. All hooks fall back to **mock data** when Supabase returns empty results or is unreachable.
 
-| Data | Source | File |
-|------|--------|------|
-| Properties (12) | Static array | `src/data/mock-properties.ts` |
-| Destinations (10) | Static array | `src/data/mock-destinations.ts` |
-| Reservations (8) | Static array | `src/data/mock-reservations.ts` |
-| Testimonials (6) | Static array | `src/data/mock-reservations.ts` |
-| Operator profile | Static object | `src/data/mock-operator.ts` |
-| Admin metrics | Static object | `src/data/mock-admin.ts` |
-| Favourites | localStorage | `nfs_favourites` key |
-| Recently viewed | localStorage | `nfs_recently_viewed` key |
-| Currency preference | localStorage | `nfs_currency` key |
+### Real (connected to Supabase)
 
-## Data Layer (future — when wired)
+| Data | Hook | Table |
+|------|------|-------|
+| Auth session | `useAuth()` | `auth.users` + `profiles` |
+| Operator detection | `useAuth()` | `nfs_operators` |
+| Listed properties | `useNfsProperties()` | `nfs_properties` |
+| Single property | `useNfsProperty(id)` | `nfs_properties` |
+| Operator's properties | `useNfsOperatorProperties(opId)` | `nfs_properties` |
+| Operator profile | `useNfsOperator()` | `nfs_operators` |
+| Operator settings save | `useNfsOperatorUpdate()` | `nfs_operators` |
+| Reservations (traveler) | `useNfsReservations(email)` | `nfs_reservations` |
+| Reservations (operator) | `useNfsOperatorReservations(opId)` | `nfs_reservations` |
+| Guest checkout | Supabase Edge Function | `nfs_reservations` + Stripe |
 
-| Service | Purpose |
-|---------|---------|
-| Supabase | DB, auth, storage, edge functions, RLS |
-| Stripe | Payment processing, operator payouts |
-| Google Maps | Property maps, places autocomplete |
-| Hospitable | Calendar sync, channel management |
+### Mock Fallback (client-side only)
+
+| Data | Source |
+|------|--------|
+| Properties (12) | `src/data/mock-properties.ts` |
+| Destinations (10) | `src/data/mock-destinations.ts` |
+| Reservations (8) | `src/data/mock-reservations.ts` |
+| Testimonials (6) | `src/data/mock-reservations.ts` |
+| Operator profile | `src/data/mock-operator.ts` |
+| Admin metrics | `src/data/mock-admin.ts` |
+
+### Client-Side Persistence
+
+| Data | Storage |
+|------|---------|
+| Favourites | localStorage (`nfs_favourites`) |
+| Recently viewed | localStorage (`nfs_recently_viewed`) |
+| Currency preference | localStorage (`nfs_currency`) |
+
+## Backend Services
+
+| Service | Purpose | Status |
+|---------|---------|--------|
+| Supabase | Auth, DB, Edge Functions, RLS | Connected |
+| Stripe | Guest payments via Checkout | Connected (edge function) |
+| Google Maps | Property maps on search page | Connected |
+| Hospitable | Calendar sync, listing sync | Not yet — credentials ready |
+| n8n | Webhooks, email notifications | Not yet — credentials ready |
+
+## Edge Functions
+
+| Function | Purpose | Status |
+|----------|---------|--------|
+| `nfs-create-checkout` | Creates Stripe Checkout Session + pending reservation | Deployed |
 
 ## Tech Stack
 
@@ -119,6 +148,11 @@ All data is **mock/local** — no backend connected yet.
 | Components | shadcn/ui (Radix primitives) |
 | Icons | Lucide React |
 | Data fetching | TanStack React Query 5 |
+| Auth | Supabase Auth (email/password) |
+| Database | Supabase (PostgreSQL) |
+| Edge functions | Supabase Edge Functions (Deno) |
+| Payments | Stripe Checkout |
+| Maps | Google Maps JavaScript API |
 | Dates | date-fns + react-day-picker |
 | Validation | Zod |
 | Charts | Recharts |

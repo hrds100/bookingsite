@@ -46,7 +46,7 @@ Claude acts as **AI Developer** for the NFStay booking site (nfstay.app).
 5. **Keep code minimal.** No extra abstractions, no over-engineering.
 6. **Destructive actions** (delete, drop, force push): **STOP and ask Hugo.**
 7. **Empty states, loading states, error states** must exist before a feature ships.
-8. **Mock data is the current data layer.** Do not introduce Supabase unless Hugo asks.
+8. **Data hooks fall back to mock data** when Supabase returns empty. Do not remove mock fallback without Hugo's approval.
 9. **shadcn/ui first.** Prefer existing components before building custom ones.
 10. **Mobile first.** Every component works at 375px before desktop.
 11. **No Lorem Ipsum.** Use realistic property/travel data as placeholders.
@@ -71,32 +71,44 @@ Claude acts as **AI Developer** for the NFStay booking site (nfstay.app).
 | Repo | https://github.com/hrds100/bookingsite |
 | Live | https://nfstay.app |
 | Vercel team | `hugos-projects-f8cc36a8` |
+| Supabase | `asazddtvjvmckouxcmmo` (shared with hub.nfstay.com) |
 | Framework | React 18 + Vite + TypeScript |
 | UI library | shadcn/ui + Tailwind CSS |
+| Auth | Supabase Auth (email/password) — shared with hub.nfstay.com |
+| Database | Supabase PostgreSQL — `nfs_*` tables |
+| Payments | Stripe Checkout via Edge Function |
+| Maps | Google Maps JavaScript API |
 | Icons | Lucide React |
-| State | React Query + localStorage |
-| Related | hub.nfstay.com (marketplace10 — separate repo) |
+| State | React Query + Supabase + localStorage |
+| Related | hub.nfstay.com (marketplace10 — separate repo, same Supabase) |
 
 ---
 
 ## 7. CURRENT STATE
 
-The site currently runs on **mock data only** — no Supabase, no Stripe, no Google Maps API. These will be wired in future phases:
+The site is partially wired to real backend services. Data hooks fall back to mock data when Supabase returns empty results.
 
 | Feature | Status |
 |---------|--------|
-| Landing page | Live (mock data) |
-| Search + filters | Live (mock data) |
+| Landing page | Live (mock data for properties) |
+| Search + filters | Live (mock data, real Google Maps) |
 | Property detail | Live (mock data) |
-| Checkout / booking | UI exists, not wired |
-| Currency switching | Live (client-side conversion) |
-| Operator dashboard | UI exists, not wired |
-| Admin dashboard | UI exists, not wired |
-| Auth (sign in/up) | UI exists, not wired |
-| Supabase backend | Not connected |
-| Stripe payments | Not connected |
-| Google Maps | Placeholder map |
-| Hospitable sync | Not connected |
+| Auth (sign in/up) | Real — Supabase Auth (same accounts as hub.nfstay.com) |
+| Navbar auth state | Real — shows sign out when logged in |
+| Checkout / booking | Real — Stripe Checkout via Edge Function |
+| Currency switching | Real (client-side conversion) |
+| Google Maps | Real — live map with markers, hover-to-zoom |
+| Operator properties | Real — queries nfs_properties (falls back to mock) |
+| Operator settings | Real — saves to nfs_operators |
+| Operator reservations | Real — queries nfs_reservations (falls back to mock) |
+| Admin dashboard | Mock — hardcoded stats |
+| Social login (Google/Apple) | Not wired — Particle config ready |
+| Hospitable sync | Not wired — credentials saved |
+| Email notifications | Not wired — n8n credentials saved |
+| Property create/edit form | UI exists, not saving to DB |
+| Photo upload | UI exists, not wired to Supabase Storage |
+| Stripe Connect (operator payouts) | Not wired — credentials saved |
+| White-label / subdomains | Not built |
 
 ---
 
