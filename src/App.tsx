@@ -1,0 +1,102 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { Toaster as Sonner } from "@/components/ui/sonner";
+import { Toaster } from "@/components/ui/toaster";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { CurrencyProvider } from "@/contexts/CurrencyContext";
+import { NfsMainLayout } from "@/components/nfs/NfsMainLayout";
+import { NfsOperatorLayout } from "@/components/nfs/NfsOperatorLayout";
+import { NfsAdminLayout } from "@/components/nfs/NfsAdminLayout";
+import NfsMainLanding from "./pages/NfsMainLanding";
+import NfsSearchPage from "./pages/NfsSearchPage";
+import NfsPropertyView from "./pages/NfsPropertyView";
+import NfsCheckoutPage from "./pages/NfsCheckoutPage";
+import NfsPaymentSuccess from "./pages/NfsPaymentSuccess";
+import NfsPaymentCancel from "./pages/NfsPaymentCancel";
+import NfsGuestBookingLookup from "./pages/NfsGuestBookingLookup";
+import TravelerReservations from "./pages/TravelerReservations";
+import TravelerReservationDetail from "./pages/TravelerReservationDetail";
+import OperatorDashboard from "./pages/operator/OperatorDashboard";
+import OperatorProperties from "./pages/operator/OperatorProperties";
+import OperatorPropertyForm from "./pages/operator/OperatorPropertyForm";
+import OperatorReservations from "./pages/operator/OperatorReservations";
+import OperatorReservationDetail from "./pages/operator/OperatorReservationDetail";
+import OperatorCreateReservation from "./pages/operator/OperatorCreateReservation";
+import OperatorAnalytics from "./pages/operator/OperatorAnalytics";
+import OperatorSettings from "./pages/operator/OperatorSettings";
+import OperatorOnboarding from "./pages/operator/OperatorOnboarding";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminUsers from "./pages/admin/AdminUsers";
+import AdminOperators from "./pages/admin/AdminOperators";
+import AdminAnalytics from "./pages/admin/AdminAnalytics";
+import AdminSettings from "./pages/admin/AdminSettings";
+import SignInPage from "./pages/SignInPage";
+import SignUpPage from "./pages/SignUpPage";
+import TravelerLoginPage from "./pages/TravelerLoginPage";
+import VerifyEmailPage from "./pages/VerifyEmailPage";
+import OAuthCallbackPage from "./pages/OAuthCallbackPage";
+import AuthCallbackPage from "./pages/AuthCallbackPage";
+import NotFound from "./pages/NotFound";
+
+const queryClient = new QueryClient();
+
+const App = () => (
+  <QueryClientProvider client={queryClient}>
+    <CurrencyProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            {/* Traveler / Public */}
+            <Route element={<NfsMainLayout />}>
+              <Route path="/" element={<NfsMainLanding />} />
+              <Route path="/search" element={<NfsSearchPage />} />
+              <Route path="/property/:id" element={<NfsPropertyView />} />
+              <Route path="/checkout" element={<NfsCheckoutPage />} />
+              <Route path="/booking" element={<NfsGuestBookingLookup />} />
+              <Route path="/payment/success" element={<NfsPaymentSuccess />} />
+              <Route path="/payment/cancel" element={<NfsPaymentCancel />} />
+              <Route path="/traveler/reservations" element={<TravelerReservations />} />
+              <Route path="/traveler/reservation/:id" element={<TravelerReservationDetail />} />
+            </Route>
+
+            {/* Operator Portal */}
+            <Route element={<NfsOperatorLayout />}>
+              <Route path="/nfstay" element={<OperatorDashboard />} />
+              <Route path="/nfstay/properties" element={<OperatorProperties />} />
+              <Route path="/nfstay/properties/new" element={<OperatorPropertyForm />} />
+              <Route path="/nfstay/properties/:id" element={<OperatorPropertyForm />} />
+              <Route path="/nfstay/reservations" element={<OperatorReservations />} />
+              <Route path="/nfstay/reservations/:id" element={<OperatorReservationDetail />} />
+              <Route path="/nfstay/create-reservation" element={<OperatorCreateReservation />} />
+              <Route path="/nfstay/analytics" element={<OperatorAnalytics />} />
+              <Route path="/nfstay/settings" element={<OperatorSettings />} />
+            </Route>
+
+            {/* Admin Portal */}
+            <Route element={<NfsAdminLayout />}>
+              <Route path="/admin/nfstay" element={<AdminDashboard />} />
+              <Route path="/admin/nfstay/users" element={<AdminUsers />} />
+              <Route path="/admin/nfstay/operators" element={<AdminOperators />} />
+              <Route path="/admin/nfstay/analytics" element={<AdminAnalytics />} />
+              <Route path="/admin/nfstay/settings" element={<AdminSettings />} />
+            </Route>
+
+            {/* Standalone pages */}
+            <Route path="/nfstay/onboarding" element={<OperatorOnboarding />} />
+            <Route path="/nfstay/oauth-callback" element={<OAuthCallbackPage />} />
+            <Route path="/auth/callback" element={<AuthCallbackPage />} />
+            <Route path="/signin" element={<SignInPage />} />
+            <Route path="/signup" element={<SignUpPage />} />
+            <Route path="/traveler/login" element={<TravelerLoginPage />} />
+            <Route path="/verify-email" element={<VerifyEmailPage />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </CurrencyProvider>
+  </QueryClientProvider>
+);
+
+export default App;
