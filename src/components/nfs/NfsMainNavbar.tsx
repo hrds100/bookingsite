@@ -1,13 +1,15 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
-import { Menu, X, Search, Clock, Users, Hotel, CalendarDays } from "lucide-react";
+import { Menu, X, Search, Clock, Users, Hotel, CalendarDays, LogOut } from "lucide-react";
 import { NfsLogo } from "./NfsLogo";
 import { NfsCurrencySelector } from "./NfsCurrencySelector";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
 
 export function NfsMainNavbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
+  const { user, signOut, isOperator } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [query, setQuery] = useState(searchParams.get("query") || "");
@@ -96,12 +98,29 @@ export function NfsMainNavbar() {
         {/* Right: currency + account */}
         <div className="hidden md:flex items-center gap-2 shrink-0">
           <NfsCurrencySelector />
-          <Link
-            to="/signin"
-            className="text-sm font-medium text-foreground hover:text-primary transition-colors px-3 py-2 rounded-lg border border-border"
-          >
-            Account
-          </Link>
+          {user ? (
+            <div className="flex items-center gap-2">
+              {isOperator && (
+                <Link to="/nfstay" className="text-sm font-medium text-primary hover:underline px-2">
+                  Dashboard
+                </Link>
+              )}
+              <button
+                onClick={() => signOut()}
+                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors px-3 py-2 rounded-lg border border-border flex items-center gap-1.5"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                Sign out
+              </button>
+            </div>
+          ) : (
+            <Link
+              to="/signin"
+              className="text-sm font-medium text-foreground hover:text-primary transition-colors px-3 py-2 rounded-lg border border-border"
+            >
+              Account
+            </Link>
+          )}
         </div>
 
         {/* Mobile: currency + search shortcut */}
