@@ -5,20 +5,28 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NfsStatusBadge } from "@/components/nfs/NfsStatusBadge";
 import { NfsPropertyCard } from "@/components/nfs/NfsPropertyCard";
+import { NfsEmptyState } from "@/components/nfs/NfsEmptyState";
 import { mockProperties } from "@/data/mock-properties";
 import { useCurrency } from "@/contexts/CurrencyContext";
+import { useAuth } from "@/hooks/useAuth";
+import { useNfsOperatorProperties } from "@/hooks/useNfsOperator";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 export default function OperatorProperties() {
   const { formatPrice } = useCurrency();
+  const { operatorId } = useAuth();
+  const { data: realProperties } = useNfsOperatorProperties(operatorId);
   const [search, setSearch] = useState("");
   const [view, setView] = useState<"table" | "grid">("table");
 
-  // Operator owns first 6 properties (mock)
-  const operatorProps = mockProperties.slice(0, 6);
-  const filtered = operatorProps.filter(p =>
-    p.public_title.toLowerCase().includes(search.toLowerCase()) ||
-    p.city.toLowerCase().includes(search.toLowerCase())
+  // Use real operator properties if available, otherwise fallback to mock
+  const operatorProps = (realProperties && realProperties.length > 0)
+    ? realProperties
+    : mockProperties.slice(0, 6);
+
+  const filtered = operatorProps.filter((p: any) =>
+    p.public_title?.toLowerCase().includes(search.toLowerCase()) ||
+    p.city?.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
@@ -44,7 +52,15 @@ export default function OperatorProperties() {
         </div>
       </div>
 
-      {view === "table" ? (
+      {filtered.length === 0 ? (
+        <NfsEmptyState
+          icon={Search}
+          title="No properties found"
+          description={search ? "Try a different search term" : "Add your first property to get started"}
+          actionLabel={search ? undefined : "Add Property"}
+          onAction={search ? undefined : () => window.location.href = "/nfstay/properties/new"}
+        />
+      ) : view === "table" ? (
         <div className="bg-card border border-border rounded-2xl overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -59,14 +75,14 @@ export default function OperatorProperties() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((p) => (
+                {filtered.map((p: any) => (
                   <tr key={p.id} className="border-b border-border last:border-0 hover:bg-muted/20 transition-colors">
                     <td className="p-4">
                       <div className="flex items-center gap-3">
-                        <img src={p.images.find(i => i.is_cover)?.url || p.images[0]?.url} alt="" className="w-12 h-12 rounded-lg object-cover" />
+                        <img src={p.images?.find((i: any) => i.is_cover)?.url || p.images?.[0]?.url} alt="" className="w-12 h-12 rounded-lg object-cover" />
                         <div>
                           <Link to={`/nfstay/properties/${p.id}`} className="font-medium hover:text-primary transition-colors">{p.public_title}</Link>
-                          <p className="text-xs text-muted-foreground">{p.room_counts.bedrooms} bed · {p.room_counts.bathrooms} bath · {p.max_guests} guests</p>
+                          <p className="text-xs text-muted-foreground">{p.room_counts?.bedrooms} bed · {p.room_counts?.bathrooms} bath · {p.max_guests} guests</p>
                         </div>
                       </div>
                     </td>
@@ -94,7 +110,7 @@ export default function OperatorProperties() {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filtered.map((p) => (
+          {filtered.map((p: any) => (
             <NfsPropertyCard key={p.id} property={p} />
           ))}
         </div>

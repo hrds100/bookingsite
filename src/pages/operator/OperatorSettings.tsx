@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -6,17 +6,51 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { mockOperatorProfile } from "@/data/mock-operator";
 import { toast } from "@/hooks/use-toast";
+import { useNfsOperator, useNfsOperatorUpdate } from "@/hooks/useNfsOperator";
 
 export default function OperatorSettings() {
+  const { data: operator } = useNfsOperator();
+  const updateOperator = useNfsOperatorUpdate();
   const [profile, setProfile] = useState(mockOperatorProfile);
   const [saving, setSaving] = useState(false);
 
-  const handleSave = () => {
+  // Sync from Supabase operator data when available
+  useEffect(() => {
+    if (operator) {
+      setProfile(prev => ({
+        ...prev,
+        brand_name: operator.brand_name || prev.brand_name,
+        contact_email: operator.contact_email || prev.contact_email,
+        contact_phone: operator.contact_phone || prev.contact_phone,
+        subdomain: operator.subdomain || prev.subdomain,
+        accent_color: operator.accent_color || prev.accent_color,
+      }));
+    }
+  }, [operator]);
+
+  const handleSave = async () => {
     setSaving(true);
-    setTimeout(() => {
-      setSaving(false);
+
+    if (operator) {
+      try {
+        await updateOperator.mutateAsync({
+          brand_name: profile.brand_name,
+          contact_email: profile.contact_email,
+          contact_phone: profile.contact_phone,
+          subdomain: profile.subdomain,
+          accent_color: profile.accent_color,
+        });
+        toast({ title: "Settings saved", description: "Your changes have been saved to the database." });
+      } catch {
+        toast({ title: "Error saving", description: "Could not save settings. Please try again.", variant: "destructive" });
+      }
+    } else {
+      // Mock fallback
+      await new Promise(r => setTimeout(r, 500));
       toast({ title: "Settings saved", description: "Your changes have been applied." });
-    }, 800);
+    }
+
+    setSaving(false);
   };
 
   const updateNotif = (key: keyof typeof profile.notifications, val: boolean) => {
@@ -104,9 +138,9 @@ export default function OperatorSettings() {
                 <Input value={profile.payout_email} onChange={e => setProfile(p => ({ ...p, payout_email: e.target.value }))} className="mt-1.5" />
               </div>
             </div>
-            <div className="bg-accent-light border border-primary/20 rounded-xl p-4">
-              <p className="text-sm text-primary font-medium">✓ Stripe Connect is active</p>
-              <p className="text-xs text-muted-foreground mt-1">Payouts are processed automatically after guest check-out.</p>
+            <div className="bg-accent border border-primary/20 rounded-xl p-4">
+              <p className="text-sm text-primary font-medium">Stripe Connect setup</p>
+              <p className="text-xs text-muted-foreground mt-1">Connect your Stripe account to receive payouts from guest bookings.</p>
             </div>
           </section>
         </TabsContent>
