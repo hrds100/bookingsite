@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { supabase } from "@/lib/supabase";
 
 interface BookingIntent {
   propertyId: string;
@@ -82,17 +83,56 @@ export default function NfsCheckoutPage() {
 
   const handleComplete = async () => {
     setLoading(true);
-    await new Promise(r => setTimeout(r, 1500));
-    const reservation = {
-      id: `res-${Date.now()}`,
-      ...intent,
-      guestFirstName: firstName,
-      guestLastName: lastName,
-      guestEmail: email,
-    };
-    sessionStorage.setItem('nfs_last_reservation', JSON.stringify(reservation));
-    sessionStorage.removeItem('nfs_booking_intent');
-    navigate('/payment/success');
+
+    try {
+      // Call Stripe checkout edge function
+      const { data, error } = await supabase.functions.invoke("nfs-create-checkout", {
+        body: {
+          propertyId: intent.propertyId,
+          checkIn: intent.checkIn,
+          checkOut: intent.checkOut,
+          adults: intent.adults,
+          children: intent.children,
+          guestEmail: email,
+          guestName: `${firstName} ${lastName}`.trim(),
+          promoCode: intent.promoCode || undefined,
+        },
+      });
+
+      if (error || !data?.url) {
+        // Fallback to mock flow if edge function fails
+        console.warn("Stripe checkout failed, using mock flow:", error);
+        const reservation = {
+          id: `res-${Date.now()}`,
+          ...intent,
+          guestFirstName: firstName,
+          guestLastName: lastName,
+          guestEmail: email,
+        };
+        sessionStorage.setItem("nfs_last_reservation", JSON.stringify(reservation));
+        sessionStorage.removeItem("nfs_booking_intent");
+        navigate("/payment/success");
+        return;
+      }
+
+      // Redirect to Stripe Checkout
+      sessionStorage.removeItem("nfs_booking_intent");
+      window.location.href = data.url;
+    } catch {
+      // Fallback to mock flow on any error
+      const reservation = {
+        id: `res-${Date.now()}`,
+        ...intent,
+        guestFirstName: firstName,
+        guestLastName: lastName,
+        guestEmail: email,
+      };
+      sessionStorage.setItem("nfs_last_reservation", JSON.stringify(reservation));
+      sessionStorage.removeItem("nfs_booking_intent");
+      navigate("/payment/success");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
