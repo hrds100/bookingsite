@@ -226,13 +226,14 @@ export function NfsSearchMap({ properties, hoveredId }: NfsSearchMapProps) {
     return <MapPlaceholder properties={properties} />;
   }
 
-  if (!ready) {
-    return (
-      <div className="w-full h-full flex items-center justify-center bg-muted" style={{ borderRadius: 16, overflow: "hidden" }}>
-        <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
-
-  return <div ref={containerRef} style={{ height: "100%", width: "100%", borderRadius: 16, overflow: "hidden" }} />;
+  return (
+    <div style={{ position: "relative", height: "100%", width: "100%", borderRadius: 16, overflow: "hidden" }}>
+      <div ref={containerRef} style={{ height: "100%", width: "100%" }} />
+      {!ready && (
+        <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "hsl(var(--muted))" }}>
+          <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+        </div>
+      )}
+    </div>
+  );
 }
