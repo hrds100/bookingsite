@@ -6,9 +6,10 @@ import { CURRENCIES } from "@/lib/constants";
 
 interface NfsPropertyCardProps {
   property: MockProperty;
+  onHover?: (id: string | null) => void;
 }
 
-export function NfsPropertyCard({ property }: NfsPropertyCardProps) {
+export function NfsPropertyCard({ property, onHover }: NfsPropertyCardProps) {
   const [currentImage, setCurrentImage] = useState(0);
   const [isFavourite, setIsFavourite] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
@@ -41,8 +42,8 @@ export function NfsPropertyCard({ property }: NfsPropertyCardProps) {
     <Link
       to={`/property/${property.id}`}
       className="group block"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseEnter={() => { setIsHovered(true); onHover?.(property.id); }}
+      onMouseLeave={() => { setIsHovered(false); onHover?.(null); }}
     >
       {/* Image area */}
       <div className="relative aspect-[4/3] rounded-xl overflow-hidden mb-2.5">

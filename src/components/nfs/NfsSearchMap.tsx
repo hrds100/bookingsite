@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { MapPin } from "lucide-react";
 import type { MockProperty } from "@/data/mock-properties";
 import { CURRENCIES } from "@/lib/constants";
 
 interface NfsSearchMapProps {
   properties: MockProperty[];
+  hoveredId: string | null;
 }
 
 // ── Google Maps script loader (singleton) ──────────────────────────
@@ -36,89 +38,11 @@ function loadGoogleMaps(): Promise<void> {
   return scriptPromise;
 }
 
-// ── Price label overlay ────────────────────────────────────────────
-// Custom overlay that renders a price pill on the map
-let PriceLabelOverlay: any = null;
-
-function ensureOverlayClass() {
-  if (PriceLabelOverlay) return;
-  if (!window.google?.maps) return;
-
-  PriceLabelOverlay = class extends window.google.maps.OverlayView {
-    private position: google.maps.LatLng;
-    private div: HTMLDivElement | null = null;
-    private text: string;
-    private onClick: () => void;
-
-    constructor(position: google.maps.LatLng, text: string, map: google.maps.Map, onClick: () => void) {
-      super();
-      this.position = position;
-      this.text = text;
-      this.onClick = onClick;
-      this.setMap(map);
-    }
-
-    onAdd() {
-      this.div = document.createElement("div");
-      this.div.style.position = "absolute";
-      this.div.style.cursor = "pointer";
-      this.div.style.transform = "translate(-50%, -50%)";
-      this.div.innerHTML = `<span style="
-        background: white;
-        color: #1a1a1a;
-        font-size: 12px;
-        font-weight: 600;
-        padding: 4px 10px;
-        border-radius: 9999px;
-        border: 1px solid #e5e5e5;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.12);
-        white-space: nowrap;
-        display: inline-block;
-        transition: all 0.15s;
-      ">${this.text}</span>`;
-
-      this.div.addEventListener("mouseenter", () => {
-        const span = this.div?.querySelector("span") as HTMLElement;
-        if (span) { span.style.background = "#1a1a1a"; span.style.color = "white"; }
-      });
-      this.div.addEventListener("mouseleave", () => {
-        const span = this.div?.querySelector("span") as HTMLElement;
-        if (span) { span.style.background = "white"; span.style.color = "#1a1a1a"; }
-      });
-      this.div.addEventListener("click", this.onClick);
-
-      const panes = this.getPanes();
-      panes?.overlayMouseTarget.appendChild(this.div);
-    }
-
-    draw() {
-      if (!this.div) return;
-      const projection = this.getProjection();
-      if (!projection) return;
-      const point = projection.fromLatLngToDivPixel(this.position);
-      if (point) {
-        this.div.style.left = `${point.x}px`;
-        this.div.style.top = `${point.y}px`;
-      }
-    }
-
-    onRemove() {
-      if (this.div) {
-        this.div.parentNode?.removeChild(this.div);
-        this.div = null;
-      }
-    }
-  };
-}
-
 // ── Placeholder fallback (shown when API key is missing) ───────────
-function MapPlaceholder({ properties }: NfsSearchMapProps) {
+function MapPlaceholder({ properties }: { properties: MockProperty[] }) {
   return (
-    <div className="relative w-full h-full bg-muted overflow-hidden">
+    <div className="relative w-full h-full bg-muted overflow-hidden" style={{ borderRadius: 16 }}>
       <div className="absolute inset-0 bg-gradient-to-br from-muted to-secondary opacity-60" />
-      <button className="absolute top-4 right-4 z-10 bg-card text-foreground text-xs font-medium px-4 py-2 rounded-lg border border-border shadow-sm hover:shadow-md transition">
-        Search this area
-      </button>
       <div className="absolute inset-0">
         {properties.slice(0, 12).map((p, i) => {
           const currency = CURRENCIES.find(c => c.code === p.base_rate_currency);
@@ -141,109 +65,174 @@ function MapPlaceholder({ properties }: NfsSearchMapProps) {
   );
 }
 
-// ── Real Google Map ────────────────────────────────────────────────
-export function NfsSearchMap({ properties }: NfsSearchMapProps) {
+// ── Real Google Map (marketplace10 DealsMap style) ──────────────────
+export function NfsSearchMap({ properties, hoveredId }: NfsSearchMapProps) {
+  const navigate = useNavigate();
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
-  const overlaysRef = useRef<any[]>([]);
+  const markersRef = useRef<Map<string, google.maps.Marker>>(new Map());
   const infoRef = useRef<google.maps.InfoWindow | null>(null);
+  const initialBoundsSetRef = useRef(false);
+  const zoomIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
 
-  // Load script
+  // Load script + init map
   useEffect(() => {
     let cancelled = false;
     loadGoogleMaps()
-      .then(() => { if (!cancelled) setReady(true); })
+      .then(() => {
+        if (cancelled || !containerRef.current || !window.google?.maps) return;
+        const map = new window.google.maps.Map(containerRef.current, {
+          center: { lat: 40, lng: 10 },
+          zoom: 3,
+          disableDefaultUI: true,
+          zoomControl: true,
+          gestureHandling: "greedy",
+          styles: [
+            { featureType: "poi", stylers: [{ visibility: "off" }] },
+            { featureType: "transit", stylers: [{ visibility: "off" }] },
+          ],
+        });
+        mapRef.current = map;
+        infoRef.current = new window.google.maps.InfoWindow();
+        setReady(true);
+      })
       .catch(() => { if (!cancelled) setFailed(true); });
     return () => { cancelled = true; };
   }, []);
 
-  // Initialize map
-  useEffect(() => {
-    if (!ready || !containerRef.current || !window.google?.maps) return;
-    if (mapRef.current) return;
+  // Navigation callback
+  const onNav = useCallback((id: string) => navigate(`/property/${id}`), [navigate]);
 
-    mapRef.current = new window.google.maps.Map(containerRef.current, {
-      center: { lat: 40, lng: 10 },
-      zoom: 3,
-      disableDefaultUI: true,
-      zoomControl: true,
-      mapTypeControl: false,
-      streetViewControl: false,
-      fullscreenControl: false,
-      styles: [
-        { featureType: "poi", stylers: [{ visibility: "off" }] },
-        { featureType: "transit", stylers: [{ visibility: "off" }] },
-      ],
+  // Sync markers when properties change
+  useEffect(() => {
+    if (!ready || !mapRef.current || !window.google?.maps) return;
+    const map = mapRef.current;
+    const existing = markersRef.current;
+    const g = window.google.maps;
+
+    // Remove stale markers
+    const ids = new Set(properties.map(p => p.id));
+    existing.forEach((m, id) => {
+      if (!ids.has(id)) { m.setMap(null); existing.delete(id); }
     });
 
-    infoRef.current = new window.google.maps.InfoWindow();
-    ensureOverlayClass();
-  }, [ready]);
-
-  // Update markers when properties change
-  const updateMarkers = useCallback(() => {
-    if (!mapRef.current || !window.google?.maps || !PriceLabelOverlay) return;
-
-    // Clear old overlays
-    overlaysRef.current.forEach(o => o.setMap(null));
-    overlaysRef.current = [];
-
-    if (properties.length === 0) return;
-
-    const bounds = new window.google.maps.LatLngBounds();
-
+    // Upsert markers
     properties.forEach((p) => {
+      let marker = existing.get(p.id);
       const currency = CURRENCIES.find(c => c.code === p.base_rate_currency);
-      const position = new window.google.maps.LatLng(p.lat, p.lng);
-      bounds.extend(position);
 
-      const priceText = `${currency?.symbol ?? "£"}${p.base_rate_amount}`;
+      if (!marker) {
+        const icon: google.maps.Symbol = {
+          path: g.SymbolPath.CIRCLE,
+          scale: 7,
+          fillColor: "#00D084",
+          fillOpacity: 1,
+          strokeColor: "#fff",
+          strokeWeight: 2.5,
+        };
+        marker = new g.Marker({ map, position: { lat: p.lat, lng: p.lng }, icon, zIndex: 1 });
 
-      const overlay = new PriceLabelOverlay(position, priceText, mapRef.current!, () => {
-        const coverImg = p.images.find(img => img.is_cover)?.url ?? p.images[0]?.url ?? "";
-        infoRef.current?.setContent(`
-          <div style="max-width:220px;font-family:Inter,system-ui,sans-serif;">
-            ${coverImg ? `<img src="${coverImg}" style="width:100%;height:120px;object-fit:cover;border-radius:8px;margin-bottom:8px;" />` : ""}
-            <div style="font-weight:600;font-size:13px;margin-bottom:2px;">${p.public_title}</div>
-            <div style="font-size:11px;color:#737373;margin-bottom:4px;">${p.city}, ${p.country}</div>
-            <div style="font-weight:700;font-size:14px;">${currency?.symbol ?? "£"}${p.base_rate_amount}<span style="font-weight:400;font-size:11px;color:#737373;"> / night</span></div>
-          </div>
-        `);
-        infoRef.current?.setPosition(position);
-        infoRef.current?.open(mapRef.current!);
-      });
+        marker.addListener("click", () => {
+          if (!infoRef.current) return;
+          const coverImg = p.images.find(img => img.is_cover)?.url ?? p.images[0]?.url ?? "";
+          infoRef.current.setContent(
+            `<div style="font-family:Inter,system-ui,sans-serif;min-width:200px;max-width:240px;padding:4px">` +
+            (coverImg ? `<img src="${coverImg}" style="width:100%;height:120px;object-fit:cover;border-radius:8px;margin-bottom:8px" />` : "") +
+            `<p style="font-weight:600;font-size:13px;margin:0 0 2px">${p.public_title}</p>` +
+            `<p style="color:#737373;font-size:11px;margin:0 0 6px">${p.city}, ${p.country}</p>` +
+            `<p style="font-weight:700;font-size:14px;margin:0">${currency?.symbol ?? "£"}${p.base_rate_amount}<span style="font-weight:400;font-size:11px;color:#737373"> / night</span></p>` +
+            `</div>`
+          );
+          infoRef.current.open(map, marker);
+        });
 
-      overlaysRef.current.push(overlay);
+        marker.addListener("dblclick", () => onNav(p.id));
+
+        existing.set(p.id, marker);
+      } else {
+        marker.setPosition({ lat: p.lat, lng: p.lng });
+      }
     });
 
-    // Fit bounds
-    if (properties.length === 1) {
-      mapRef.current.setCenter(bounds.getCenter());
-      mapRef.current.setZoom(13);
-    } else {
-      mapRef.current.fitBounds(bounds, { top: 50, right: 50, bottom: 50, left: 50 });
+    // Fit bounds only on first load
+    if (properties.length > 0 && !initialBoundsSetRef.current) {
+      const bounds = new g.LatLngBounds();
+      properties.forEach(p => bounds.extend({ lat: p.lat, lng: p.lng }));
+      if (properties.length === 1) {
+        map.setCenter({ lat: properties[0].lat, lng: properties[0].lng });
+        map.setZoom(13);
+      } else {
+        map.fitBounds(bounds, 40);
+      }
+      initialBoundsSetRef.current = true;
     }
-  }, [properties]);
+  }, [properties, ready, onNav]);
 
+  // Hover — smooth pan + zoom to property, stay when mouse leaves
   useEffect(() => {
-    if (ready) updateMarkers();
-  }, [ready, updateMarkers]);
+    if (!ready || !mapRef.current || !window.google?.maps) return;
+    const map = mapRef.current;
+    const g = window.google.maps;
 
-  // Fallback if no API key or load failed
+    // Clear any running zoom animation
+    if (zoomIntervalRef.current) {
+      clearInterval(zoomIntervalRef.current);
+      zoomIntervalRef.current = null;
+    }
+
+    // Update all marker icons
+    markersRef.current.forEach((marker, id) => {
+      const hovered = hoveredId === id;
+      marker.setIcon({
+        path: g.SymbolPath.CIRCLE,
+        scale: hovered ? 11 : 7,
+        fillColor: hovered ? "#059669" : "#00D084",
+        fillOpacity: 1,
+        strokeColor: "#fff",
+        strokeWeight: hovered ? 3 : 2.5,
+      });
+      marker.setZIndex(hovered ? 999 : 1);
+
+      // Pan + smooth zoom to hovered marker
+      if (hovered) {
+        const pos = marker.getPosition();
+        if (pos) {
+          map.panTo(pos);
+          const current = map.getZoom() ?? 3;
+          const target = 14;
+          if (current < target - 1) {
+            let step = current;
+            zoomIntervalRef.current = setInterval(() => {
+              step += 0.5;
+              map.setZoom(step);
+              if (step >= target) {
+                if (zoomIntervalRef.current) clearInterval(zoomIntervalRef.current);
+                zoomIntervalRef.current = null;
+              }
+            }, 80);
+          } else if (current < target) {
+            map.setZoom(target);
+          }
+        }
+      }
+    });
+    // When hoveredId is null (mouse left card) — map stays where it is
+  }, [hoveredId, ready]);
+
+  // Fallback
   if (failed || !import.meta.env.VITE_GOOGLE_MAPS_API_KEY) {
     return <MapPlaceholder properties={properties} />;
   }
 
-  return (
-    <div className="relative w-full h-full">
-      {!ready && (
-        <div className="absolute inset-0 flex items-center justify-center bg-muted">
-          <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-        </div>
-      )}
-      <div ref={containerRef} className="w-full h-full" />
-    </div>
-  );
+  if (!ready) {
+    return (
+      <div className="w-full h-full flex items-center justify-center bg-muted" style={{ borderRadius: 16, overflow: "hidden" }}>
+        <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  return <div ref={containerRef} style={{ height: "100%", width: "100%", borderRadius: 16, overflow: "hidden" }} />;
 }
