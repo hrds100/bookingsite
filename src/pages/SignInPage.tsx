@@ -4,22 +4,42 @@ import { NfsLogo } from "@/components/nfs/NfsLogo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Eye, EyeOff } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function SignInPage() {
   const navigate = useNavigate();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const { signIn, user } = useAuth();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // If already logged in, redirect
+  if (user) {
+    navigate("/", { replace: true });
+    return null;
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
-    await new Promise(r => setTimeout(r, 1000));
-    setError('Invalid email or password');
-    setLoading(false);
+    setError("");
+
+    try {
+      const { error: authError } = await signIn(email, password);
+      if (authError) {
+        setError(authError.message === "Invalid login credentials"
+          ? "Invalid email or password"
+          : authError.message);
+      } else {
+        navigate("/");
+      }
+    } catch {
+      setError("Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -47,19 +67,19 @@ export default function SignInPage() {
               <a href="#" className="text-xs text-primary hover:underline">Forgot password?</a>
             </div>
             <div className="relative">
-              <Input type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className="rounded-[10px] h-11 pr-10" required />
+              <Input type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022" className="rounded-[10px] h-11 pr-10" required />
               <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
           </div>
           <Button type="submit" className="w-full rounded-xl h-11 font-semibold" disabled={loading}>
-            {loading ? 'Signing in...' : 'Sign in'}
+            {loading ? "Signing in..." : "Sign in"}
           </Button>
         </form>
 
         <p className="text-center text-sm text-muted-foreground">
-          Don't have an account? <Link to="/signup" className="text-primary font-medium hover:underline">Sign up →</Link>
+          Don&apos;t have an account? <Link to="/signup" className="text-primary font-medium hover:underline">Sign up &rarr;</Link>
         </p>
       </div>
     </div>
