@@ -72,6 +72,19 @@ These files provide fallback data when Supabase tables are empty:
 | `STRIPE_WEBHOOK_SECRET` | Verify Stripe webhook signatures |
 | `STRIPE_CONNECT_CLIENT_ID` | Stripe Connect OAuth |
 
+## n8n Integration
+
+Booking notifications are sent via n8n webhooks (fire-and-forget, non-blocking).
+
+| Webhook Path | n8n Workflow ID | Trigger | Status |
+|---|---|---|---|
+| `nfstay-booking-confirmed` | `vp5QBp1qIT08WJCt` | Payment success page | Active (webhook created, email nodes need SMTP credential) |
+| `nfstay-booking-enquiry` | — | Not wired yet | Planned |
+
+**n8n base URL:** `https://n8n.srv886554.hstgr.cloud`
+**Webhook URL:** `https://n8n.srv886554.hstgr.cloud/webhook/{path}`
+**Frontend helper:** `src/lib/n8n.ts` — postWebhook() with 8s AbortController timeout
+
 ## RLS Rules
 
 Every `nfs_` table must have Row Level Security enabled:

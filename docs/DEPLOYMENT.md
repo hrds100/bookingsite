@@ -8,6 +8,7 @@
 | GitHub | Source code | github.com/hrds100/bookingsite |
 | Supabase | Auth + DB + Edge Functions | asazddtvjvmckouxcmmo.supabase.co |
 | Stripe | Payment processing | Via Supabase Edge Function |
+| n8n | Email notifications + automation | n8n.srv886554.hstgr.cloud |
 
 ## Auto-Deploy
 
@@ -39,6 +40,7 @@ Set in Vercel → bookingsite → Settings → Environment Variables.
 | `VITE_SUPABASE_ANON_KEY` | Supabase anon key | Set |
 | `VITE_GOOGLE_MAPS_API_KEY` | Google Maps API | Set |
 | `VITE_STRIPE_PUBLISHABLE_KEY` | Stripe publishable key (test mode) | Set |
+| `VITE_N8N_WEBHOOK_URL` | n8n webhook base URL | Set |
 
 ## Supabase Secrets (Edge Functions)
 

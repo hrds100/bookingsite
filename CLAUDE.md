@@ -15,7 +15,7 @@ src/
   contexts/           ← CurrencyContext (GBP/USD/EUR/AED/SGD)
   data/               ← mock properties, destinations, reservations (fallback when DB empty)
   hooks/              ← useAuth, useNfsProperties, useNfsReservations, useNfsOperator, useRecentlyViewed
-  lib/                ← supabase.ts, particle.ts, constants.ts, utils.ts
+  lib/                ← supabase.ts, n8n.ts, particle.ts, constants.ts, utils.ts
   test/               ← Vitest setup
 docs/                 ← architecture, agent instructions, deployment, database
 supabase/functions/   ← Edge functions (nfs-create-checkout)
@@ -57,11 +57,11 @@ git push origin main # auto-deploys to Vercel → nfstay.app
 | Guest checkout | Real — Stripe Checkout via Edge Function |
 | Google Maps on search | Real — live map with markers |
 | Currency switching | Real — localStorage |
+| Email notifications | Real — n8n webhook on booking confirm (fire-and-forget) |
 | Property search/filters | Mock — client-side filtering of mock data |
 | Admin dashboard | Mock — hardcoded stats |
 | Social login (Google/Apple) | Not wired yet — Particle config ready |
 | Hospitable sync | Not wired yet — credentials saved |
-| Email notifications | Not wired yet — n8n credentials saved |
 
 ## Domains
 - **Live:** https://nfstay.app
