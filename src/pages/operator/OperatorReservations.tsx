@@ -5,21 +5,29 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NfsStatusBadge } from "@/components/nfs/NfsStatusBadge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { mockReservations, getReservationProperty } from "@/data/mock-reservations";
+import { mockReservations, getReservationProperty, type MockReservation } from "@/data/mock-reservations";
 import { useCurrency } from "@/contexts/CurrencyContext";
+import { useAuth } from "@/hooks/useAuth";
+import { useNfsOperatorReservations } from "@/hooks/useNfsReservations";
 import { format, parseISO, isFuture, isPast } from "date-fns";
 
 export default function OperatorReservations() {
   const { formatPrice } = useCurrency();
+  const { operatorId } = useAuth();
+  const { data: realReservations } = useNfsOperatorReservations(operatorId);
   const [search, setSearch] = useState("");
 
-  const all = mockReservations;
+  // Use real reservations if available, otherwise mock
+  const all: MockReservation[] = (realReservations && realReservations.length > 0)
+    ? realReservations
+    : mockReservations;
+
   const upcoming = all.filter(r => isFuture(parseISO(r.check_in)) && r.status !== 'cancelled');
   const past = all.filter(r => isPast(parseISO(r.check_out)) || r.status === 'completed');
   const cancelled = all.filter(r => r.status === 'cancelled');
   const pending = all.filter(r => r.status === 'pending');
 
-  const filterList = (list: typeof all) =>
+  const filterList = (list: MockReservation[]) =>
     list.filter(r => {
       const prop = getReservationProperty(r);
       return `${r.guest_first_name} ${r.guest_last_name}`.toLowerCase().includes(search.toLowerCase()) ||
@@ -27,7 +35,7 @@ export default function OperatorReservations() {
         r.id.toLowerCase().includes(search.toLowerCase());
     });
 
-  const ReservationTable = ({ data }: { data: typeof all }) => {
+  const ReservationTable = ({ data }: { data: MockReservation[] }) => {
     const filtered = filterList(data);
     return (
       <div className="bg-card border border-border rounded-2xl overflow-hidden">
@@ -54,7 +62,7 @@ export default function OperatorReservations() {
                 const prop = getReservationProperty(r);
                 return (
                   <tr key={r.id} className="border-b border-border last:border-0 hover:bg-muted/20 transition-colors">
-                    <td className="p-4 font-mono text-xs">{r.id.toUpperCase()}</td>
+                    <td className="p-4 font-mono text-xs">{r.id.slice(0, 8).toUpperCase()}</td>
                     <td className="p-4">
                       <p className="font-medium">{r.guest_first_name} {r.guest_last_name}</p>
                       <p className="text-xs text-muted-foreground">{r.guest_email}</p>
