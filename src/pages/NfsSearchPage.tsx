@@ -15,6 +15,7 @@ export default function NfsSearchPage() {
   const [priceMax, setPriceMax] = useState('');
   const [bedrooms, setBedrooms] = useState(0);
   const [sortBy, setSortBy] = useState('relevant');
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
 
   const query = searchParams.get('query') || '';
 
@@ -91,7 +92,7 @@ export default function NfsSearchPage() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 pt-3">
               {filteredProperties.map((p) => (
-                <NfsPropertyCard key={p.id} property={p} />
+                <NfsPropertyCard key={p.id} property={p} onHover={setHoveredId} />
               ))}
             </div>
           )}
@@ -100,7 +101,7 @@ export default function NfsSearchPage() {
 
       {/* Right panel – map (hidden on mobile) */}
       <div className="hidden lg:block flex-1">
-        <NfsSearchMap properties={filteredProperties} />
+        <NfsSearchMap properties={filteredProperties} hoveredId={hoveredId} />
       </div>
     </div>
   );
