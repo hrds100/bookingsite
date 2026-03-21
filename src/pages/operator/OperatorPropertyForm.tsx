@@ -237,6 +237,15 @@ export default function OperatorPropertyForm() {
     setImages((prev) => prev.filter((_, i) => i !== idx).map((img, i) => ({ ...img, order: i })));
   };
 
+  const handleSetCover = (idx: number) => {
+    setImages((prev) => {
+      const updated = [...prev];
+      const [chosen] = updated.splice(idx, 1);
+      updated.unshift(chosen);
+      return updated.map((img, i) => ({ ...img, order: i }));
+    });
+  };
+
   const toggleAmenity = (key: string) => {
     setAmenities((prev) => ({ ...prev, [key]: !prev[key] }));
   };
@@ -401,19 +410,19 @@ export default function OperatorPropertyForm() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>
               <Label>City</Label>
-              <Input value={city} readOnly className="mt-1.5 bg-muted" />
+              <Input value={city} onChange={(e) => setCity(e.target.value)} placeholder="e.g. London" className="mt-1.5" />
             </div>
             <div>
               <Label>State / Region</Label>
-              <Input value={state} readOnly className="mt-1.5 bg-muted" />
+              <Input value={state} onChange={(e) => setState(e.target.value)} placeholder="e.g. England" className="mt-1.5" />
             </div>
             <div>
               <Label>Country</Label>
-              <Input value={country} readOnly className="mt-1.5 bg-muted" />
+              <Input value={country} onChange={(e) => setCountry(e.target.value)} placeholder="e.g. United Kingdom" className="mt-1.5" />
             </div>
             <div>
               <Label>Postal Code</Label>
-              <Input value={postalCode} readOnly className="mt-1.5 bg-muted" />
+              <Input value={postalCode} onChange={(e) => setPostalCode(e.target.value)} placeholder="e.g. SW1A 1AA" className="mt-1.5" />
             </div>
           </div>
         </section>
@@ -479,10 +488,18 @@ export default function OperatorPropertyForm() {
                     alt={img.caption || `Photo ${idx + 1}`}
                     className="w-full h-24 object-cover"
                   />
-                  {idx === 0 && (
+                  {idx === 0 ? (
                     <span className="absolute top-1 left-1 bg-primary text-primary-foreground text-[10px] px-1.5 py-0.5 rounded font-medium">
                       Cover
                     </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => handleSetCover(idx)}
+                      className="absolute bottom-1 left-1 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      Set as cover
+                    </button>
                   )}
                   <button
                     type="button"
