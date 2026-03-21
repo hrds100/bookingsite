@@ -20,8 +20,6 @@ export interface NfsOperator {
   contact_email: string | null;
   contact_phone: string | null;
   faqs: { question: string; answer: string }[];
-  onboarding_step: string;
-  onboarding_completed: boolean;
   created_at: string;
 }
 
@@ -36,7 +34,7 @@ export function useNfsOperator() {
 
       const { data, error } = await supabase
         .from("nfs_operators")
-        .select("*")
+        .select("id, profile_id, brand_name, subdomain, custom_domain, accent_color, logo_url, hero_photo, hero_headline, hero_subheadline, about_bio, about_photo, contact_email, contact_phone, faqs, created_at")
         .eq("profile_id", user.id)
         .maybeSingle();
 
@@ -63,22 +61,23 @@ export function useNfsOperatorCreate() {
     }) => {
       if (!SUPABASE_CONFIGURED || !user) throw new Error("Not configured");
 
-      const { data, error } = await supabase
+      // Insert with only the columns we know exist (same as manual SQL insert for Sunset)
+      const row: Record<string, unknown> = {
+        profile_id: user.id,
+        brand_name: fields.brand_name,
+        subdomain: fields.subdomain.toLowerCase().replace(/[^a-z0-9-]/g, ""),
+        accent_color: fields.accent_color,
+      };
+      // Only add optional fields if provided
+      if (fields.contact_email) row.contact_email = fields.contact_email;
+      if (fields.contact_phone) row.contact_phone = fields.contact_phone;
+
+      const { error } = await supabase
         .from("nfs_operators")
-        .insert({
-          profile_id: user.id,
-          brand_name: fields.brand_name,
-          subdomain: fields.subdomain.toLowerCase().replace(/[^a-z0-9-]/g, ""),
-          accent_color: fields.accent_color,
-          contact_email: fields.contact_email || user.email,
-          contact_phone: fields.contact_phone || null,
-          onboarding_completed: true,
-        })
-        .select()
-        .single();
+        .insert(row);
 
       if (error) throw error;
-      return data;
+      return row;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["nfs-operator"] });
