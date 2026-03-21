@@ -51,14 +51,17 @@ If a matching operator is found, the site shows only that operator's properties 
 
 ## Testing locally
 
-To test white-label locally, add an entry to your hosts file:
+Real `.nfstay.app` subdomains redirect to HTTPS via HSTS, which breaks local dev. Use a `.test` domain instead.
 
-```
-# Windows: C:\Windows\System32\drivers\etc\hosts
-# Mac/Linux: /etc/hosts
-127.0.0.1  sunset.nfstay.app
-```
+1. Add to your hosts file (`C:\Windows\System32\drivers\etc\hosts` or `/etc/hosts`):
+   ```
+   127.0.0.1  sunset-local.test
+   ```
 
-Then visit `http://sunset.nfstay.app:5173` (Vite dev server).
+2. Visit `http://sunset-local.test:8081` (or whatever port Vite is running on).
 
-Note: The mock operator `op-001` has `subdomain: 'sunset'`, so this will work with mock data.
+The naming convention is `{subdomain}-local.test`. The app strips the `-local` suffix to get the subdomain (`sunset`), then looks it up in `nfs_operators.subdomain`.
+
+`vite.config.ts` has `server.allowedHosts` configured for `sunset-local.test`.
+
+The mock operator `op-001` has `subdomain: 'sunset'`, so this works with mock data out of the box.

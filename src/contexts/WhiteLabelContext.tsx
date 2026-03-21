@@ -33,15 +33,20 @@ function isMainSite(hostname: string): boolean {
 
 /**
  * Extract the subdomain from a hostname like "sunset.nfstay.app" → "sunset"
+ * Also handles local dev domains like "sunset-local.test" → "sunset"
  * Returns null if it's the bare domain or www.
  */
 function extractSubdomain(hostname: string): string | null {
   const parts = hostname.split(".");
-  // e.g. ["sunset", "nfstay", "app"]
+  // Production: e.g. ["sunset", "nfstay", "app"]
   if (parts.length === 3 && parts[1] === "nfstay" && parts[2] === "app") {
     const sub = parts[0];
     if (sub === "www") return null;
     return sub;
+  }
+  // Local dev: e.g. "sunset-local.test" → "sunset"
+  if (parts.length === 2 && parts[1] === "test" && parts[0].endsWith("-local")) {
+    return parts[0].replace(/-local$/, "");
   }
   return null;
 }
