@@ -5,10 +5,10 @@ import { useAuth } from "@/hooks/useAuth";
 import { useNfsOperator } from "@/hooks/useNfsOperator";
 
 export function NfsOperatorLayout() {
-  const { user, loading, isOperator } = useAuth();
-  const { data: operator, isLoading: operatorLoading } = useNfsOperator();
+  const { user, loading } = useAuth();
+  const { data: operator, isLoading: operatorLoading, isFetched } = useNfsOperator();
 
-  if (loading || operatorLoading) {
+  if (loading || (!!user && !isFetched)) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
@@ -21,7 +21,7 @@ export function NfsOperatorLayout() {
   }
 
   // User is logged in but has no operator record — send to onboarding
-  if (!isOperator || !operator) {
+  if (!operator) {
     return <Navigate to="/nfstay/onboarding" replace />;
   }
 
