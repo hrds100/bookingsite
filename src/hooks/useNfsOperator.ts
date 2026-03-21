@@ -48,6 +48,44 @@ export function useNfsOperator() {
   });
 }
 
+/** Create a new operator profile (used during onboarding) */
+export function useNfsOperatorCreate() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async (fields: {
+      brand_name: string;
+      subdomain: string;
+      accent_color: string;
+      contact_email?: string;
+      contact_phone?: string;
+    }) => {
+      if (!SUPABASE_CONFIGURED || !user) throw new Error("Not configured");
+
+      const { data, error } = await supabase
+        .from("nfs_operators")
+        .insert({
+          profile_id: user.id,
+          brand_name: fields.brand_name,
+          subdomain: fields.subdomain.toLowerCase().replace(/[^a-z0-9-]/g, ""),
+          accent_color: fields.accent_color,
+          contact_email: fields.contact_email || user.email,
+          contact_phone: fields.contact_phone || null,
+          onboarding_completed: true,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["nfs-operator"] });
+    },
+  });
+}
+
 /** Update operator profile */
 export function useNfsOperatorUpdate() {
   const queryClient = useQueryClient();
