@@ -61,16 +61,20 @@ export function useNfsOperatorCreate() {
     }) => {
       if (!SUPABASE_CONFIGURED || !user) throw new Error("Not configured");
 
+      // Insert with only the columns we know exist (same as manual SQL insert for Sunset)
+      const row: Record<string, unknown> = {
+        profile_id: user.id,
+        brand_name: fields.brand_name,
+        subdomain: fields.subdomain.toLowerCase().replace(/[^a-z0-9-]/g, ""),
+        accent_color: fields.accent_color,
+      };
+      // Only add optional fields if provided
+      if (fields.contact_email) row.contact_email = fields.contact_email;
+      if (fields.contact_phone) row.contact_phone = fields.contact_phone;
+
       const { data, error } = await supabase
         .from("nfs_operators")
-        .insert({
-          profile_id: user.id,
-          brand_name: fields.brand_name,
-          subdomain: fields.subdomain.toLowerCase().replace(/[^a-z0-9-]/g, ""),
-          accent_color: fields.accent_color,
-          contact_email: fields.contact_email || user.email,
-          contact_phone: fields.contact_phone || null,
-        })
+        .insert(row)
         .select()
         .single();
 
