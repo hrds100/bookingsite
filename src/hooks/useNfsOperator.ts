@@ -8,10 +8,16 @@ export interface NfsOperator {
   id: string;
   profile_id: string;
   brand_name: string;
+  legal_name: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  persona_type: string | null;
   subdomain: string | null;
   custom_domain: string | null;
+  primary_domain_type: string | null;
   accent_color: string;
   logo_url: string | null;
+  favicon_url: string | null;
   hero_photo: string | null;
   hero_headline: string | null;
   hero_subheadline: string | null;
@@ -19,6 +25,19 @@ export interface NfsOperator {
   about_photo: string | null;
   contact_email: string | null;
   contact_phone: string | null;
+  contact_whatsapp: string | null;
+  contact_telegram: string | null;
+  social_twitter: string | null;
+  social_instagram: string | null;
+  social_facebook: string | null;
+  social_tiktok: string | null;
+  social_youtube: string | null;
+  google_business_url: string | null;
+  airbnb_url: string | null;
+  google_analytics_id: string | null;
+  meta_pixel_id: string | null;
+  meta_title: string | null;
+  meta_description: string | null;
   faqs: { question: string; answer: string }[];
   created_at: string;
 }
@@ -34,7 +53,7 @@ export function useNfsOperator() {
 
       const { data, error } = await supabase
         .from("nfs_operators")
-        .select("id, profile_id, brand_name, subdomain, custom_domain, accent_color, logo_url, hero_photo, hero_headline, hero_subheadline, about_bio, about_photo, contact_email, contact_phone, faqs, created_at")
+        .select("id, profile_id, brand_name, legal_name, first_name, last_name, persona_type, subdomain, custom_domain, primary_domain_type, accent_color, logo_url, favicon_url, hero_photo, hero_headline, hero_subheadline, about_bio, about_photo, contact_email, contact_phone, contact_whatsapp, contact_telegram, social_twitter, social_instagram, social_facebook, social_tiktok, social_youtube, google_business_url, airbnb_url, google_analytics_id, meta_pixel_id, meta_title, meta_description, faqs, created_at")
         .eq("profile_id", user.id)
         .maybeSingle();
 
