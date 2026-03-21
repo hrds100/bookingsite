@@ -20,8 +20,6 @@ export interface NfsOperator {
   contact_email: string | null;
   contact_phone: string | null;
   faqs: { question: string; answer: string }[];
-  onboarding_step: string;
-  onboarding_completed: boolean;
   created_at: string;
 }
 
@@ -72,7 +70,6 @@ export function useNfsOperatorCreate() {
           accent_color: fields.accent_color,
           contact_email: fields.contact_email || user.email,
           contact_phone: fields.contact_phone || null,
-          onboarding_completed: true,
         })
         .select()
         .single();
