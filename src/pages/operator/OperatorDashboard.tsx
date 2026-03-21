@@ -3,9 +3,11 @@ import { Building2, CalendarDays, TrendingUp, Star, ArrowUpRight, Plus } from "l
 import { Button } from "@/components/ui/button";
 import { NfsStatusBadge } from "@/components/nfs/NfsStatusBadge";
 import { mockOperatorStats, mockMonthlyRevenue, mockOccupancyData } from "@/data/mock-operator";
-import { mockReservations, getReservationProperty } from "@/data/mock-reservations";
+import { getReservationProperty } from "@/data/mock-reservations";
 import { useCurrency } from "@/contexts/CurrencyContext";
-import { useNfsOperator } from "@/hooks/useNfsOperator";
+import { useAuth } from "@/hooks/useAuth";
+import { useNfsOperator, useNfsOperatorProperties } from "@/hooks/useNfsOperator";
+import { useNfsOperatorReservations } from "@/hooks/useNfsReservations";
 import { format, parseISO } from "date-fns";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line } from "recharts";
 
@@ -13,14 +15,20 @@ const stats = mockOperatorStats;
 
 export default function OperatorDashboard() {
   const { formatPrice } = useCurrency();
+  const { operatorId } = useAuth();
   const { data: operator } = useNfsOperator();
-  const recentReservations = mockReservations.slice(0, 5);
+  const { data: realProperties } = useNfsOperatorProperties(operatorId);
+  const { data: realReservations } = useNfsOperatorReservations(operatorId);
+  const recentReservations = (realReservations ?? []).slice(0, 5);
+
+  const propCount = realProperties?.length ?? 0;
+  const resCount = realReservations?.length ?? 0;
 
   const statCards = [
-    { label: "Total Revenue", value: formatPrice(stats.totalRevenue), icon: TrendingUp, change: "+12%", sub: "vs last month" },
-    { label: "Active Listings", value: stats.activeListings, icon: Building2, change: `${stats.totalProperties} total`, sub: "properties" },
-    { label: "Upcoming Bookings", value: stats.upcomingReservations, icon: CalendarDays, change: `${stats.totalReservations} total`, sub: "reservations" },
-    { label: "Avg Rating", value: stats.averageRating, icon: Star, change: `${stats.occupancyRate}%`, sub: "occupancy" },
+    { label: "Total Revenue", value: formatPrice(0), icon: TrendingUp, change: "—", sub: "coming soon" },
+    { label: "Active Listings", value: propCount, icon: Building2, change: `${propCount} total`, sub: "properties" },
+    { label: "Reservations", value: resCount, icon: CalendarDays, change: `${resCount} total`, sub: "reservations" },
+    { label: "Avg Rating", value: "—", icon: Star, change: "—", sub: "coming soon" },
   ];
 
   return (
