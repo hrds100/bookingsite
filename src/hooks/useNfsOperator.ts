@@ -34,7 +34,7 @@ export function useNfsOperator() {
 
       const { data, error } = await supabase
         .from("nfs_operators")
-        .select("*")
+        .select("id, profile_id, brand_name, subdomain, custom_domain, accent_color, logo_url, hero_photo, hero_headline, hero_subheadline, about_bio, about_photo, contact_email, contact_phone, faqs, created_at")
         .eq("profile_id", user.id)
         .maybeSingle();
 
@@ -72,14 +72,12 @@ export function useNfsOperatorCreate() {
       if (fields.contact_email) row.contact_email = fields.contact_email;
       if (fields.contact_phone) row.contact_phone = fields.contact_phone;
 
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from("nfs_operators")
-        .insert(row)
-        .select()
-        .single();
+        .insert(row);
 
       if (error) throw error;
-      return data;
+      return row;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["nfs-operator"] });
