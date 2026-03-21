@@ -17,10 +17,8 @@ export default function OperatorReservations() {
   const { data: realReservations } = useNfsOperatorReservations(operatorId);
   const [search, setSearch] = useState("");
 
-  // Use real reservations if available, otherwise mock
-  const all: MockReservation[] = (realReservations && realReservations.length > 0)
-    ? realReservations
-    : mockReservations;
+  // Show operator's real reservations only — no mock fallback
+  const all: MockReservation[] = realReservations ?? [];
 
   const upcoming = all.filter(r => isFuture(parseISO(r.check_in)) && r.status !== 'cancelled');
   const past = all.filter(r => isPast(parseISO(r.check_out)) || r.status === 'completed');

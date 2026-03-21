@@ -19,10 +19,8 @@ export default function OperatorProperties() {
   const [search, setSearch] = useState("");
   const [view, setView] = useState<"table" | "grid">("table");
 
-  // Use real operator properties if available, otherwise fallback to mock
-  const operatorProps = (realProperties && realProperties.length > 0)
-    ? realProperties
-    : mockProperties.slice(0, 6);
+  // Show operator's real properties only — no mock fallback for real operators
+  const operatorProps = realProperties ?? [];
 
   const filtered = operatorProps.filter((p: any) =>
     p.public_title?.toLowerCase().includes(search.toLowerCase()) ||
