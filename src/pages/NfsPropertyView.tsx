@@ -1,17 +1,17 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useRecentlyViewed } from "@/hooks/useRecentlyViewed";
-import { ArrowLeft, Share2, Heart, MapPin, Users, BedDouble, Bath, ChevronLeft, ChevronRight, X, Check, ShieldCheck, Clock, PawPrint, Search } from "lucide-react";
+import { ArrowLeft, Share2, Heart, MapPin, Users, BedDouble, Bath, ChevronLeft, ChevronRight, X, Check, ShieldCheck, Clock, PawPrint, Search, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { mockProperties } from "@/data/mock-properties";
 import { CURRENCIES, CANCELLATION_POLICIES } from "@/lib/constants";
 import { NfsBookingWidget } from "@/components/nfs/NfsBookingWidget";
 import { NfsEmptyState } from "@/components/nfs/NfsEmptyState";
+import { useNfsProperty } from "@/hooks/useNfsProperties";
 
 export default function NfsPropertyView() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const property = mockProperties.find(p => p.id === id);
+  const { data: property, isLoading } = useNfsProperty(id);
 
   const [showMore, setShowMore] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -27,6 +27,14 @@ export default function NfsPropertyView() {
     if (id) addViewed(id);
   }, [id, addViewed]);
 
+  if (isLoading) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-16 flex items-center justify-center">
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
   if (!property) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-16">
@@ -35,16 +43,17 @@ export default function NfsPropertyView() {
     );
   }
 
-  const sortedImages = [...property.images].sort((a, b) => {
+  const rawImages = Array.isArray(property.images) ? property.images : [];
+  const sortedImages = [...rawImages].sort((a: any, b: any) => {
     if (a.is_cover && !b.is_cover) return -1;
     if (!a.is_cover && b.is_cover) return 1;
-    return a.order - b.order;
+    return (a.order ?? 0) - (b.order ?? 0);
   });
 
   const currency = CURRENCIES.find(c => c.code === property.base_rate_currency);
   const policy = CANCELLATION_POLICIES[property.cancellation_policy as keyof typeof CANCELLATION_POLICIES];
   const isNew = Date.now() - new Date(property.created_at).getTime() < 7 * 24 * 60 * 60 * 1000;
-  const amenityList = Object.entries(property.amenities).filter(([, v]) => v).map(([k]) => k);
+  const amenityList = Object.entries(property.amenities ?? {}).filter(([, v]) => v).map(([k]) => k);
 
   const toggleFavourite = () => {
     const favs: string[] = JSON.parse(localStorage.getItem('nfs_favourites') || '[]');
@@ -140,8 +149,8 @@ export default function NfsPropertyView() {
           </div>
           <div className="flex gap-6 text-sm">
             <div className="flex items-center gap-2"><Users className="w-4 h-4 text-muted-foreground" />{property.max_guests} guests</div>
-            <div className="flex items-center gap-2"><BedDouble className="w-4 h-4 text-muted-foreground" />{property.room_counts.bedrooms} bedrooms</div>
-            <div className="flex items-center gap-2"><Bath className="w-4 h-4 text-muted-foreground" />{property.room_counts.bathrooms} bathrooms</div>
+            <div className="flex items-center gap-2"><BedDouble className="w-4 h-4 text-muted-foreground" />{property.room_counts?.bedrooms ?? 0} bedrooms</div>
+            <div className="flex items-center gap-2"><Bath className="w-4 h-4 text-muted-foreground" />{property.room_counts?.bathrooms ?? 0} bathrooms</div>
           </div>
           <hr className="border-border" />
           <div>
