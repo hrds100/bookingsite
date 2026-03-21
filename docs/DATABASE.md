@@ -53,7 +53,7 @@ These files provide fallback data when Supabase tables are empty:
 ## Auth
 
 - **Provider:** Supabase Auth (email/password)
-- **Social login:** Particle Network config ready, not wired to frontend yet
+- **Social login:** Particle Network (Google/Apple) — shared with hub.nfstay.com, uses derivedPassword for cross-domain compatibility
 - **Shared:** Same `auth.users` table as hub.nfstay.com — login works cross-domain
 - **Operator detection:** `useAuth` checks `nfs_operators.profile_id` to set `isOperator`
 - **Admin detection:** Hardcoded admin emails: `admin@hub.nfstay.com`, `hugo@nfstay.com`

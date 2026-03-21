@@ -148,7 +148,7 @@ Data flows through **React Query hooks** that query Supabase. All hooks fall bac
 | Components | shadcn/ui (Radix primitives) |
 | Icons | Lucide React |
 | Data fetching | TanStack React Query 5 |
-| Auth | Supabase Auth (email/password) |
+| Auth | Supabase Auth (email/password + Particle social login) |
 | Database | Supabase (PostgreSQL) |
 | Edge functions | Supabase Edge Functions (Deno) |
 | Payments | Stripe Checkout |

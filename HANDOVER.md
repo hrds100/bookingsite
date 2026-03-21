@@ -44,7 +44,7 @@ Standalone vacation rental booking site for NFStay. Separate from marketplace10 
 
 | Feature | Status | Notes |
 |---------|--------|-------|
-| Social login (Google/Apple) | **DO NOT TOUCH** | Hugo will handle this himself via Particle Network |
+| Social login (Google/Apple) | **LIVE** | Particle Network — primary login method, shared with hub.nfstay.com |
 | Hospitable sync | Not wired | Credentials saved in memory, needs webhook + property import |
 | Property search vs real DB | Mock only | Search filters mock data, not Supabase |
 | Admin dashboard | Mock | Hardcoded stats |
@@ -56,10 +56,10 @@ Standalone vacation rental booking site for NFStay. Separate from marketplace10 
 
 ## DO NOT TOUCH
 
-1. **Social login / Particle Network** — Hugo is handling this himself
-2. **src/pages/NfsCheckoutPage.tsx** — Stripe flow is working, don't break it
-3. **supabase/functions/nfs-create-checkout/** — deployed edge function, working
-4. **marketplace10 repo** — completely separate, don't mix code between repos
+1. **src/pages/NfsCheckoutPage.tsx** — Stripe flow is working, don't break it
+2. **supabase/functions/nfs-create-checkout/** — deployed edge function, working
+3. **marketplace10 repo** — completely separate, don't mix code between repos
+4. **src/lib/particle.ts** — PARTICLE_LEGACY_CONFIG and derivedPassword must never change (cross-domain compatibility)
 
 ---
 

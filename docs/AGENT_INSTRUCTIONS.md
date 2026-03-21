@@ -102,7 +102,7 @@ The site is partially wired to real backend services. Data hooks fall back to mo
 | Operator settings | Real — saves to nfs_operators |
 | Operator reservations | Real — queries nfs_reservations (falls back to mock) |
 | Admin dashboard | Mock — hardcoded stats |
-| Social login (Google/Apple) | Not wired — Particle config ready |
+| Social login (Google/Apple) | Real — Particle Network OAuth (shared with hub.nfstay.com) |
 | Hospitable sync | Not wired — credentials saved |
 | Email notifications | Real — n8n webhook on booking confirm (Resend API) |
 | Property create/edit form | UI exists, not saving to DB |
