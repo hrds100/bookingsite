@@ -163,7 +163,16 @@ export function NfsMainNavbar() {
             </>
           )}
           <hr className="border-border" />
-          <Link to="/signin" className="block text-sm font-medium text-foreground py-2" onClick={() => setMobileOpen(false)}>Sign in</Link>
+          {user ? (
+            <button
+              onClick={() => { signOut(); setMobileOpen(false); }}
+              className="block text-sm font-medium text-foreground py-2 w-full text-left"
+            >
+              Sign out
+            </button>
+          ) : (
+            <Link to="/signin" className="block text-sm font-medium text-foreground py-2" onClick={() => setMobileOpen(false)}>Sign in</Link>
+          )}
           {!isWhiteLabel && (
             <Button asChild className="w-full rounded-lg" onClick={() => setMobileOpen(false)}>
               <Link to="/signup">List your property</Link>

@@ -4,9 +4,10 @@ import { CalendarDays, MapPin, Users, ChevronRight } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { NfsStatusBadge } from "@/components/nfs/NfsStatusBadge";
 import { NfsEmptyState } from "@/components/nfs/NfsEmptyState";
-import { mockReservations, getReservationProperty, MockReservation } from "@/data/mock-reservations";
+import { getReservationProperty, MockReservation } from "@/data/mock-reservations";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { useAuth } from "@/hooks/useAuth";
+import { useNfsReservations } from "@/hooks/useNfsReservations";
 
 function ReservationCard({ r }: { r: MockReservation }) {
   const { formatPrice } = useCurrency();
@@ -35,8 +36,9 @@ function ReservationCard({ r }: { r: MockReservation }) {
 
 export default function TravelerReservations() {
   const { user, loading } = useAuth();
+  const { data: reservations, isLoading: reservationsLoading } = useNfsReservations(user?.email ?? undefined);
 
-  if (loading) {
+  if (loading || reservationsLoading) {
     return (
       <div className="min-h-[50vh] flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
@@ -48,7 +50,7 @@ export default function TravelerReservations() {
     return <Navigate to="/signin" replace />;
   }
 
-  const all = mockReservations;
+  const all = reservations ?? [];
   const upcoming = all.filter(r => isFuture(parseISO(r.check_in)) && r.status !== 'cancelled');
   const past = all.filter(r => isPast(parseISO(r.check_out)) || r.status === 'completed');
   const cancelled = all.filter(r => r.status === 'cancelled');
