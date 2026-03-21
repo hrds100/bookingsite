@@ -4,14 +4,12 @@ import { mockReservations, type MockReservation } from "@/data/mock-reservations
 
 const SUPABASE_CONFIGURED = !!import.meta.env.VITE_SUPABASE_URL && !!import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-/** Fetch reservations for current user (traveler) — falls back to mock */
+/** Fetch reservations for current user (traveler) */
 export function useNfsReservations(guestEmail?: string) {
   return useQuery({
     queryKey: ["nfs-reservations", guestEmail],
     queryFn: async (): Promise<MockReservation[]> => {
-      if (!SUPABASE_CONFIGURED) return mockReservations;
-
-      if (!guestEmail) return mockReservations;
+      if (!SUPABASE_CONFIGURED || !guestEmail) return [];
 
       const { data, error } = await supabase
         .from("nfs_reservations")
@@ -19,10 +17,7 @@ export function useNfsReservations(guestEmail?: string) {
         .eq("guest_email", guestEmail)
         .order("created_at", { ascending: false });
 
-      if (error || !data || data.length === 0) {
-        return mockReservations;
-      }
-
+      if (error || !data) return [];
       return data as unknown as MockReservation[];
     },
     staleTime: 30_000,
@@ -34,7 +29,7 @@ export function useNfsOperatorReservations(operatorId?: string | null) {
   return useQuery({
     queryKey: ["nfs-operator-reservations", operatorId],
     queryFn: async (): Promise<MockReservation[]> => {
-      if (!SUPABASE_CONFIGURED || !operatorId) return mockReservations;
+      if (!SUPABASE_CONFIGURED || !operatorId) return [];
 
       const { data, error } = await supabase
         .from("nfs_reservations")
@@ -42,10 +37,7 @@ export function useNfsOperatorReservations(operatorId?: string | null) {
         .eq("nfs_properties.operator_id", operatorId)
         .order("created_at", { ascending: false });
 
-      if (error || !data || data.length === 0) {
-        return mockReservations;
-      }
-
+      if (error || !data) return [];
       return data as unknown as MockReservation[];
     },
     enabled: !!operatorId,
