@@ -5,6 +5,7 @@ import { NfsStatusBadge } from "@/components/nfs/NfsStatusBadge";
 import { mockOperatorStats, mockMonthlyRevenue, mockOccupancyData } from "@/data/mock-operator";
 import { mockReservations, getReservationProperty } from "@/data/mock-reservations";
 import { useCurrency } from "@/contexts/CurrencyContext";
+import { useNfsOperator } from "@/hooks/useNfsOperator";
 import { format, parseISO } from "date-fns";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line } from "recharts";
 
@@ -12,6 +13,7 @@ const stats = mockOperatorStats;
 
 export default function OperatorDashboard() {
   const { formatPrice } = useCurrency();
+  const { data: operator } = useNfsOperator();
   const recentReservations = mockReservations.slice(0, 5);
 
   const statCards = [
@@ -26,7 +28,9 @@ export default function OperatorDashboard() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-sm text-muted-foreground">Welcome back! Here's your property overview.</p>
+          <p className="text-sm text-muted-foreground">
+            Welcome back{operator?.brand_name ? `, ${operator.brand_name}` : ""}! Here's your property overview.
+          </p>
         </div>
         <Button asChild className="rounded-lg gap-2">
           <Link to="/nfstay/properties/new"><Plus className="w-4 h-4" /> Add Property</Link>

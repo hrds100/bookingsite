@@ -1,31 +1,96 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Building2, CreditCard, User, CheckCircle2, ArrowRight, ArrowLeft } from "lucide-react";
+import { useNavigate, Navigate } from "react-router-dom";
+import { Building2, Palette, User, CheckCircle2, ArrowRight, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { PROPERTY_TYPES } from "@/lib/constants";
 import { toast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import { useNfsOperatorCreate } from "@/hooks/useNfsOperator";
+
+const ACCENT_COLORS = [
+  { label: "Green", value: "#22c55e" },
+  { label: "Orange", value: "#f97316" },
+  { label: "Blue", value: "#3b82f6" },
+  { label: "Purple", value: "#8b5cf6" },
+  { label: "Red", value: "#ef4444" },
+  { label: "Teal", value: "#14b8a6" },
+];
 
 const steps = [
-  { icon: User, label: "Business Info" },
-  { icon: Building2, label: "First Property" },
-  { icon: CreditCard, label: "Payout Setup" },
+  { icon: User, label: "Brand Info" },
+  { icon: Building2, label: "Subdomain" },
+  { icon: Palette, label: "Branding" },
   { icon: CheckCircle2, label: "Complete" },
 ];
 
 export default function OperatorOnboarding() {
   const navigate = useNavigate();
+  const { user, loading, isOperator } = useAuth();
+  const createOperator = useNfsOperatorCreate();
   const [step, setStep] = useState(0);
+  const [saving, setSaving] = useState(false);
+
+  // Form state
+  const [brandName, setBrandName] = useState("");
+  const [contactEmail, setContactEmail] = useState("");
+  const [contactPhone, setContactPhone] = useState("");
+  const [subdomain, setSubdomain] = useState("");
+  const [accentColor, setAccentColor] = useState("#22c55e");
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/signin" replace />;
+  }
+
+  // Already an operator — go to dashboard
+  if (isOperator) {
+    return <Navigate to="/nfstay" replace />;
+  }
+
+  const subdomainSlug = subdomain.toLowerCase().replace(/[^a-z0-9-]/g, "");
+
+  const canFinish = brandName.trim().length >= 2 && subdomainSlug.length >= 3;
+
+  const finish = async () => {
+    if (!canFinish) {
+      toast({ title: "Missing info", description: "Please fill in brand name and subdomain.", variant: "destructive" });
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await createOperator.mutateAsync({
+        brand_name: brandName.trim(),
+        subdomain: subdomainSlug,
+        accent_color: accentColor,
+        contact_email: contactEmail || undefined,
+        contact_phone: contactPhone || undefined,
+      });
+      toast({ title: "Welcome aboard! 🎉", description: "Your operator account is ready." });
+      // Force page reload to re-check operator status in useAuth
+      window.location.href = "/nfstay";
+    } catch (err: any) {
+      const msg = err?.message || "Failed to create operator account";
+      if (msg.includes("duplicate") || msg.includes("unique")) {
+        toast({ title: "Subdomain taken", description: "That subdomain is already in use. Please choose another.", variant: "destructive" });
+      } else {
+        toast({ title: "Error", description: msg, variant: "destructive" });
+      }
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const next = () => setStep(s => Math.min(s + 1, 3));
   const prev = () => setStep(s => Math.max(s - 1, 0));
-
-  const finish = () => {
-    toast({ title: "Welcome aboard! 🎉", description: "Your operator account is ready." });
-    navigate("/nfstay");
-  };
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -33,7 +98,7 @@ export default function OperatorOnboarding() {
       <header className="border-b border-border bg-card">
         <div className="max-w-3xl mx-auto px-4 h-16 flex items-center justify-between">
           <span className="text-lg font-bold">NF<span className="text-primary">Stay</span></span>
-          <span className="text-sm text-muted-foreground">Operator Onboarding</span>
+          <span className="text-sm text-muted-foreground">Set up your operator account</span>
         </div>
       </header>
 
@@ -55,58 +120,108 @@ export default function OperatorOnboarding() {
           ))}
         </div>
 
-        {/* Step 0: Business Info */}
+        {/* Step 0: Brand Info */}
         {step === 0 && (
           <div className="bg-card border border-border rounded-2xl p-6 space-y-5">
             <div>
               <h2 className="text-xl font-bold">Tell us about your business</h2>
-              <p className="text-sm text-muted-foreground mt-1">This information will be used for your operator profile and guest communications.</p>
+              <p className="text-sm text-muted-foreground mt-1">This creates your operator profile. You can update these later in Settings.</p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="md:col-span-2"><Label>Business Name</Label><Input placeholder="Sunset Properties Ltd" className="mt-1.5" /></div>
-              <div><Label>Contact Email</Label><Input type="email" placeholder="hello@company.com" className="mt-1.5" /></div>
-              <div><Label>Phone Number</Label><Input placeholder="+44 20 7946 0958" className="mt-1.5" /></div>
-              <div className="md:col-span-2"><Label>Website (optional)</Label><Input placeholder="https://company.com" className="mt-1.5" /></div>
+              <div className="md:col-span-2">
+                <Label>Brand Name *</Label>
+                <Input
+                  value={brandName}
+                  onChange={e => setBrandName(e.target.value)}
+                  placeholder="e.g. Sunset Stays"
+                  className="mt-1.5"
+                />
+              </div>
+              <div>
+                <Label>Contact Email</Label>
+                <Input
+                  type="email"
+                  value={contactEmail}
+                  onChange={e => setContactEmail(e.target.value)}
+                  placeholder={user.email || "hello@company.com"}
+                  className="mt-1.5"
+                />
+              </div>
+              <div>
+                <Label>Phone Number</Label>
+                <Input
+                  value={contactPhone}
+                  onChange={e => setContactPhone(e.target.value)}
+                  placeholder="+44 20 7946 0958"
+                  className="mt-1.5"
+                />
+              </div>
             </div>
           </div>
         )}
 
-        {/* Step 1: First Property */}
+        {/* Step 1: Subdomain */}
         {step === 1 && (
           <div className="bg-card border border-border rounded-2xl p-6 space-y-5">
             <div>
-              <h2 className="text-xl font-bold">Add your first property</h2>
-              <p className="text-sm text-muted-foreground mt-1">You can add more properties later from your dashboard.</p>
+              <h2 className="text-xl font-bold">Choose your subdomain</h2>
+              <p className="text-sm text-muted-foreground mt-1">Guests will visit this URL to see your properties and book directly.</p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="md:col-span-2"><Label>Property Name</Label><Input placeholder="Marina View Apartment" className="mt-1.5" /></div>
-              <div>
-                <Label>Property Type</Label>
-                <Select><SelectTrigger className="mt-1.5"><SelectValue placeholder="Select" /></SelectTrigger>
-                  <SelectContent>{PROPERTY_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
-                </Select>
+            <div>
+              <Label>Subdomain *</Label>
+              <div className="flex items-center gap-0 mt-1.5">
+                <Input
+                  value={subdomain}
+                  onChange={e => setSubdomain(e.target.value)}
+                  placeholder="sunset"
+                  className="rounded-r-none"
+                />
+                <span className="inline-flex items-center px-3 h-9 border border-l-0 border-border rounded-r-md bg-muted text-sm text-muted-foreground whitespace-nowrap">
+                  .nfstay.app
+                </span>
               </div>
-              <div><Label>City</Label><Input placeholder="Dubai" className="mt-1.5" /></div>
-              <div><Label>Country</Label><Input placeholder="UAE" className="mt-1.5" /></div>
-              <div><Label>Base Rate (£/night)</Label><Input type="number" placeholder="150" className="mt-1.5" /></div>
+              {subdomainSlug && (
+                <p className="text-xs text-muted-foreground mt-2">
+                  Your site: <span className="font-medium text-foreground">{subdomainSlug}.nfstay.app</span>
+                </p>
+              )}
+              {subdomain && subdomainSlug.length < 3 && (
+                <p className="text-xs text-destructive mt-1">Subdomain must be at least 3 characters.</p>
+              )}
             </div>
           </div>
         )}
 
-        {/* Step 2: Payout */}
+        {/* Step 2: Branding */}
         {step === 2 && (
           <div className="bg-card border border-border rounded-2xl p-6 space-y-5">
             <div>
-              <h2 className="text-xl font-bold">Set up payouts</h2>
-              <p className="text-sm text-muted-foreground mt-1">Connect your Stripe account to receive payouts from guest bookings.</p>
+              <h2 className="text-xl font-bold">Pick your brand colour</h2>
+              <p className="text-sm text-muted-foreground mt-1">This colour will be used for buttons and accents on your white-label site.</p>
             </div>
-            <div className="bg-accent-light border border-primary/20 rounded-xl p-6 text-center">
-              <CreditCard className="w-10 h-10 text-primary mx-auto mb-3" />
-              <h3 className="font-semibold mb-1">Connect with Stripe</h3>
-              <p className="text-sm text-muted-foreground mb-4">Secure payment processing with automatic payouts after guest check-out.</p>
-              <Button className="rounded-lg">Connect Stripe Account</Button>
+            <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+              {ACCENT_COLORS.map(c => (
+                <button
+                  key={c.value}
+                  onClick={() => setAccentColor(c.value)}
+                  className={`flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-colors ${
+                    accentColor === c.value ? 'border-foreground' : 'border-border hover:border-foreground/30'
+                  }`}
+                >
+                  <div className="w-8 h-8 rounded-full" style={{ backgroundColor: c.value }} />
+                  <span className="text-xs text-muted-foreground">{c.label}</span>
+                </button>
+              ))}
             </div>
-            <p className="text-xs text-muted-foreground text-center">You can skip this step and set up payouts later in Settings.</p>
+            <div>
+              <Label>Or enter a custom hex</Label>
+              <Input
+                value={accentColor}
+                onChange={e => setAccentColor(e.target.value)}
+                placeholder="#22c55e"
+                className="mt-1.5 max-w-xs"
+              />
+            </div>
           </div>
         )}
 
@@ -116,20 +231,36 @@ export default function OperatorOnboarding() {
             <div className="w-16 h-16 rounded-full bg-accent-light flex items-center justify-center mx-auto">
               <CheckCircle2 className="w-8 h-8 text-primary" />
             </div>
-            <h2 className="text-xl font-bold">You're all set!</h2>
-            <p className="text-sm text-muted-foreground max-w-md mx-auto">Your operator account is ready. Head to your dashboard to manage properties, view reservations, and customise your branding.</p>
-            <Button onClick={finish} className="rounded-lg gap-2">Go to Dashboard <ArrowRight className="w-4 h-4" /></Button>
+            <h2 className="text-xl font-bold">Ready to go!</h2>
+            <p className="text-sm text-muted-foreground max-w-md mx-auto">
+              We'll create your operator account as <strong>{brandName || "your brand"}</strong> at{" "}
+              <strong>{subdomainSlug || "___"}.nfstay.app</strong>.
+            </p>
+            {!canFinish && (
+              <p className="text-sm text-destructive">
+                Please go back and fill in brand name (step 1) and subdomain (step 2).
+              </p>
+            )}
+            <Button
+              onClick={finish}
+              disabled={!canFinish || saving}
+              className="rounded-lg gap-2"
+            >
+              {saving ? "Creating..." : "Create my account"}
+              {!saving && <ArrowRight className="w-4 h-4" />}
+            </Button>
           </div>
         )}
 
         {/* Navigation */}
         {step < 3 && (
           <div className="flex items-center justify-between mt-6">
-            <Button variant="ghost" onClick={prev} disabled={step === 0} className="gap-2 rounded-lg"><ArrowLeft className="w-4 h-4" /> Back</Button>
-            <div className="flex gap-3">
-              {step < 2 && <Button variant="ghost" onClick={() => setStep(3)} className="rounded-lg text-muted-foreground">Skip for now</Button>}
-              <Button onClick={next} className="rounded-lg gap-2">Continue <ArrowRight className="w-4 h-4" /></Button>
-            </div>
+            <Button variant="ghost" onClick={prev} disabled={step === 0} className="gap-2 rounded-lg">
+              <ArrowLeft className="w-4 h-4" /> Back
+            </Button>
+            <Button onClick={next} className="rounded-lg gap-2">
+              Continue <ArrowRight className="w-4 h-4" />
+            </Button>
           </div>
         )}
       </div>
