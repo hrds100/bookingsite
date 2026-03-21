@@ -745,9 +745,16 @@ export default function OperatorSettings() {
                 <Input value="Stripe Connect" disabled className="mt-1.5 bg-muted" />
               </div>
             </div>
-            <div className="bg-accent border border-primary/20 rounded-xl p-4">
-              <p className="text-sm text-primary font-medium">Stripe Connect setup</p>
-              <p className="text-xs text-muted-foreground mt-1">Connect your Stripe account to receive payouts from guest bookings.</p>
+            <div className="bg-primary rounded-xl p-4">
+              <p className="text-sm text-primary-foreground font-medium">Stripe Connect setup</p>
+              <p className="text-xs text-primary-foreground/80 mt-1">Connect your Stripe account to receive payouts from guest bookings.</p>
+              <Button
+                variant="secondary"
+                className="mt-3 rounded-lg"
+                onClick={() => toast({ title: "Coming soon", description: "Stripe Connect integration coming soon." })}
+              >
+                Connect Stripe
+              </Button>
             </div>
           </section>
         </TabsContent>

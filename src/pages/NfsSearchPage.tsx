@@ -5,7 +5,7 @@ import { NfsPropertyCard } from "@/components/nfs/NfsPropertyCard";
 import { NfsSearchFilters } from "@/components/nfs/NfsSearchFilters";
 import { NfsSearchMap } from "@/components/nfs/NfsSearchMap";
 import { NfsEmptyState } from "@/components/nfs/NfsEmptyState";
-import { useWhiteLabelMockProperties } from "@/hooks/useWhiteLabelProperties";
+import { useWhiteLabelProperties } from "@/hooks/useWhiteLabelProperties";
 
 export default function NfsSearchPage() {
   const [searchParams] = useSearchParams();
@@ -16,7 +16,7 @@ export default function NfsSearchPage() {
   const [bedrooms, setBedrooms] = useState(0);
   const [sortBy, setSortBy] = useState('relevant');
   const [hoveredId, setHoveredId] = useState<string | null>(null);
-  const scopedProperties = useWhiteLabelMockProperties();
+  const { data: scopedProperties = [] } = useWhiteLabelProperties();
 
   const query = searchParams.get('query') || '';
 

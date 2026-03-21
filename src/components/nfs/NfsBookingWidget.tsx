@@ -63,7 +63,12 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
     navigate('/checkout');
   };
 
-  const Stepper = ({ label, sub, value, onChange, min = 0 }: { label: string; sub: string; value: number; onChange: (v: number) => void; min?: number }) => (
+  const totalGuests = adults + children;
+  const atMaxGuests = totalGuests >= property.max_guests;
+
+  const belowMinStay = nights > 0 && nights < property.minimum_stay;
+
+  const Stepper = ({ label, sub, value, onChange, min = 0, disableIncrement = false }: { label: string; sub: string; value: number; onChange: (v: number) => void; min?: number; disableIncrement?: boolean }) => (
     <div className="flex items-center justify-between py-2">
       <div>
         <p className="text-sm font-medium">{label}</p>
@@ -72,7 +77,7 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
       <div className="flex items-center gap-3">
         <button onClick={() => onChange(Math.max(min, value - 1))} disabled={value <= min} className="w-7 h-7 rounded-full border border-border flex items-center justify-center disabled:opacity-30"><Minus className="w-3 h-3" /></button>
         <span className="text-sm w-3 text-center">{value}</span>
-        <button onClick={() => onChange(value + 1)} className="w-7 h-7 rounded-full border border-border flex items-center justify-center"><Plus className="w-3 h-3" /></button>
+        <button onClick={() => onChange(value + 1)} disabled={disableIncrement} className="w-7 h-7 rounded-full border border-border flex items-center justify-center disabled:opacity-30"><Plus className="w-3 h-3" /></button>
       </div>
     </div>
   );
@@ -120,7 +125,7 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
       <Popover open={guestsOpen} onOpenChange={setGuestsOpen}>
         <PopoverTrigger asChild>
           <button className="w-full border border-border rounded-xl p-3 text-left mb-4">
-            <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block">Guests</label>
+            <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block">Guests (max {property.max_guests})</label>
             <div className="flex items-center gap-2 mt-0.5">
               <Users className="w-4 h-4 text-muted-foreground" />
               <span className="text-sm">{adults + children} guest{adults + children !== 1 ? 's' : ''}</span>
@@ -128,8 +133,8 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
           </button>
         </PopoverTrigger>
         <PopoverContent className="w-72 p-4">
-          <Stepper label="Adults" sub="Ages 13+" value={adults} onChange={setAdults} min={1} />
-          <Stepper label="Children" sub="Ages 2–12" value={children} onChange={setChildren} />
+          <Stepper label="Adults" sub="Ages 13+" value={adults} onChange={setAdults} min={1} disableIncrement={atMaxGuests} />
+          <Stepper label="Children" sub="Ages 2-12" value={children} onChange={setChildren} disableIncrement={atMaxGuests} />
         </PopoverContent>
       </Popover>
 
@@ -183,9 +188,15 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
         </div>
       )}
 
+      {belowMinStay && (
+        <p className="text-center text-xs text-destructive mb-2 font-medium">
+          Minimum stay is {property.minimum_stay} nights
+        </p>
+      )}
+
       <Button
         onClick={handleReserve}
-        disabled={!nights}
+        disabled={!nights || belowMinStay}
         className="w-full rounded-xl py-3 text-base font-semibold"
         size="lg"
       >

@@ -15,7 +15,14 @@ export interface PropertyFields {
   lat: number | null;
   lng: number | null;
   max_guests: number;
-  room_counts: { bedrooms: number; beds: number; bathrooms: number };
+  room_counts: {
+    bedrooms: number;
+    beds: number;
+    bathrooms: number;
+    bed_details?: { type: string; count: number }[];
+    bathroom_details?: { type: "ensuite" | "shared" }[];
+    extra_rooms?: string[];
+  };
   base_rate_amount: number;
   base_rate_currency: string;
   cleaning_fee: { enabled: boolean; amount: number };
