@@ -8,26 +8,40 @@ import { mockOperatorProfile } from "@/data/mock-operator";
 import { toast } from "@/hooks/use-toast";
 import { useNfsOperator, useNfsOperatorUpdate } from "@/hooks/useNfsOperator";
 
+const EMPTY_PROFILE = {
+  ...mockOperatorProfile,
+  brand_name: "",
+  contact_email: "",
+  contact_phone: "",
+  website: "",
+  subdomain: "",
+  custom_domain: "",
+  accent_color: "#22c55e",
+  payout_email: "",
+};
+
 export default function OperatorSettings() {
   const { data: operator } = useNfsOperator();
   const updateOperator = useNfsOperatorUpdate();
-  const [profile, setProfile] = useState(mockOperatorProfile);
+  const [profile, setProfile] = useState(EMPTY_PROFILE);
   const [saving, setSaving] = useState(false);
+  const [synced, setSynced] = useState(false);
 
-  // Sync from Supabase operator data when available
+  // Sync from real operator data — only runs once when data arrives
   useEffect(() => {
-    if (operator) {
+    if (operator && !synced) {
       setProfile(prev => ({
         ...prev,
-        brand_name: operator.brand_name || prev.brand_name,
-        contact_email: operator.contact_email || prev.contact_email,
-        contact_phone: operator.contact_phone || prev.contact_phone,
-        subdomain: operator.subdomain || prev.subdomain,
-        custom_domain: operator.custom_domain || prev.custom_domain,
-        accent_color: operator.accent_color || prev.accent_color,
+        brand_name: operator.brand_name || "",
+        contact_email: operator.contact_email || "",
+        contact_phone: operator.contact_phone || "",
+        subdomain: operator.subdomain || "",
+        custom_domain: operator.custom_domain || "",
+        accent_color: operator.accent_color || "#22c55e",
       }));
+      setSynced(true);
     }
-  }, [operator]);
+  }, [operator, synced]);
 
   const handleSave = async () => {
     setSaving(true);
