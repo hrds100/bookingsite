@@ -60,7 +60,7 @@ git push origin main # auto-deploys to Vercel → nfstay.app
 | Email notifications | Real — n8n webhook on booking confirm (fire-and-forget) |
 | Property search/filters | Mock — client-side filtering of mock data |
 | Admin dashboard | Mock — hardcoded stats |
-| Social login (Google/Apple) | Not wired yet — Particle config ready |
+| Social login (Google/Apple) | Real — Particle Network (same accounts as hub.nfstay.com) |
 | Hospitable sync | Not wired yet — credentials saved |
 
 ## Domains

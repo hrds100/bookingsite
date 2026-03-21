@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
+import { socialLogin, derivedPassword, particleLogout, type SocialType } from "@/lib/particle";
 import type { User, Session } from "@supabase/supabase-js";
 
 interface AuthState {
@@ -91,7 +92,65 @@ export function useAuth() {
     return { data, error };
   }, []);
 
+  const signInWithSocial = useCallback(async (type: SocialType) => {
+    // Particle opens OAuth popup → returns userInfo with uuid + email
+    const userInfo = await socialLogin(type);
+    const uuid = userInfo.uuid;
+    const email =
+      userInfo.google_email ||
+      userInfo.apple_email ||
+      userInfo.facebook_email ||
+      userInfo.email ||
+      `${uuid}@particle.nfstay.app`;
+    const password = derivedPassword(uuid);
+    const displayName = userInfo.name || email.split("@")[0];
+
+    // Try signing in first (existing account)
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (signInError) {
+      // Account doesn't exist — create it
+      const { error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { name: displayName },
+          emailRedirectTo: window.location.origin,
+        },
+      });
+
+      if (signUpError) {
+        return { error: signUpError };
+      }
+
+      // Sign in with the new account
+      const { error: retryError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (retryError) {
+        return { error: retryError };
+      }
+    }
+
+    // Update profile with social auth method
+    const { data: { user: currentUser } } = await supabase.auth.getUser();
+    if (currentUser) {
+      await supabase
+        .from("profiles")
+        .update({ wallet_auth_method: type })
+        .eq("id", currentUser.id);
+    }
+
+    return { error: null };
+  }, []);
+
   const signOut = useCallback(async () => {
+    await particleLogout();
     await supabase.auth.signOut();
     setState({
       user: null,
@@ -111,5 +170,5 @@ export function useAuth() {
     return { data, error };
   }, []);
 
-  return { ...state, signUp, signIn, signOut, setSession };
+  return { ...state, signUp, signIn, signInWithSocial, signOut, setSession };
 }
