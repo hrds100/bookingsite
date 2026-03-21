@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Upload, X, Loader2 } from "lucide-react";
+import { ArrowLeft, Upload, X, Loader2, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,6 +29,14 @@ const RENTAL_TYPE_OPTIONS = [
 ] as const;
 
 const CURRENCY_OPTIONS = ["GBP", "USD", "EUR"] as const;
+
+const BED_TYPE_OPTIONS = [
+  "Single", "Double", "Queen", "King", "Sofa bed", "Bunk bed",
+] as const;
+
+const EXTRA_ROOM_OPTIONS = [
+  "Living room", "Dining room", "Kitchen", "Office/workspace", "Balcony", "Terrace", "Garden",
+] as const;
 
 const AMENITY_CATEGORIES: Record<string, { label: string; items: { key: string; label: string }[] }> = {
   essentials: {
@@ -86,6 +94,15 @@ interface ImageItem {
   order: number;
 }
 
+interface BedDetail {
+  type: string;
+  count: number;
+}
+
+interface BathroomDetail {
+  type: "ensuite" | "shared";
+}
+
 // --- Component ---
 
 export default function OperatorPropertyForm() {
@@ -115,6 +132,9 @@ export default function OperatorPropertyForm() {
   const [bedrooms, setBedrooms] = useState(1);
   const [beds, setBeds] = useState(1);
   const [bathrooms, setBathrooms] = useState(1);
+  const [bedDetails, setBedDetails] = useState<BedDetail[]>([]);
+  const [bathroomDetails, setBathroomDetails] = useState<BathroomDetail[]>([]);
+  const [extraRooms, setExtraRooms] = useState<string[]>([]);
   const [images, setImages] = useState<ImageItem[]>([]);
   const [amenities, setAmenities] = useState<Record<string, boolean>>({});
   const [baseRateAmount, setBaseRateAmount] = useState<number | "">("");
@@ -169,6 +189,9 @@ export default function OperatorPropertyForm() {
         setBedrooms(rc.bedrooms ?? 1);
         setBeds(rc.beds ?? 1);
         setBathrooms(rc.bathrooms ?? 1);
+        setBedDetails(Array.isArray(rc.bed_details) ? rc.bed_details : []);
+        setBathroomDetails(Array.isArray(rc.bathroom_details) ? rc.bathroom_details : []);
+        setExtraRooms(Array.isArray(rc.extra_rooms) ? rc.extra_rooms : []);
 
         setImages(Array.isArray(data.images) ? data.images : []);
         setAmenities(typeof data.amenities === "object" && data.amenities ? data.amenities : {});
@@ -250,6 +273,51 @@ export default function OperatorPropertyForm() {
     setAmenities((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
+  // Bed details handlers
+  const addBedDetail = () => {
+    setBedDetails((prev) => [...prev, { type: "Double", count: 1 }]);
+  };
+
+  const updateBedDetail = (idx: number, field: keyof BedDetail, value: string | number) => {
+    setBedDetails((prev) => prev.map((bd, i) => i === idx ? { ...bd, [field]: value } : bd));
+  };
+
+  const removeBedDetail = (idx: number) => {
+    setBedDetails((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  // Auto-calculate total beds from bed_details
+  const totalBedsFromDetails = bedDetails.reduce((sum, bd) => sum + bd.count, 0);
+
+  // Sync beds count when bedDetails change
+  useEffect(() => {
+    if (bedDetails.length > 0) {
+      setBeds(totalBedsFromDetails);
+    }
+  }, [totalBedsFromDetails, bedDetails.length]);
+
+  // Bathroom details handlers
+  const addBathroomDetail = () => {
+    setBathroomDetails((prev) => [...prev, { type: "ensuite" }]);
+    setBathrooms((prev) => prev + 1);
+  };
+
+  const updateBathroomDetail = (idx: number, type: "ensuite" | "shared") => {
+    setBathroomDetails((prev) => prev.map((bd, i) => i === idx ? { type } : bd));
+  };
+
+  const removeBathroomDetail = (idx: number) => {
+    setBathroomDetails((prev) => prev.filter((_, i) => i !== idx));
+    setBathrooms((prev) => Math.max(0, prev - 1));
+  };
+
+  // Extra rooms handler
+  const toggleExtraRoom = (room: string) => {
+    setExtraRooms((prev) =>
+      prev.includes(room) ? prev.filter((r) => r !== room) : [...prev, room]
+    );
+  };
+
   const buildFields = (): PropertyFields => ({
     public_title: publicTitle.trim(),
     property_type: propertyType,
@@ -263,7 +331,7 @@ export default function OperatorPropertyForm() {
     lat,
     lng,
     max_guests: maxGuests,
-    room_counts: { bedrooms, beds, bathrooms },
+    room_counts: { bedrooms, beds, bathrooms, bed_details: bedDetails, bathroom_details: bathroomDetails, extra_rooms: extraRooms },
     base_rate_amount: typeof baseRateAmount === "number" ? baseRateAmount : 0,
     base_rate_currency: baseRateCurrency,
     cleaning_fee: { enabled: cleaningFeeEnabled, amount: typeof cleaningFeeAmount === "number" ? cleaningFeeAmount : 0 },
@@ -442,24 +510,32 @@ export default function OperatorPropertyForm() {
               />
             </div>
             <div>
-              <Label>Beds</Label>
+              <Label>Total Beds</Label>
               <Input
                 type="number"
                 min={1}
                 value={beds}
                 onChange={(e) => setBeds(parseInt(e.target.value) || 1)}
                 className="mt-1.5"
+                disabled={bedDetails.length > 0}
               />
+              {bedDetails.length > 0 && (
+                <p className="text-xs text-muted-foreground mt-1">Auto-calculated from bed details</p>
+              )}
             </div>
             <div>
               <Label>Bathrooms</Label>
               <Input
                 type="number"
-                min={1}
+                min={0}
                 value={bathrooms}
-                onChange={(e) => setBathrooms(parseInt(e.target.value) || 1)}
+                onChange={(e) => setBathrooms(parseInt(e.target.value) || 0)}
                 className="mt-1.5"
+                disabled={bathroomDetails.length > 0}
               />
+              {bathroomDetails.length > 0 && (
+                <p className="text-xs text-muted-foreground mt-1">Auto-calculated from bathroom details</p>
+              )}
             </div>
             <div>
               <Label>Max Guests</Label>
@@ -470,6 +546,86 @@ export default function OperatorPropertyForm() {
                 onChange={(e) => setMaxGuests(parseInt(e.target.value) || 1)}
                 className="mt-1.5"
               />
+            </div>
+          </div>
+
+          {/* Bed type breakdown */}
+          <div className="space-y-3 pt-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-medium">Bed Details</Label>
+              <Button type="button" variant="outline" size="sm" className="rounded-lg" onClick={addBedDetail}>
+                <Plus className="w-3.5 h-3.5 mr-1" /> Add bed type
+              </Button>
+            </div>
+            {bedDetails.map((bd, idx) => (
+              <div key={idx} className="flex items-center gap-3">
+                <Select value={bd.type} onValueChange={(v) => updateBedDetail(idx, "type", v)}>
+                  <SelectTrigger className="flex-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {BED_TYPE_OPTIONS.map((t) => (
+                      <SelectItem key={t} value={t}>{t}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Input
+                  type="number"
+                  min={1}
+                  value={bd.count}
+                  onChange={(e) => updateBedDetail(idx, "count", parseInt(e.target.value) || 1)}
+                  className="w-20"
+                />
+                <button type="button" onClick={() => removeBedDetail(idx)} className="p-2 rounded-lg hover:bg-destructive/10 text-destructive">
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+
+          {/* Bathroom details */}
+          <div className="space-y-3 pt-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-medium">Bathroom Details</Label>
+              <Button type="button" variant="outline" size="sm" className="rounded-lg" onClick={addBathroomDetail}>
+                <Plus className="w-3.5 h-3.5 mr-1" /> Add bathroom
+              </Button>
+            </div>
+            {bathroomDetails.map((bd, idx) => (
+              <div key={idx} className="flex items-center gap-3">
+                <Select value={bd.type} onValueChange={(v) => updateBathroomDetail(idx, v as "ensuite" | "shared")}>
+                  <SelectTrigger className="flex-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ensuite">Ensuite</SelectItem>
+                    <SelectItem value="shared">Shared</SelectItem>
+                  </SelectContent>
+                </Select>
+                <span className="text-sm text-muted-foreground whitespace-nowrap">Bathroom {idx + 1}</span>
+                <button type="button" onClick={() => removeBathroomDetail(idx)} className="p-2 rounded-lg hover:bg-destructive/10 text-destructive">
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+
+          {/* Extra rooms */}
+          <div className="space-y-3 pt-2">
+            <Label className="text-sm font-medium">Extra Rooms</Label>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+              {EXTRA_ROOM_OPTIONS.map((room) => (
+                <label
+                  key={room}
+                  className="flex items-center gap-2 cursor-pointer text-sm rounded-lg border border-border px-3 py-2 hover:bg-accent transition-colors"
+                >
+                  <Checkbox
+                    checked={extraRooms.includes(room)}
+                    onCheckedChange={() => toggleExtraRoom(room)}
+                  />
+                  {room}
+                </label>
+              ))}
             </div>
           </div>
         </section>
