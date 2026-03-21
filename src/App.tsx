@@ -4,6 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { CurrencyProvider } from "@/contexts/CurrencyContext";
+import { WhiteLabelProvider } from "@/contexts/WhiteLabelContext";
 import { NfsMainLayout } from "@/components/nfs/NfsMainLayout";
 import { NfsOperatorLayout } from "@/components/nfs/NfsOperatorLayout";
 import { NfsAdminLayout } from "@/components/nfs/NfsAdminLayout";
@@ -43,10 +44,11 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <CurrencyProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
+      <WhiteLabelProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
           <Routes>
             {/* Traveler / Public */}
             <Route element={<NfsMainLayout />}>
@@ -93,8 +95,9 @@ const App = () => (
             <Route path="/verify-email" element={<VerifyEmailPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
+          </BrowserRouter>
+        </TooltipProvider>
+      </WhiteLabelProvider>
     </CurrencyProvider>
   </QueryClientProvider>
 );
