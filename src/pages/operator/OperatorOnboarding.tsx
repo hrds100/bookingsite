@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { useNfsOperatorCreate } from "@/hooks/useNfsOperator";
+import { useNfsOperatorCreate, useNfsOperator } from "@/hooks/useNfsOperator";
 
 const ACCENT_COLORS = [
   { label: "Green", value: "#22c55e" },
@@ -26,8 +26,9 @@ const steps = [
 
 export default function OperatorOnboarding() {
   const navigate = useNavigate();
-  const { user, loading, isOperator } = useAuth();
+  const { user, loading } = useAuth();
   const createOperator = useNfsOperatorCreate();
+  const { data: existingOperator, isFetched: operatorChecked } = useNfsOperator();
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
 
@@ -38,7 +39,7 @@ export default function OperatorOnboarding() {
   const [subdomain, setSubdomain] = useState("");
   const [accentColor, setAccentColor] = useState("#22c55e");
 
-  if (loading) {
+  if (loading || (!!user && !operatorChecked)) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
@@ -51,7 +52,7 @@ export default function OperatorOnboarding() {
   }
 
   // Already an operator — go to dashboard
-  if (isOperator) {
+  if (existingOperator) {
     return <Navigate to="/nfstay" replace />;
   }
 
