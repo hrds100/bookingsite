@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import { format, parseISO, isFuture, isPast } from "date-fns";
 import { CalendarDays, MapPin, Users, ChevronRight } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -6,6 +6,7 @@ import { NfsStatusBadge } from "@/components/nfs/NfsStatusBadge";
 import { NfsEmptyState } from "@/components/nfs/NfsEmptyState";
 import { mockReservations, getReservationProperty, MockReservation } from "@/data/mock-reservations";
 import { useCurrency } from "@/contexts/CurrencyContext";
+import { useAuth } from "@/hooks/useAuth";
 
 function ReservationCard({ r }: { r: MockReservation }) {
   const { formatPrice } = useCurrency();
@@ -33,6 +34,20 @@ function ReservationCard({ r }: { r: MockReservation }) {
 }
 
 export default function TravelerReservations() {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-[50vh] flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/signin" replace />;
+  }
+
   const all = mockReservations;
   const upcoming = all.filter(r => isFuture(parseISO(r.check_in)) && r.status !== 'cancelled');
   const past = all.filter(r => isPast(parseISO(r.check_out)) || r.status === 'completed');

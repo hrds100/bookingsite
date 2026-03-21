@@ -2,6 +2,8 @@ import { createContext, useContext, useState, useEffect, type ReactNode } from "
 import { supabase } from "@/lib/supabase";
 import type { NfsOperator } from "@/hooks/useNfsOperator";
 
+const SUPABASE_CONFIGURED = !!import.meta.env.VITE_SUPABASE_URL && !!import.meta.env.VITE_SUPABASE_ANON_KEY;
+
 interface WhiteLabelState {
   /** The resolved operator for this domain, or null if on the main NFStay site */
   operator: NfsOperator | null;
@@ -69,6 +71,12 @@ export function WhiteLabelProvider({ children }: { children: ReactNode }) {
 
     // Could be a subdomain (sunset.nfstay.app) or custom domain (stays.company.com)
     const subdomain = extractSubdomain(hostname);
+
+    // If Supabase isn't configured, skip the lookup — fall back to main site
+    if (!SUPABASE_CONFIGURED) {
+      setState({ operator: null, loading: false, isWhiteLabel: false });
+      return;
+    }
 
     async function resolveOperator() {
       try {
