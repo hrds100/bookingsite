@@ -1,132 +1,701 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Upload } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { ArrowLeft, Upload, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { PROPERTY_TYPES, RENTAL_TYPES, CANCELLATION_POLICIES } from "@/lib/constants";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
+import { CANCELLATION_POLICIES } from "@/lib/constants";
 import { toast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import { useNfsPropertyCreate, useNfsPropertyUpdate, type PropertyFields } from "@/hooks/useNfsPropertyMutation";
+import { useNfsImageUpload } from "@/hooks/useNfsImageUpload";
+import NfsPlacesAutocomplete, { type PlaceResult } from "@/components/nfs/NfsPlacesAutocomplete";
+import { supabase } from "@/lib/supabase";
+
+// --- Constants ---
+
+const PROPERTY_TYPE_OPTIONS = [
+  "apartment", "house", "villa", "studio", "cabin", "cottage", "townhouse", "condo", "loft", "other",
+] as const;
+
+const RENTAL_TYPE_OPTIONS = [
+  { value: "entire_place", label: "Entire place" },
+  { value: "private_room", label: "Private room" },
+  { value: "shared_room", label: "Shared room" },
+] as const;
+
+const CURRENCY_OPTIONS = ["GBP", "USD", "EUR"] as const;
+
+const AMENITY_CATEGORIES: Record<string, { label: string; items: { key: string; label: string }[] }> = {
+  essentials: {
+    label: "Essentials",
+    items: [
+      { key: "wifi", label: "WiFi" },
+      { key: "parking", label: "Free parking" },
+      { key: "ac", label: "Air conditioning" },
+      { key: "heating", label: "Heating" },
+      { key: "washer", label: "Washer" },
+      { key: "dryer", label: "Dryer" },
+      { key: "kitchen", label: "Kitchen" },
+    ],
+  },
+  safety: {
+    label: "Safety",
+    items: [
+      { key: "smoke_alarm", label: "Smoke alarm" },
+      { key: "fire_extinguisher", label: "Fire extinguisher" },
+      { key: "first_aid", label: "First aid kit" },
+    ],
+  },
+  outdoor: {
+    label: "Outdoor",
+    items: [
+      { key: "pool", label: "Pool" },
+      { key: "hot_tub", label: "Hot tub" },
+      { key: "garden", label: "Garden" },
+      { key: "bbq", label: "BBQ grill" },
+    ],
+  },
+  entertainment: {
+    label: "Entertainment",
+    items: [
+      { key: "tv", label: "TV" },
+      { key: "gym", label: "Gym" },
+      { key: "game_room", label: "Game room" },
+    ],
+  },
+  other: {
+    label: "Other",
+    items: [
+      { key: "elevator", label: "Elevator" },
+      { key: "wheelchair_access", label: "Wheelchair accessible" },
+      { key: "ev_charger", label: "EV charger" },
+    ],
+  },
+};
+
+// --- Types ---
+
+interface ImageItem {
+  url: string;
+  caption: string;
+  order: number;
+}
+
+// --- Component ---
 
 export default function OperatorPropertyForm() {
   const navigate = useNavigate();
-  const [saving, setSaving] = useState(false);
+  const { id } = useParams<{ id: string }>();
+  const isEdit = !!id;
+  const { operatorId } = useAuth();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setSaving(true);
-    setTimeout(() => {
-      setSaving(false);
-      toast({ title: "Property saved", description: "Your property has been created successfully." });
-      navigate("/nfstay/properties");
-    }, 1000);
+  const createMutation = useNfsPropertyCreate();
+  const updateMutation = useNfsPropertyUpdate();
+  const { upload, uploading: imageUploading } = useNfsImageUpload();
+
+  // Form state
+  const [publicTitle, setPublicTitle] = useState("");
+  const [propertyType, setPropertyType] = useState("");
+  const [rentalType, setRentalType] = useState("");
+  const [description, setDescription] = useState("");
+  const [address, setAddress] = useState("");
+  const [city, setCity] = useState("");
+  const [state, setState] = useState("");
+  const [country, setCountry] = useState("");
+  const [postalCode, setPostalCode] = useState("");
+  const [lat, setLat] = useState<number | null>(null);
+  const [lng, setLng] = useState<number | null>(null);
+  const [maxGuests, setMaxGuests] = useState(2);
+  const [bedrooms, setBedrooms] = useState(1);
+  const [beds, setBeds] = useState(1);
+  const [bathrooms, setBathrooms] = useState(1);
+  const [images, setImages] = useState<ImageItem[]>([]);
+  const [amenities, setAmenities] = useState<Record<string, boolean>>({});
+  const [baseRateAmount, setBaseRateAmount] = useState<number | "">("");
+  const [baseRateCurrency, setBaseRateCurrency] = useState("GBP");
+  const [cleaningFeeEnabled, setCleaningFeeEnabled] = useState(false);
+  const [cleaningFeeAmount, setCleaningFeeAmount] = useState<number | "">(0);
+  const [minimumStay, setMinimumStay] = useState(1);
+  const [cancellationPolicy, setCancellationPolicy] = useState("flexible");
+  const [checkInTime, setCheckInTime] = useState("15:00");
+  const [checkOutTime, setCheckOutTime] = useState("11:00");
+  const [rules, setRules] = useState("");
+  const [loadingProperty, setLoadingProperty] = useState(false);
+
+  const saving = createMutation.isPending || updateMutation.isPending;
+
+  // Fetch property for edit mode
+  useEffect(() => {
+    if (!isEdit || !id) return;
+
+    let cancelled = false;
+
+    async function fetchProperty() {
+      setLoadingProperty(true);
+      try {
+        const { data, error } = await (supabase.from("nfs_properties") as any)
+          .select("*")
+          .eq("id", id)
+          .maybeSingle();
+
+        if (error || !data || cancelled) {
+          if (!cancelled) {
+            toast({ title: "Error", description: "Property not found.", variant: "destructive" });
+            navigate("/nfstay/properties");
+          }
+          return;
+        }
+
+        setPublicTitle(data.public_title || "");
+        setPropertyType(data.property_type || "");
+        setRentalType(data.rental_type || "");
+        setDescription(data.description || "");
+        setAddress(data.address || "");
+        setCity(data.city || "");
+        setState(data.state || "");
+        setCountry(data.country || "");
+        setPostalCode(data.postal_code || "");
+        setLat(data.lat ?? null);
+        setLng(data.lng ?? null);
+        setMaxGuests(data.max_guests ?? 2);
+
+        const rc = data.room_counts ?? {};
+        setBedrooms(rc.bedrooms ?? 1);
+        setBeds(rc.beds ?? 1);
+        setBathrooms(rc.bathrooms ?? 1);
+
+        setImages(Array.isArray(data.images) ? data.images : []);
+        setAmenities(typeof data.amenities === "object" && data.amenities ? data.amenities : {});
+        setBaseRateAmount(data.base_rate_amount ?? "");
+        setBaseRateCurrency(data.base_rate_currency || "GBP");
+
+        const cf = data.cleaning_fee ?? {};
+        setCleaningFeeEnabled(cf.enabled ?? false);
+        setCleaningFeeAmount(cf.amount ?? 0);
+
+        setMinimumStay(data.minimum_stay ?? 1);
+        setCancellationPolicy(data.cancellation_policy || "flexible");
+        setCheckInTime(data.check_in_time || "15:00");
+        setCheckOutTime(data.check_out_time || "11:00");
+        setRules(data.rules || "");
+      } catch (err) {
+        if (!cancelled) {
+          toast({ title: "Error", description: "Failed to load property data.", variant: "destructive" });
+        }
+      } finally {
+        if (!cancelled) setLoadingProperty(false);
+      }
+    }
+
+    fetchProperty();
+    return () => { cancelled = true; };
+  }, [id, isEdit, navigate]);
+
+  // --- Handlers ---
+
+  const handlePlaceSelect = (place: PlaceResult) => {
+    setAddress(place.address);
+    setCity(place.city);
+    setState(place.state);
+    setCountry(place.country);
+    setPostalCode(place.postal_code);
+    setLat(place.lat);
+    setLng(place.lng);
   };
 
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || !operatorId) return;
+
+    const propertyId = id || "new";
+
+    for (let i = 0; i < files.length; i++) {
+      try {
+        const url = await upload(files[i], operatorId, propertyId);
+        if (url) {
+          setImages((prev) => [
+            ...prev,
+            { url, caption: "", order: prev.length },
+          ]);
+        }
+      } catch {
+        toast({ title: "Upload failed", description: `Failed to upload ${files[i].name}.`, variant: "destructive" });
+      }
+    }
+
+    // Reset input so same file can be re-selected
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const handleRemoveImage = (idx: number) => {
+    setImages((prev) => prev.filter((_, i) => i !== idx).map((img, i) => ({ ...img, order: i })));
+  };
+
+  const toggleAmenity = (key: string) => {
+    setAmenities((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const buildFields = (): PropertyFields => ({
+    public_title: publicTitle.trim(),
+    property_type: propertyType,
+    rental_type: rentalType,
+    description: description.trim(),
+    address,
+    city,
+    state,
+    country,
+    postal_code: postalCode,
+    lat,
+    lng,
+    max_guests: maxGuests,
+    room_counts: { bedrooms, beds, bathrooms },
+    base_rate_amount: typeof baseRateAmount === "number" ? baseRateAmount : 0,
+    base_rate_currency: baseRateCurrency,
+    cleaning_fee: { enabled: cleaningFeeEnabled, amount: typeof cleaningFeeAmount === "number" ? cleaningFeeAmount : 0 },
+    minimum_stay: minimumStay,
+    cancellation_policy: cancellationPolicy,
+    amenities,
+    images,
+    check_in_time: checkInTime,
+    check_out_time: checkOutTime,
+    rules,
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!publicTitle.trim()) {
+      toast({ title: "Validation error", description: "Property title is required.", variant: "destructive" });
+      return;
+    }
+
+    if (!propertyType) {
+      toast({ title: "Validation error", description: "Please select a property type.", variant: "destructive" });
+      return;
+    }
+
+    if (!rentalType) {
+      toast({ title: "Validation error", description: "Please select a rental type.", variant: "destructive" });
+      return;
+    }
+
+    if (typeof baseRateAmount !== "number" || baseRateAmount <= 0) {
+      toast({ title: "Validation error", description: "Base rate must be greater than 0.", variant: "destructive" });
+      return;
+    }
+
+    try {
+      const fields = buildFields();
+
+      if (isEdit && id) {
+        await updateMutation.mutateAsync({ id, fields });
+        toast({ title: "Property updated", description: "Your property has been updated successfully." });
+      } else {
+        await createMutation.mutateAsync(fields);
+        toast({ title: "Property created", description: "Your property has been created successfully." });
+      }
+
+      navigate("/nfstay/properties");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed to save property.";
+      toast({ title: "Save failed", description: msg, variant: "destructive" });
+    }
+  };
+
+  // --- Loading state ---
+
+  if (loadingProperty) {
+    return (
+      <div className="flex items-center justify-center p-12">
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+        <span className="ml-2 text-muted-foreground">Loading property...</span>
+      </div>
+    );
+  }
+
+  // --- Render ---
+
   return (
-    <div className="p-6 max-w-3xl space-y-6">
+    <div className="p-4 md:p-6 max-w-3xl space-y-6">
+      {/* Header */}
       <div className="flex items-center gap-3">
-        <button onClick={() => navigate(-1)} className="p-2 rounded-lg hover:bg-secondary"><ArrowLeft className="w-4 h-4" /></button>
+        <button onClick={() => navigate(-1)} className="p-2 rounded-lg hover:bg-secondary">
+          <ArrowLeft className="w-4 h-4" />
+        </button>
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Add New Property</h1>
-          <p className="text-sm text-muted-foreground">Fill in the details for your new listing.</p>
+          <h1 className="text-2xl font-bold tracking-tight">
+            {isEdit ? "Edit Property" : "Add New Property"}
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            {isEdit ? "Update your property listing details." : "Fill in the details for your new listing."}
+          </p>
         </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-8">
         {/* Basic Info */}
-        <section className="bg-card border border-border rounded-2xl p-6 space-y-4">
+        <section className="bg-card border border-border rounded-2xl p-4 md:p-6 space-y-4">
           <h2 className="text-lg font-semibold">Basic Information</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="md:col-span-2">
-              <Label htmlFor="title">Property Title</Label>
-              <Input id="title" placeholder="e.g., Stunning Marina View Apartment" className="mt-1.5" required />
+              <Label htmlFor="title">Property Title *</Label>
+              <Input
+                id="title"
+                placeholder="e.g., Stunning Marina View Apartment"
+                className="mt-1.5"
+                value={publicTitle}
+                onChange={(e) => setPublicTitle(e.target.value)}
+                required
+              />
             </div>
             <div>
-              <Label htmlFor="type">Property Type</Label>
-              <Select required>
-                <SelectTrigger className="mt-1.5"><SelectValue placeholder="Select type" /></SelectTrigger>
-                <SelectContent>{PROPERTY_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
+              <Label htmlFor="property-type">Property Type *</Label>
+              <Select value={propertyType} onValueChange={setPropertyType} required>
+                <SelectTrigger className="mt-1.5">
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {PROPERTY_TYPE_OPTIONS.map((t) => (
+                    <SelectItem key={t} value={t}>
+                      {t.charAt(0).toUpperCase() + t.slice(1)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
               </Select>
             </div>
             <div>
-              <Label htmlFor="rental">Rental Type</Label>
-              <Select required>
-                <SelectTrigger className="mt-1.5"><SelectValue placeholder="Select type" /></SelectTrigger>
-                <SelectContent>{RENTAL_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
+              <Label htmlFor="rental-type">Rental Type *</Label>
+              <Select value={rentalType} onValueChange={setRentalType} required>
+                <SelectTrigger className="mt-1.5">
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {RENTAL_TYPE_OPTIONS.map((t) => (
+                    <SelectItem key={t.value} value={t.value}>
+                      {t.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
               </Select>
-            </div>
-            <div className="md:col-span-2">
-              <Label htmlFor="desc">Description</Label>
-              <Textarea id="desc" placeholder="Describe your property..." rows={5} className="mt-1.5" required />
             </div>
           </div>
         </section>
 
         {/* Location */}
-        <section className="bg-card border border-border rounded-2xl p-6 space-y-4">
+        <section className="bg-card border border-border rounded-2xl p-4 md:p-6 space-y-4">
           <h2 className="text-lg font-semibold">Location</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div><Label>City</Label><Input placeholder="City" className="mt-1.5" required /></div>
-            <div><Label>State / Region</Label><Input placeholder="State" className="mt-1.5" /></div>
-            <div><Label>Country</Label><Input placeholder="Country" className="mt-1.5" required /></div>
+          <div>
+            <Label>Address *</Label>
+            <NfsPlacesAutocomplete
+              onPlaceSelect={handlePlaceSelect}
+              defaultValue={address}
+              className="mt-1.5"
+            />
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div>
+              <Label>City</Label>
+              <Input value={city} readOnly className="mt-1.5 bg-muted" />
+            </div>
+            <div>
+              <Label>State / Region</Label>
+              <Input value={state} readOnly className="mt-1.5 bg-muted" />
+            </div>
+            <div>
+              <Label>Country</Label>
+              <Input value={country} readOnly className="mt-1.5 bg-muted" />
+            </div>
+            <div>
+              <Label>Postal Code</Label>
+              <Input value={postalCode} readOnly className="mt-1.5 bg-muted" />
+            </div>
           </div>
         </section>
 
         {/* Rooms & Capacity */}
-        <section className="bg-card border border-border rounded-2xl p-6 space-y-4">
+        <section className="bg-card border border-border rounded-2xl p-4 md:p-6 space-y-4">
           <h2 className="text-lg font-semibold">Rooms & Capacity</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div><Label>Bedrooms</Label><Input type="number" min={0} defaultValue={1} className="mt-1.5" /></div>
-            <div><Label>Beds</Label><Input type="number" min={1} defaultValue={1} className="mt-1.5" /></div>
-            <div><Label>Bathrooms</Label><Input type="number" min={1} defaultValue={1} className="mt-1.5" /></div>
-            <div><Label>Max Guests</Label><Input type="number" min={1} defaultValue={2} className="mt-1.5" /></div>
+            <div>
+              <Label>Bedrooms</Label>
+              <Input
+                type="number"
+                min={0}
+                value={bedrooms}
+                onChange={(e) => setBedrooms(parseInt(e.target.value) || 0)}
+                className="mt-1.5"
+              />
+            </div>
+            <div>
+              <Label>Beds</Label>
+              <Input
+                type="number"
+                min={1}
+                value={beds}
+                onChange={(e) => setBeds(parseInt(e.target.value) || 1)}
+                className="mt-1.5"
+              />
+            </div>
+            <div>
+              <Label>Bathrooms</Label>
+              <Input
+                type="number"
+                min={1}
+                value={bathrooms}
+                onChange={(e) => setBathrooms(parseInt(e.target.value) || 1)}
+                className="mt-1.5"
+              />
+            </div>
+            <div>
+              <Label>Max Guests</Label>
+              <Input
+                type="number"
+                min={1}
+                value={maxGuests}
+                onChange={(e) => setMaxGuests(parseInt(e.target.value) || 1)}
+                className="mt-1.5"
+              />
+            </div>
           </div>
         </section>
 
         {/* Photos */}
-        <section className="bg-card border border-border rounded-2xl p-6 space-y-4">
+        <section className="bg-card border border-border rounded-2xl p-4 md:p-6 space-y-4">
           <h2 className="text-lg font-semibold">Photos</h2>
-          <div className="border-2 border-dashed border-border rounded-xl p-8 text-center">
-            <Upload className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
-            <p className="text-sm text-muted-foreground">Drag and drop photos or click to upload</p>
-            <p className="text-xs text-muted-foreground mt-1">PNG, JPG up to 10MB each. First photo will be the cover.</p>
-            <Button variant="outline" className="mt-3 rounded-lg" type="button">Choose Files</Button>
+
+          {/* Uploaded previews */}
+          {images.length > 0 && (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+              {images.map((img, idx) => (
+                <div key={img.url} className="relative group rounded-lg overflow-hidden border border-border">
+                  <img
+                    src={img.url}
+                    alt={img.caption || `Photo ${idx + 1}`}
+                    className="w-full h-24 object-cover"
+                  />
+                  {idx === 0 && (
+                    <span className="absolute top-1 left-1 bg-primary text-primary-foreground text-[10px] px-1.5 py-0.5 rounded font-medium">
+                      Cover
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveImage(idx)}
+                    className="absolute top-1 right-1 p-1 bg-black/60 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Upload area */}
+          <div
+            className="border-2 border-dashed border-border rounded-xl p-8 text-center cursor-pointer hover:border-primary/50 transition-colors"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            {imageUploading ? (
+              <Loader2 className="w-8 h-8 text-muted-foreground mx-auto mb-3 animate-spin" />
+            ) : (
+              <Upload className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
+            )}
+            <p className="text-sm text-muted-foreground">
+              {imageUploading ? "Uploading..." : "Drag and drop photos or click to upload"}
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              PNG, JPG up to 10MB each. First photo will be the cover.
+            </p>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={handleFileChange}
+            />
+          </div>
+        </section>
+
+        {/* Amenities */}
+        <section className="bg-card border border-border rounded-2xl p-4 md:p-6 space-y-5">
+          <h2 className="text-lg font-semibold">Amenities</h2>
+          {Object.entries(AMENITY_CATEGORIES).map(([catKey, cat]) => (
+            <div key={catKey}>
+              <h3 className="text-sm font-medium text-muted-foreground mb-2">{cat.label}</h3>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                {cat.items.map((item) => (
+                  <label
+                    key={item.key}
+                    className="flex items-center gap-2 cursor-pointer text-sm rounded-lg border border-border px-3 py-2 hover:bg-accent transition-colors"
+                  >
+                    <Checkbox
+                      checked={!!amenities[item.key]}
+                      onCheckedChange={() => toggleAmenity(item.key)}
+                    />
+                    {item.label}
+                  </label>
+                ))}
+              </div>
+            </div>
+          ))}
+        </section>
+
+        {/* Description */}
+        <section className="bg-card border border-border rounded-2xl p-4 md:p-6 space-y-4">
+          <h2 className="text-lg font-semibold">Description</h2>
+          <div>
+            <Label htmlFor="desc">Describe your property (max 2000 characters)</Label>
+            <Textarea
+              id="desc"
+              placeholder="Tell guests what makes your property special..."
+              rows={5}
+              className="mt-1.5"
+              value={description}
+              onChange={(e) => setDescription(e.target.value.slice(0, 2000))}
+              maxLength={2000}
+            />
+            <p className="text-xs text-muted-foreground mt-1 text-right">{description.length}/2000</p>
           </div>
         </section>
 
         {/* Pricing */}
-        <section className="bg-card border border-border rounded-2xl p-6 space-y-4">
+        <section className="bg-card border border-border rounded-2xl p-4 md:p-6 space-y-4">
           <h2 className="text-lg font-semibold">Pricing</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div><Label>Base Rate (£/night)</Label><Input type="number" min={1} placeholder="100" className="mt-1.5" required /></div>
-            <div><Label>Cleaning Fee (£)</Label><Input type="number" min={0} placeholder="0" className="mt-1.5" /></div>
-            <div><Label>Minimum Stay (nights)</Label><Input type="number" min={1} defaultValue={1} className="mt-1.5" /></div>
-          </div>
-        </section>
-
-        {/* Policies */}
-        <section className="bg-card border border-border rounded-2xl p-6 space-y-4">
-          <h2 className="text-lg font-semibold">Policies</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label>Cancellation Policy</Label>
-              <Select>
-                <SelectTrigger className="mt-1.5"><SelectValue placeholder="Select policy" /></SelectTrigger>
+              <Label>Base Rate (per night) *</Label>
+              <Input
+                type="number"
+                min={1}
+                step={0.01}
+                placeholder="100"
+                className="mt-1.5"
+                value={baseRateAmount}
+                onChange={(e) => setBaseRateAmount(e.target.value ? parseFloat(e.target.value) : "")}
+                required
+              />
+            </div>
+            <div>
+              <Label>Currency</Label>
+              <Select value={baseRateCurrency} onValueChange={setBaseRateCurrency}>
+                <SelectTrigger className="mt-1.5">
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
-                  {Object.entries(CANCELLATION_POLICIES).map(([k, v]) => (
-                    <SelectItem key={k} value={k}>{v.label} — {v.description}</SelectItem>
+                  {CURRENCY_OPTIONS.map((c) => (
+                    <SelectItem key={c} value={c}>{c}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-            <div><Label>House Rules</Label><Input placeholder="No smoking, no parties..." className="mt-1.5" /></div>
+            <div>
+              <Label>Minimum Stay (nights)</Label>
+              <Input
+                type="number"
+                min={1}
+                value={minimumStay}
+                onChange={(e) => setMinimumStay(parseInt(e.target.value) || 1)}
+                className="mt-1.5"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 pt-2">
+            <Switch
+              checked={cleaningFeeEnabled}
+              onCheckedChange={setCleaningFeeEnabled}
+            />
+            <Label>Cleaning fee</Label>
+            {cleaningFeeEnabled && (
+              <Input
+                type="number"
+                min={0}
+                step={0.01}
+                placeholder="0"
+                className="w-32"
+                value={cleaningFeeAmount}
+                onChange={(e) => setCleaningFeeAmount(e.target.value ? parseFloat(e.target.value) : "")}
+              />
+            )}
           </div>
         </section>
 
-        <div className="flex gap-3 justify-end">
-          <Button variant="outline" type="button" className="rounded-lg" onClick={() => navigate(-1)}>Cancel</Button>
-          <Button type="submit" className="rounded-lg" disabled={saving}>{saving ? "Saving..." : "Create Property"}</Button>
+        {/* Policies & Rules */}
+        <section className="bg-card border border-border rounded-2xl p-4 md:p-6 space-y-4">
+          <h2 className="text-lg font-semibold">Policies & Rules</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label>Cancellation Policy</Label>
+              <Select value={cancellationPolicy} onValueChange={setCancellationPolicy}>
+                <SelectTrigger className="mt-1.5">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(CANCELLATION_POLICIES).map(([k, v]) => (
+                    <SelectItem key={k} value={k}>
+                      {v.label} — {v.description}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Check-in Time</Label>
+                <Input
+                  type="time"
+                  value={checkInTime}
+                  onChange={(e) => setCheckInTime(e.target.value)}
+                  className="mt-1.5"
+                />
+              </div>
+              <div>
+                <Label>Check-out Time</Label>
+                <Input
+                  type="time"
+                  value={checkOutTime}
+                  onChange={(e) => setCheckOutTime(e.target.value)}
+                  className="mt-1.5"
+                />
+              </div>
+            </div>
+          </div>
+          <div>
+            <Label>House Rules</Label>
+            <Textarea
+              placeholder="No smoking, no parties, quiet hours after 10pm..."
+              rows={3}
+              className="mt-1.5"
+              value={rules}
+              onChange={(e) => setRules(e.target.value)}
+            />
+          </div>
+        </section>
+
+        {/* Submit */}
+        <div className="flex gap-3 justify-end pb-8">
+          <Button variant="outline" type="button" className="rounded-lg" onClick={() => navigate(-1)}>
+            Cancel
+          </Button>
+          <Button type="submit" className="rounded-lg" disabled={saving || imageUploading}>
+            {saving ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Saving...
+              </>
+            ) : isEdit ? (
+              "Update Property"
+            ) : (
+              "Create Property"
+            )}
+          </Button>
         </div>
       </form>
     </div>
