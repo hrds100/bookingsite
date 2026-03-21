@@ -5,11 +5,13 @@ import { NfsLogo } from "./NfsLogo";
 import { NfsCurrencySelector } from "./NfsCurrencySelector";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
+import { useWhiteLabel } from "@/contexts/WhiteLabelContext";
 
 export function NfsMainNavbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
   const { user, signOut, isOperator } = useAuth();
+  const { operator: wlOperator, isWhiteLabel } = useWhiteLabel();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [query, setQuery] = useState(searchParams.get("query") || "");
@@ -37,7 +39,17 @@ export function NfsMainNavbar() {
           >
             {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
-          <NfsLogo />
+          {isWhiteLabel && wlOperator ? (
+            <Link to="/" className="flex items-center gap-2 text-xl font-bold text-foreground">
+              {wlOperator.logo_url ? (
+                <img src={wlOperator.logo_url} alt={wlOperator.brand_name} className="h-8 w-auto" />
+              ) : (
+                <span>{wlOperator.brand_name}</span>
+              )}
+            </Link>
+          ) : (
+            <NfsLogo />
+          )}
         </div>
 
         {/* Center: context-dependent */}
@@ -100,7 +112,7 @@ export function NfsMainNavbar() {
           <NfsCurrencySelector />
           {user ? (
             <div className="flex items-center gap-2">
-              {isOperator && (
+              {isOperator && !isWhiteLabel && (
                 <Link to="/nfstay" className="text-sm font-medium text-primary hover:underline px-2">
                   Dashboard
                 </Link>
@@ -143,14 +155,20 @@ export function NfsMainNavbar() {
           <Link to="/search" className="block text-sm font-medium text-foreground py-2" onClick={() => setMobileOpen(false)}>Find a stay</Link>
           <Link to="/traveler/reservations" className="block text-sm font-medium text-foreground py-2" onClick={() => setMobileOpen(false)}>Reservations</Link>
           <Link to="/booking" className="block text-sm font-medium text-foreground py-2" onClick={() => setMobileOpen(false)}>Find your booking</Link>
-          <hr className="border-border" />
-          <Link to="/nfstay" className="block text-sm font-medium text-foreground py-2" onClick={() => setMobileOpen(false)}>Operator portal</Link>
-          <Link to="/admin/nfstay" className="block text-sm font-medium text-foreground py-2" onClick={() => setMobileOpen(false)}>Admin portal</Link>
+          {!isWhiteLabel && (
+            <>
+              <hr className="border-border" />
+              <Link to="/nfstay" className="block text-sm font-medium text-foreground py-2" onClick={() => setMobileOpen(false)}>Operator portal</Link>
+              <Link to="/admin/nfstay" className="block text-sm font-medium text-foreground py-2" onClick={() => setMobileOpen(false)}>Admin portal</Link>
+            </>
+          )}
           <hr className="border-border" />
           <Link to="/signin" className="block text-sm font-medium text-foreground py-2" onClick={() => setMobileOpen(false)}>Sign in</Link>
-          <Button asChild className="w-full rounded-lg" onClick={() => setMobileOpen(false)}>
-            <Link to="/signup">List your property</Link>
-          </Button>
+          {!isWhiteLabel && (
+            <Button asChild className="w-full rounded-lg" onClick={() => setMobileOpen(false)}>
+              <Link to="/signup">List your property</Link>
+            </Button>
+          )}
         </div>
       )}
     </header>

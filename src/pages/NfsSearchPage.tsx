@@ -5,7 +5,7 @@ import { NfsPropertyCard } from "@/components/nfs/NfsPropertyCard";
 import { NfsSearchFilters } from "@/components/nfs/NfsSearchFilters";
 import { NfsSearchMap } from "@/components/nfs/NfsSearchMap";
 import { NfsEmptyState } from "@/components/nfs/NfsEmptyState";
-import { mockProperties } from "@/data/mock-properties";
+import { useWhiteLabelMockProperties } from "@/hooks/useWhiteLabelProperties";
 
 export default function NfsSearchPage() {
   const [searchParams] = useSearchParams();
@@ -16,11 +16,12 @@ export default function NfsSearchPage() {
   const [bedrooms, setBedrooms] = useState(0);
   const [sortBy, setSortBy] = useState('relevant');
   const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const scopedProperties = useWhiteLabelMockProperties();
 
   const query = searchParams.get('query') || '';
 
   const filteredProperties = useMemo(() => {
-    let props = mockProperties.filter(p => p.listing_status === 'listed');
+    let props = scopedProperties.filter(p => p.listing_status === 'listed');
 
     if (query) {
       const q = query.toLowerCase();
@@ -45,7 +46,7 @@ export default function NfsSearchPage() {
     else if (sortBy === 'newest') props.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
     return props;
-  }, [query, activeType, priceMin, priceMax, bedrooms, sortBy]);
+  }, [query, activeType, priceMin, priceMax, bedrooms, sortBy, scopedProperties]);
 
   const hasFilters = activeType !== 'All' || priceMin || priceMax || bedrooms > 0;
 

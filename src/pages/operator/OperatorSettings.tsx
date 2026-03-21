@@ -23,6 +23,7 @@ export default function OperatorSettings() {
         contact_email: operator.contact_email || prev.contact_email,
         contact_phone: operator.contact_phone || prev.contact_phone,
         subdomain: operator.subdomain || prev.subdomain,
+        custom_domain: operator.custom_domain || prev.custom_domain,
         accent_color: operator.accent_color || prev.accent_color,
       }));
     }
@@ -38,6 +39,7 @@ export default function OperatorSettings() {
           contact_email: profile.contact_email,
           contact_phone: profile.contact_phone,
           subdomain: profile.subdomain,
+          custom_domain: profile.custom_domain || null,
           accent_color: profile.accent_color,
         });
         toast({ title: "Settings saved", description: "Your changes have been saved to the database." });
@@ -106,6 +108,18 @@ export default function OperatorSettings() {
                   <Input value={profile.subdomain} onChange={e => setProfile(p => ({ ...p, subdomain: e.target.value }))} className="rounded-r-none" />
                   <span className="bg-muted border border-l-0 border-input px-3 h-10 flex items-center text-sm text-muted-foreground rounded-r-md">.nfstay.app</span>
                 </div>
+              </div>
+              <div>
+                <Label>Custom Domain</Label>
+                <Input
+                  value={profile.custom_domain}
+                  onChange={e => setProfile(p => ({ ...p, custom_domain: e.target.value }))}
+                  placeholder="stays.yourcompany.com"
+                  className="mt-1.5"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Point your domain's DNS to Vercel (CNAME to cname.vercel-dns.com), then enter it here.
+                </p>
               </div>
               <div>
                 <Label>Brand Color</Label>
