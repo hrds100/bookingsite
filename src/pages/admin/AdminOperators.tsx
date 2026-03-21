@@ -1,106 +1,155 @@
-import { useState } from "react";
-import { Search, CheckCircle2, XCircle, Globe, Building2, Phone, Mail, ExternalLink } from "lucide-react";
+import { useState, useMemo } from "react";
+import { Search, Building2, Phone, Mail, AlertCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { NfsStatusBadge } from "@/components/nfs/NfsStatusBadge";
+import { NfsEmptyState } from "@/components/nfs/NfsEmptyState";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { mockOperatorApplications } from "@/data/mock-admin";
-import { toast } from "@/hooks/use-toast";
+import { useAdminOperators } from "@/hooks/useAdminOperators";
+import type { AdminOperator } from "@/hooks/useAdminOperators";
 
-export default function AdminOperators() {
-  const [search, setSearch] = useState("");
-  const [apps, setApps] = useState(mockOperatorApplications);
+function OperatorCardSkeleton() {
+  return (
+    <div className="bg-card border border-border rounded-2xl p-5 space-y-4">
+      <div className="flex items-start justify-between">
+        <div className="space-y-1.5">
+          <Skeleton className="h-5 w-40" />
+          <Skeleton className="h-3 w-24" />
+        </div>
+        <Skeleton className="h-5 w-20 rounded-full" />
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <Skeleton className="h-4 w-36" />
+        <Skeleton className="h-4 w-28" />
+        <Skeleton className="h-4 w-32" />
+        <Skeleton className="h-4 w-24" />
+      </div>
+    </div>
+  );
+}
 
-  const pending = apps.filter(a => a.status === 'pending');
-  const approved = apps.filter(a => a.status === 'approved');
-  const rejected = apps.filter(a => a.status === 'rejected');
-
-  const handleApprove = (id: string) => {
-    setApps(prev => prev.map(a => a.id === id ? { ...a, status: 'approved' as const, reviewed_at: new Date().toISOString().split('T')[0] } : a));
-    toast({ title: "Operator approved ✓", description: "They can now list properties on the platform." });
-  };
-
-  const handleReject = (id: string) => {
-    setApps(prev => prev.map(a => a.id === id ? { ...a, status: 'rejected' as const, reviewed_at: new Date().toISOString().split('T')[0] } : a));
-    toast({ title: "Application rejected", variant: "destructive" });
-  };
-
-  const filterList = (list: typeof apps) =>
-    list.filter(a => a.business_name.toLowerCase().includes(search.toLowerCase()) || a.contact_email.toLowerCase().includes(search.toLowerCase()));
-
-  const AppCard = ({ app }: { app: typeof apps[0] }) => (
+function OperatorCard({ op }: { op: AdminOperator }) {
+  const statusLabel = op.onboarding_completed ? "completed" : "pending";
+  return (
     <div className="bg-card border border-border rounded-2xl p-5 space-y-4">
       <div className="flex items-start justify-between">
         <div>
-          <h3 className="font-semibold text-base">{app.business_name}</h3>
-          <p className="text-xs text-muted-foreground mt-0.5">Applied {app.applied_at} {app.reviewed_at ? `· Reviewed ${app.reviewed_at}` : ''}</p>
+          <h3 className="font-semibold text-base">{op.brand_name}</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Registered {op.created_at?.split("T")[0] ?? "—"}
+          </p>
         </div>
-        <NfsStatusBadge status={app.status} />
+        <NfsStatusBadge status={statusLabel} />
       </div>
 
       <div className="grid grid-cols-2 gap-3 text-sm">
-        <div className="flex items-center gap-2 text-muted-foreground"><Mail className="w-3.5 h-3.5" />{app.contact_email}</div>
-        <div className="flex items-center gap-2 text-muted-foreground"><Phone className="w-3.5 h-3.5" />{app.contact_phone}</div>
-        <div className="flex items-center gap-2 text-muted-foreground"><Globe className="w-3.5 h-3.5" />{app.country}</div>
-        <div className="flex items-center gap-2 text-muted-foreground"><Building2 className="w-3.5 h-3.5" />{app.property_count} properties</div>
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <Mail className="w-3.5 h-3.5 shrink-0" />
+          <span className="truncate">{op.contact_email ?? "—"}</span>
+        </div>
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <Phone className="w-3.5 h-3.5 shrink-0" />
+          <span className="truncate">{op.contact_phone ?? "—"}</span>
+        </div>
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <Building2 className="w-3.5 h-3.5 shrink-0" />
+          {op.property_count} {op.property_count === 1 ? "property" : "properties"}
+        </div>
       </div>
-
-      {app.website && (
-        <a href={app.website} target="_blank" rel="noopener" className="text-xs text-primary flex items-center gap-1 hover:underline">
-          {app.website} <ExternalLink className="w-3 h-3" />
-        </a>
-      )}
-
-      {app.notes && (
-        <div className="bg-muted/50 rounded-xl p-3">
-          <p className="text-xs text-muted-foreground"><span className="font-medium text-foreground">Notes:</span> {app.notes}</p>
-        </div>
-      )}
-
-      {app.status === 'pending' && (
-        <div className="flex gap-2 pt-1">
-          <Button size="sm" variant="outline" className="rounded-lg gap-1 text-destructive border-destructive/30 hover:bg-destructive/5" onClick={() => handleReject(app.id)}>
-            <XCircle className="w-3.5 h-3.5" /> Reject
-          </Button>
-          <Button size="sm" className="rounded-lg gap-1" onClick={() => handleApprove(app.id)}>
-            <CheckCircle2 className="w-3.5 h-3.5" /> Approve
-          </Button>
-        </div>
-      )}
     </div>
   );
+}
 
-  const renderList = (list: typeof apps) => {
-    const filtered = filterList(list);
-    return filtered.length === 0
-      ? <p className="text-sm text-muted-foreground text-center py-8">No applications found.</p>
-      : <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">{filtered.map(a => <AppCard key={a.id} app={a} />)}</div>;
+export default function AdminOperators() {
+  const [search, setSearch] = useState("");
+  const { data: operators, isLoading, error } = useAdminOperators();
+
+  const filtered = useMemo(() => {
+    if (!operators) return [];
+    const q = search.toLowerCase();
+    if (!q) return operators;
+    return operators.filter(
+      (o) =>
+        o.brand_name.toLowerCase().includes(q) ||
+        (o.contact_email?.toLowerCase().includes(q) ?? false)
+    );
+  }, [operators, search]);
+
+  const onboarded = useMemo(() => filtered.filter((o) => o.onboarding_completed), [filtered]);
+  const inProgress = useMemo(() => filtered.filter((o) => !o.onboarding_completed), [filtered]);
+
+  const renderList = (list: AdminOperator[]) => {
+    if (list.length === 0) {
+      return (
+        <p className="text-sm text-muted-foreground text-center py-8">
+          No operators found.
+        </p>
+      );
+    }
+    return (
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {list.map((op) => (
+          <OperatorCard key={op.id} op={op} />
+        ))}
+      </div>
+    );
   };
+
+  if (error) {
+    return (
+      <div className="p-6 max-w-7xl">
+        <NfsEmptyState
+          icon={AlertCircle}
+          title="Failed to load operators"
+          description="Something went wrong while fetching operator data. Please try again."
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 max-w-7xl space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Operator Management</h1>
-        <p className="text-sm text-muted-foreground">{apps.length} total applications · {pending.length} pending</p>
+        <p className="text-sm text-muted-foreground">
+          {isLoading ? "Loading..." : `${operators?.length ?? 0} registered operators`}
+        </p>
       </div>
 
       <div className="relative max-w-sm">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input placeholder="Search operators..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 rounded-lg" />
+        <Input
+          placeholder="Search operators..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="pl-9 rounded-lg"
+        />
       </div>
 
-      <Tabs defaultValue="pending">
-        <TabsList>
-          <TabsTrigger value="pending">Pending ({pending.length})</TabsTrigger>
-          <TabsTrigger value="approved">Approved ({approved.length})</TabsTrigger>
-          <TabsTrigger value="rejected">Rejected ({rejected.length})</TabsTrigger>
-          <TabsTrigger value="all">All ({apps.length})</TabsTrigger>
-        </TabsList>
-        <TabsContent value="pending" className="mt-4">{renderList(pending)}</TabsContent>
-        <TabsContent value="approved" className="mt-4">{renderList(approved)}</TabsContent>
-        <TabsContent value="rejected" className="mt-4">{renderList(rejected)}</TabsContent>
-        <TabsContent value="all" className="mt-4">{renderList(apps)}</TabsContent>
-      </Tabs>
+      {isLoading ? (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <OperatorCardSkeleton />
+          <OperatorCardSkeleton />
+          <OperatorCardSkeleton />
+        </div>
+      ) : (
+        <Tabs defaultValue="all">
+          <TabsList>
+            <TabsTrigger value="all">All ({filtered.length})</TabsTrigger>
+            <TabsTrigger value="onboarded">Onboarded ({onboarded.length})</TabsTrigger>
+            <TabsTrigger value="in-progress">In Progress ({inProgress.length})</TabsTrigger>
+          </TabsList>
+          <TabsContent value="all" className="mt-4">
+            {renderList(filtered)}
+          </TabsContent>
+          <TabsContent value="onboarded" className="mt-4">
+            {renderList(onboarded)}
+          </TabsContent>
+          <TabsContent value="in-progress" className="mt-4">
+            {renderList(inProgress)}
+          </TabsContent>
+        </Tabs>
+      )}
     </div>
   );
 }
