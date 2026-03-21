@@ -112,14 +112,17 @@ export function NfsSearchMap({ properties, hoveredId }: NfsSearchMapProps) {
     const existing = markersRef.current;
     const g = window.google.maps;
 
+    // Filter to only properties with valid coordinates
+    const mappable = properties.filter(p => typeof p.lat === "number" && typeof p.lng === "number" && !isNaN(p.lat) && !isNaN(p.lng));
+
     // Remove stale markers
-    const ids = new Set(properties.map(p => p.id));
+    const ids = new Set(mappable.map(p => p.id));
     existing.forEach((m, id) => {
       if (!ids.has(id)) { m.setMap(null); existing.delete(id); }
     });
 
     // Upsert markers
-    properties.forEach((p) => {
+    mappable.forEach((p) => {
       let marker = existing.get(p.id);
       const currency = CURRENCIES.find(c => c.code === p.base_rate_currency);
 
@@ -157,11 +160,11 @@ export function NfsSearchMap({ properties, hoveredId }: NfsSearchMapProps) {
     });
 
     // Fit bounds only on first load
-    if (properties.length > 0 && !initialBoundsSetRef.current) {
+    if (mappable.length > 0 && !initialBoundsSetRef.current) {
       const bounds = new g.LatLngBounds();
-      properties.forEach(p => bounds.extend({ lat: p.lat, lng: p.lng }));
-      if (properties.length === 1) {
-        map.setCenter({ lat: properties[0].lat, lng: properties[0].lng });
+      mappable.forEach(p => bounds.extend({ lat: p.lat, lng: p.lng }));
+      if (mappable.length === 1) {
+        map.setCenter({ lat: mappable[0].lat, lng: mappable[0].lng });
         map.setZoom(13);
       } else {
         map.fitBounds(bounds, 40);
