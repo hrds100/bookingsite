@@ -83,7 +83,7 @@ export default function NfsMainLanding() {
         <div className="relative z-10 w-full max-w-4xl mx-auto px-4 py-20 text-center">
           {!isWhiteLabel && (
             <span className="inline-block bg-primary/20 text-primary-foreground text-xs font-semibold px-3 py-1 rounded-full mb-4 backdrop-blur-sm border border-primary/30">
-              Book direct. Save more.
+              ✨ Book direct. Save more.
             </span>
           )}
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4 tracking-tight">

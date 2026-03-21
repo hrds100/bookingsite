@@ -64,6 +64,9 @@ export function NfsMainFooter() {
             <ul className="space-y-2">
               <li><Link to="/search" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Search properties</Link></li>
               <li><a href="#how-it-works" className="text-sm text-muted-foreground hover:text-foreground transition-colors">How to book</a></li>
+              {!isWhiteLabel && (
+                <li><a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Guest protection</a></li>
+              )}
               <li><a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Contact</a></li>
             </ul>
           </div>
