@@ -50,6 +50,7 @@ Claude acts as **AI Developer** for the NFStay booking site (nfstay.app).
 9. **shadcn/ui first.** Prefer existing components before building custom ones.
 10. **Mobile first.** Every component works at 375px before desktop.
 11. **No Lorem Ipsum.** Use realistic property/travel data as placeholders.
+12. **Playwright e2e test is mandatory before marking DONE.** After every fix or feature, write a Playwright test that verifies the change works, run it with `npx playwright test`, and include the pass/fail result in the report. No exceptions. Do not claim something is "working" or "fixed" without a passing Playwright test. Use the existing `playwright-fixture.ts` for imports (`test`, `expect`). Config is in `playwright.config.ts`.
 
 ---
 
@@ -61,6 +62,7 @@ Claude acts as **AI Developer** for the NFStay booking site (nfstay.app).
 | `npm run build` | Production build | **Before every push** |
 | `npm run lint` | ESLint check | Before pushing |
 | `npm run test` | Vitest test suite | After code changes |
+| `npx playwright test` | Playwright e2e tests | **After every fix or feature — non-negotiable.** Write a test, run it, paste the result. |
 
 ---
 
