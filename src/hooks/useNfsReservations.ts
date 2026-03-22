@@ -4,21 +4,34 @@ import { mockReservations, type MockReservation } from "@/data/mock-reservations
 
 const SUPABASE_CONFIGURED = !!import.meta.env.VITE_SUPABASE_URL && !!import.meta.env.VITE_SUPABASE_ANON_KEY;
 
+/** Property info returned from the join */
+export interface ReservationPropertyJoin {
+  public_title?: string;
+  images?: { url: string }[] | null;
+  city?: string;
+  country?: string;
+}
+
+/** Reservation with optional joined property data */
+export type ReservationWithProperty = MockReservation & {
+  nfs_properties?: ReservationPropertyJoin | null;
+};
+
 /** Fetch reservations for current user (traveler) */
 export function useNfsReservations(guestEmail?: string) {
   return useQuery({
     queryKey: ["nfs-reservations", guestEmail],
-    queryFn: async (): Promise<MockReservation[]> => {
+    queryFn: async (): Promise<ReservationWithProperty[]> => {
       if (!SUPABASE_CONFIGURED || !guestEmail) return [];
 
       const { data, error } = await supabase
         .from("nfs_reservations")
-        .select("*")
+        .select("*, nfs_properties(public_title, images, city, country)")
         .eq("guest_email", guestEmail)
         .order("created_at", { ascending: false });
 
       if (error || !data) return [];
-      return data as unknown as MockReservation[];
+      return data as unknown as ReservationWithProperty[];
     },
     staleTime: 30_000,
   });
