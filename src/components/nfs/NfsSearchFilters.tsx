@@ -22,6 +22,10 @@ interface NfsSearchFiltersProps {
   onPriceMaxChange: (value: string) => void;
   bedrooms: number;
   onBedroomsChange: (n: number) => void;
+  beds: number;
+  onBedsChange: (n: number) => void;
+  bathrooms: number;
+  onBathroomsChange: (n: number) => void;
   hasFilters: boolean;
   onClearFilters: () => void;
 }
@@ -53,6 +57,10 @@ export function NfsSearchFilters({
   onPriceMaxChange,
   bedrooms,
   onBedroomsChange,
+  beds,
+  onBedsChange,
+  bathrooms,
+  onBathroomsChange,
   hasFilters,
   onClearFilters,
 }: NfsSearchFiltersProps) {
@@ -149,6 +157,42 @@ export function NfsSearchFilters({
                   onClick={() => onBedroomsChange(n)}
                   className={`w-8 h-8 rounded-md text-xs font-medium border transition ${
                     bedrooms === n
+                      ? 'bg-foreground text-background border-foreground'
+                      : 'border-border hover:border-foreground'
+                  }`}
+                >
+                  {n === 0 ? 'Any' : n === 5 ? '5+' : n}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-medium text-muted-foreground">Beds:</span>
+            <div className="flex gap-1">
+              {[0, 1, 2, 3, 4, 5].map((n) => (
+                <button
+                  key={n}
+                  onClick={() => onBedsChange(n)}
+                  className={`w-8 h-8 rounded-md text-xs font-medium border transition ${
+                    beds === n
+                      ? 'bg-foreground text-background border-foreground'
+                      : 'border-border hover:border-foreground'
+                  }`}
+                >
+                  {n === 0 ? 'Any' : n === 5 ? '5+' : n}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-medium text-muted-foreground">Bathrooms:</span>
+            <div className="flex gap-1">
+              {[0, 1, 2, 3, 4, 5].map((n) => (
+                <button
+                  key={n}
+                  onClick={() => onBathroomsChange(n)}
+                  className={`w-8 h-8 rounded-md text-xs font-medium border transition ${
+                    bathrooms === n
                       ? 'bg-foreground text-background border-foreground'
                       : 'border-border hover:border-foreground'
                   }`}

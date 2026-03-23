@@ -1,6 +1,29 @@
-import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, useRef, type ReactNode } from "react";
 import { supabase } from "@/lib/supabase";
 import type { NfsOperator } from "@/hooks/useNfsOperator";
+
+/** Convert hex color to HSL string for CSS variable (e.g. "164 73% 34%") */
+function hexToHsl(hex: string): string {
+  const h = hex.replace('#', '');
+  const r = parseInt(h.substring(0, 2), 16) / 255;
+  const g = parseInt(h.substring(2, 4), 16) / 255;
+  const b = parseInt(h.substring(4, 6), 16) / 255;
+
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const l = (max + min) / 2;
+
+  if (max === min) return `0 0% ${Math.round(l * 100)}%`;
+
+  const d = max - min;
+  const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+  let hue = 0;
+  if (max === r) hue = ((g - b) / d + (g < b ? 6 : 0)) / 6;
+  else if (max === g) hue = ((b - r) / d + 2) / 6;
+  else hue = ((r - g) / d + 4) / 6;
+
+  return `${Math.round(hue * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
+}
 
 const SUPABASE_CONFIGURED = !!import.meta.env.VITE_SUPABASE_URL && !!import.meta.env.VITE_SUPABASE_ANON_KEY;
 
@@ -59,6 +82,24 @@ export function WhiteLabelProvider({ children }: { children: ReactNode }) {
     loading: true,
     isWhiteLabel: false,
   });
+  const originalPrimaryRef = useRef<string | null>(null);
+
+  // Apply operator accent color as CSS --primary variable
+  useEffect(() => {
+    if (state.isWhiteLabel && state.operator) {
+      // Save original primary color on first white-label load
+      if (!originalPrimaryRef.current) {
+        originalPrimaryRef.current = getComputedStyle(document.documentElement)
+          .getPropertyValue('--primary').trim();
+      }
+      // Default to black (#000000) if operator has no accent color
+      const color = state.operator.accent_color || '#000000';
+      document.documentElement.style.setProperty('--primary', hexToHsl(color));
+    } else if (originalPrimaryRef.current) {
+      // Reset to original teal when leaving white-label
+      document.documentElement.style.setProperty('--primary', originalPrimaryRef.current);
+    }
+  }, [state.isWhiteLabel, state.operator]);
 
   useEffect(() => {
     const hostname = window.location.hostname;

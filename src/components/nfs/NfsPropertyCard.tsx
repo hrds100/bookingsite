@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Heart, ChevronLeft, ChevronRight, MapPin, Users, BedDouble, Bath } from "lucide-react";
+import { Heart, ChevronLeft, ChevronRight, MapPin, Users, BedDouble, Bath, Star } from "lucide-react";
 import type { MockProperty } from "@/data/mock-properties";
 import { CURRENCIES } from "@/lib/constants";
 
@@ -103,7 +103,20 @@ export function NfsPropertyCard({ property, onHover }: NfsPropertyCardProps) {
       {/* Content */}
       <div className="space-y-1">
         <h3 className="text-sm font-semibold text-foreground truncate leading-tight">{property.public_title}</h3>
-        <p className="text-xs text-muted-foreground capitalize">{property.property_type}</p>
+        <div className="flex items-center gap-1.5 text-xs">
+          <span className="text-muted-foreground capitalize">{property.property_type}</span>
+          <span className="text-muted-foreground">·</span>
+          <span className="flex items-center gap-0.5 font-medium text-foreground">
+            <Star className="w-3 h-3 fill-primary text-primary" />
+            {(property as any).average_rating ?? '4.8'}
+          </span>
+          {isNew && (
+            <>
+              <span className="text-muted-foreground">·</span>
+              <span className="text-primary font-medium">New</span>
+            </>
+          )}
+        </div>
         <div className="flex items-center gap-1 text-xs text-muted-foreground">
           <MapPin className="w-3 h-3 shrink-0" />
           <span className="truncate">{property.city}, {property.state ? `${property.state}, ` : ''}{property.country}</span>
