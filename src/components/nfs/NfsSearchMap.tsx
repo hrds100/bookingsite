@@ -74,6 +74,7 @@ export function NfsSearchMap({ properties, hoveredId }: NfsSearchMapProps) {
   const infoRef = useRef<google.maps.InfoWindow | null>(null);
   const initialBoundsSetRef = useRef(false);
   const zoomIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const geocodeCacheRef = useRef<Map<string, { lat: number; lng: number }>>(new Map());
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
 
@@ -105,6 +106,44 @@ export function NfsSearchMap({ properties, hoveredId }: NfsSearchMapProps) {
   // Navigation callback
   const onNav = useCallback((id: string) => navigate(`/property/${id}`), [navigate]);
 
+  // Helper: create a marker for a property at a given position
+  const createMarker = useCallback((p: MockProperty, pos: { lat: number; lng: number }) => {
+    if (!mapRef.current || !window.google?.maps) return;
+    const map = mapRef.current;
+    const g = window.google.maps;
+    const existing = markersRef.current;
+
+    if (existing.has(p.id)) return; // already created
+
+    const currency = CURRENCIES.find(c => c.code === p.base_rate_currency);
+    const icon: google.maps.Symbol = {
+      path: g.SymbolPath.CIRCLE,
+      scale: 7,
+      fillColor: "#00D084",
+      fillOpacity: 1,
+      strokeColor: "#fff",
+      strokeWeight: 2.5,
+    };
+    const marker = new g.Marker({ map, position: pos, icon, zIndex: 1 });
+
+    marker.addListener("click", () => {
+      if (!infoRef.current) return;
+      const coverImg = p.images?.find((img: { is_cover?: boolean; url: string }) => img.is_cover)?.url ?? p.images?.[0]?.url ?? "";
+      infoRef.current.setContent(
+        `<div style="font-family:Inter,system-ui,sans-serif;min-width:200px;max-width:240px;padding:4px">` +
+        (coverImg ? `<img src="${coverImg}" style="width:100%;height:120px;object-fit:cover;border-radius:8px;margin-bottom:8px" />` : "") +
+        `<p style="font-weight:600;font-size:13px;margin:0 0 2px">${p.public_title}</p>` +
+        `<p style="color:#737373;font-size:11px;margin:0 0 6px">${p.city}, ${p.country}</p>` +
+        `<p style="font-weight:700;font-size:14px;margin:0">${currency?.symbol ?? "£"}${p.base_rate_amount}<span style="font-weight:400;font-size:11px;color:#737373"> / night</span></p>` +
+        `</div>`
+      );
+      infoRef.current.open(map, marker);
+    });
+
+    marker.addListener("dblclick", () => onNav(p.id));
+    existing.set(p.id, marker);
+  }, [onNav]);
+
   // Sync markers when properties change
   useEffect(() => {
     if (!ready || !mapRef.current || !window.google?.maps) return;
@@ -112,66 +151,78 @@ export function NfsSearchMap({ properties, hoveredId }: NfsSearchMapProps) {
     const existing = markersRef.current;
     const g = window.google.maps;
 
-    // Filter to only properties with valid coordinates
-    const mappable = properties.filter(p => typeof p.lat === "number" && typeof p.lng === "number" && !isNaN(p.lat) && !isNaN(p.lng));
+    // Split properties into those with coords and those needing geocoding
+    const withCoords = properties.filter(p => typeof p.lat === "number" && typeof p.lng === "number" && !isNaN(p.lat) && !isNaN(p.lng));
+    const needsGeocode = properties.filter(p => (p.lat == null || p.lng == null || isNaN(p.lat) || isNaN(p.lng)) && p.city);
 
     // Remove stale markers
-    const ids = new Set(mappable.map(p => p.id));
+    const allIds = new Set(properties.map(p => p.id));
     existing.forEach((m, id) => {
-      if (!ids.has(id)) { m.setMap(null); existing.delete(id); }
+      if (!allIds.has(id)) { m.setMap(null); existing.delete(id); }
     });
 
-    // Upsert markers
-    mappable.forEach((p) => {
-      let marker = existing.get(p.id);
-      const currency = CURRENCIES.find(c => c.code === p.base_rate_currency);
-
-      if (!marker) {
-        const icon: google.maps.Symbol = {
-          path: g.SymbolPath.CIRCLE,
-          scale: 7,
-          fillColor: "#00D084",
-          fillOpacity: 1,
-          strokeColor: "#fff",
-          strokeWeight: 2.5,
-        };
-        marker = new g.Marker({ map, position: { lat: p.lat, lng: p.lng }, icon, zIndex: 1 });
-
-        marker.addListener("click", () => {
-          if (!infoRef.current) return;
-          const coverImg = p.images.find(img => img.is_cover)?.url ?? p.images[0]?.url ?? "";
-          infoRef.current.setContent(
-            `<div style="font-family:Inter,system-ui,sans-serif;min-width:200px;max-width:240px;padding:4px">` +
-            (coverImg ? `<img src="${coverImg}" style="width:100%;height:120px;object-fit:cover;border-radius:8px;margin-bottom:8px" />` : "") +
-            `<p style="font-weight:600;font-size:13px;margin:0 0 2px">${p.public_title}</p>` +
-            `<p style="color:#737373;font-size:11px;margin:0 0 6px">${p.city}, ${p.country}</p>` +
-            `<p style="font-weight:700;font-size:14px;margin:0">${currency?.symbol ?? "£"}${p.base_rate_amount}<span style="font-weight:400;font-size:11px;color:#737373"> / night</span></p>` +
-            `</div>`
-          );
-          infoRef.current.open(map, marker);
-        });
-
-        marker.addListener("dblclick", () => onNav(p.id));
-
-        existing.set(p.id, marker);
+    // Create markers for properties with coordinates
+    withCoords.forEach((p) => {
+      if (!existing.has(p.id)) {
+        createMarker(p, { lat: p.lat, lng: p.lng });
       } else {
-        marker.setPosition({ lat: p.lat, lng: p.lng });
+        existing.get(p.id)!.setPosition({ lat: p.lat, lng: p.lng });
       }
     });
 
-    // Fit bounds only on first load
-    if (mappable.length > 0 && !initialBoundsSetRef.current) {
+    // Geocode properties without coordinates
+    if (needsGeocode.length > 0) {
+      const geocoder = new g.Geocoder();
+      needsGeocode.forEach((p) => {
+        if (existing.has(p.id)) return; // already created via cache
+
+        const cacheKey = `${p.city},${p.country}`;
+        const cached = geocodeCacheRef.current.get(cacheKey);
+        if (cached) {
+          createMarker(p, cached);
+          return;
+        }
+
+        geocoder.geocode({ address: `${p.city}, ${p.country}` }, (results, status) => {
+          if (status === "OK" && results?.[0]) {
+            const loc = results[0].geometry.location;
+            const pos = { lat: loc.lat(), lng: loc.lng() };
+            geocodeCacheRef.current.set(cacheKey, pos);
+            createMarker(p, pos);
+
+            // Fit bounds after geocoding if initial bounds not yet set
+            if (!initialBoundsSetRef.current) {
+              const bounds = new g.LatLngBounds();
+              existing.forEach((m) => {
+                const mPos = m.getPosition();
+                if (mPos) bounds.extend(mPos);
+              });
+              if (existing.size === 1) {
+                map.setCenter(pos);
+                map.setZoom(13);
+              } else if (existing.size > 1) {
+                map.fitBounds(bounds, 40);
+              }
+              initialBoundsSetRef.current = true;
+            }
+          }
+        });
+      });
+    }
+
+    // Fit bounds only on first load (for properties that already have coords)
+    if (withCoords.length > 0 && !initialBoundsSetRef.current) {
       const bounds = new g.LatLngBounds();
-      mappable.forEach(p => bounds.extend({ lat: p.lat, lng: p.lng }));
-      if (mappable.length === 1) {
-        map.setCenter({ lat: mappable[0].lat, lng: mappable[0].lng });
+      withCoords.forEach(p => bounds.extend({ lat: p.lat, lng: p.lng }));
+      if (withCoords.length === 1 && needsGeocode.length === 0) {
+        map.setCenter({ lat: withCoords[0].lat, lng: withCoords[0].lng });
         map.setZoom(13);
       } else {
         map.fitBounds(bounds, 40);
       }
       initialBoundsSetRef.current = true;
     }
-  }, [properties, ready, onNav]);
+  }, [properties, ready, createMarker]);
 
   // Hover — smooth pan + zoom to property, stay when mouse leaves
   useEffect(() => {
