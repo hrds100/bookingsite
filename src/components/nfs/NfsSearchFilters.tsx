@@ -67,7 +67,7 @@ export function NfsSearchFilters({
           <div className="flex items-center border border-border rounded-lg overflow-hidden">
             <span className="text-xs text-muted-foreground px-3">Sort by:</span>
             <Select value={sortBy} onValueChange={onSortChange}>
-              <SelectTrigger className="h-9 w-[120px] text-xs border-0 border-l border-border rounded-none shadow-none focus:ring-0">
+              <SelectTrigger className="h-9 w-24 sm:w-[120px] text-xs border-0 border-l border-border rounded-none shadow-none focus:ring-0">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -110,7 +110,7 @@ export function NfsSearchFilters({
           <div className="flex items-center gap-2">
             <span className="text-xs font-medium text-muted-foreground">Type:</span>
             <Select value={activeType} onValueChange={onTypeChange}>
-              <SelectTrigger className="h-8 w-[140px] text-xs">
+              <SelectTrigger className="h-8 w-28 sm:w-[140px] text-xs">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -128,7 +128,7 @@ export function NfsSearchFilters({
                 placeholder="Min"
                 value={priceMin}
                 onChange={(e) => onPriceMinChange(e.target.value)}
-                className="w-20 h-8 px-2 text-xs border border-input rounded-md bg-card outline-none focus:border-primary"
+                className="w-16 sm:w-20 h-8 px-2 text-xs border border-input rounded-md bg-card outline-none focus:border-primary"
               />
               <span className="text-muted-foreground">–</span>
               <input
@@ -136,7 +136,7 @@ export function NfsSearchFilters({
                 placeholder="Max"
                 value={priceMax}
                 onChange={(e) => onPriceMaxChange(e.target.value)}
-                className="w-20 h-8 px-2 text-xs border border-input rounded-md bg-card outline-none focus:border-primary"
+                className="w-16 sm:w-20 h-8 px-2 text-xs border border-input rounded-md bg-card outline-none focus:border-primary"
               />
             </div>
           </div>

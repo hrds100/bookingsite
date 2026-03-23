@@ -83,9 +83,9 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
   );
 
   return (
-    <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+    <div className="bg-card border border-border rounded-2xl p-4 sm:p-6 shadow-sm">
       <div className="mb-4">
-        <span className="text-2xl font-bold">{currency?.symbol}{property.base_rate_amount}</span>
+        <span className="text-xl sm:text-2xl font-bold">{currency?.symbol}{property.base_rate_amount}</span>
         <span className="text-muted-foreground text-sm"> /night</span>
       </div>
 
@@ -109,7 +109,7 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
             </div>
           </button>
         </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="start">
+        <PopoverContent className="w-auto p-0" align="center" side="bottom">
           <Calendar
             mode="range"
             selected={dateRange}

@@ -12,28 +12,32 @@ export default function NfsPaymentSuccess() {
   useEffect(() => {
     const raw = sessionStorage.getItem('nfs_last_reservation');
     if (raw) {
-      const data = JSON.parse(raw);
-      setReservation(data);
-      sessionStorage.removeItem('nfs_last_reservation');
+      try {
+        const data = JSON.parse(raw);
+        setReservation(data);
+        sessionStorage.removeItem('nfs_last_reservation');
 
-      // Fire-and-forget n8n notification (once)
-      if (!notified.current && data.guestEmail) {
-        notified.current = true;
-        notifyBookingConfirmed({
-          reservationId: data.id || "",
-          guestName: `${data.guestFirstName || ""} ${data.guestLastName || ""}`.trim(),
-          guestEmail: data.guestEmail,
-          propertyTitle: data.propertyTitle || "",
-          propertyCity: data.propertyCity || "",
-          propertyCountry: data.propertyCountry || "",
-          checkIn: data.checkIn || "",
-          checkOut: data.checkOut || "",
-          nights: data.nights || 0,
-          adults: data.adults || 0,
-          children: data.children || 0,
-          total: data.total || 0,
-          currency: data.currency || "GBP",
-        });
+        // Fire-and-forget n8n notification (once)
+        if (!notified.current && data.guestEmail) {
+          notified.current = true;
+          notifyBookingConfirmed({
+            reservationId: data.id || "",
+            guestName: `${data.guestFirstName || ""} ${data.guestLastName || ""}`.trim(),
+            guestEmail: data.guestEmail,
+            propertyTitle: data.propertyTitle || "",
+            propertyCity: data.propertyCity || "",
+            propertyCountry: data.propertyCountry || "",
+            checkIn: data.checkIn || "",
+            checkOut: data.checkOut || "",
+            nights: data.nights || 0,
+            adults: data.adults || 0,
+            children: data.children || 0,
+            total: data.total || 0,
+            currency: data.currency || "GBP",
+          });
+        }
+      } catch {
+        sessionStorage.removeItem('nfs_last_reservation');
       }
     }
   }, []);

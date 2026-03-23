@@ -69,12 +69,12 @@ export function NfsPropertyCard({ property, onHover }: NfsPropertyCardProps) {
         )}
 
         {/* Image arrows */}
-        {sortedImages.length > 1 && isHovered && (
+        {sortedImages.length > 1 && (
           <>
             {currentImage > 0 && (
               <button
                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); setCurrentImage(currentImage - 1); }}
-                className="absolute left-2 top-1/2 -translate-y-1/2 z-10 p-1.5 rounded-full bg-card/80 backdrop-blur-sm hover:bg-card transition"
+                className="absolute left-2 top-1/2 -translate-y-1/2 z-10 p-1.5 rounded-full bg-card/80 backdrop-blur-sm hover:bg-card transition opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
@@ -82,7 +82,7 @@ export function NfsPropertyCard({ property, onHover }: NfsPropertyCardProps) {
             {currentImage < sortedImages.length - 1 && (
               <button
                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); setCurrentImage(currentImage + 1); }}
-                className="absolute right-2 top-1/2 -translate-y-1/2 z-10 p-1.5 rounded-full bg-card/80 backdrop-blur-sm hover:bg-card transition"
+                className="absolute right-2 top-1/2 -translate-y-1/2 z-10 p-1.5 rounded-full bg-card/80 backdrop-blur-sm hover:bg-card transition opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
               >
                 <ChevronRight className="w-4 h-4" />
               </button>

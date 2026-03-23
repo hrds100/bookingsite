@@ -14,7 +14,7 @@ import { format, parseISO, isFuture, isPast } from "date-fns";
 export default function OperatorReservations() {
   const { formatPrice } = useCurrency();
   const { operatorId } = useAuth();
-  const { data: realReservations } = useNfsOperatorReservations(operatorId);
+  const { data: realReservations, isLoading } = useNfsOperatorReservations(operatorId);
   const [search, setSearch] = useState("");
 
   // Show operator's real reservations only — no mock fallback
@@ -107,6 +107,11 @@ export default function OperatorReservations() {
         <Input placeholder="Search by guest, property, or ID..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 rounded-lg" />
       </div>
 
+      {isLoading ? (
+        <div className="flex items-center justify-center py-20">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+        </div>
+      ) : (
       <Tabs defaultValue="all">
         <TabsList>
           <TabsTrigger value="all">All ({all.length})</TabsTrigger>
@@ -121,6 +126,7 @@ export default function OperatorReservations() {
         <TabsContent value="past" className="mt-4"><ReservationTable data={past} /></TabsContent>
         <TabsContent value="cancelled" className="mt-4"><ReservationTable data={cancelled} /></TabsContent>
       </Tabs>
+      )}
     </div>
   );
 }

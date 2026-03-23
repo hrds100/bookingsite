@@ -16,7 +16,7 @@ export default function NfsSearchPage() {
   const [bedrooms, setBedrooms] = useState(0);
   const [sortBy, setSortBy] = useState('relevant');
   const [hoveredId, setHoveredId] = useState<string | null>(null);
-  const { data: scopedProperties = [] } = useWhiteLabelProperties();
+  const { data: scopedProperties = [], isLoading } = useWhiteLabelProperties();
 
   const query = searchParams.get('query') || '';
 
@@ -82,7 +82,11 @@ export default function NfsSearchPage() {
         </div>
 
         <div className="flex-1 overflow-y-auto px-5 pb-6">
-          {filteredProperties.length === 0 ? (
+          {isLoading ? (
+            <div className="flex items-center justify-center py-20">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+            </div>
+          ) : filteredProperties.length === 0 ? (
             <NfsEmptyState
               icon={Search}
               title="No exact matches"

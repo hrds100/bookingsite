@@ -30,7 +30,7 @@ export function NfsMainFooter() {
             {!isWhiteLabel && (
               <div className="flex gap-3">
                 {['Instagram', 'Twitter', 'Facebook', 'TikTok'].map((s) => (
-                  <a key={s} href="#" className="text-xs text-muted-foreground hover:text-foreground transition-colors">{s}</a>
+                  <a key={s} href="#" target="_blank" rel="noopener noreferrer" className="text-xs text-muted-foreground hover:text-foreground transition-colors">{s}</a>
                 ))}
               </div>
             )}
