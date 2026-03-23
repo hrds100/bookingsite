@@ -249,26 +249,39 @@ export function NfsSearchMap({ properties, hoveredId }: NfsSearchMapProps) {
       });
       marker.setZIndex(hovered ? 999 : 1);
 
-      // Pan + smooth zoom to hovered marker
+      // Smooth fly-to: zoom out → pan → zoom in
       if (hovered) {
         const pos = marker.getPosition();
         if (pos) {
-          map.panTo(pos);
           const current = map.getZoom() ?? 3;
           const target = 14;
-          if (current < target - 1) {
-            let step = current;
-            zoomIntervalRef.current = setInterval(() => {
-              step += 0.5;
+          const zoomOut = Math.min(current, 8); // zoom out to level 8 first
+
+          // Phase 1: zoom out smoothly
+          let step = current;
+          zoomIntervalRef.current = setInterval(() => {
+            if (step > zoomOut) {
+              step -= 1;
               map.setZoom(step);
-              if (step >= target) {
-                if (zoomIntervalRef.current) clearInterval(zoomIntervalRef.current);
-                zoomIntervalRef.current = null;
-              }
-            }, 80);
-          } else if (current < target) {
-            map.setZoom(target);
-          }
+            } else {
+              // Phase 2: pan to new location
+              if (zoomIntervalRef.current) clearInterval(zoomIntervalRef.current);
+              map.panTo(pos);
+
+              // Phase 3: zoom in smoothly after a brief pause for the pan
+              setTimeout(() => {
+                let zoomStep = zoomOut;
+                zoomIntervalRef.current = setInterval(() => {
+                  zoomStep += 0.5;
+                  map.setZoom(zoomStep);
+                  if (zoomStep >= target) {
+                    if (zoomIntervalRef.current) clearInterval(zoomIntervalRef.current);
+                    zoomIntervalRef.current = null;
+                  }
+                }, 60);
+              }, 300);
+            }
+          }, 50);
         }
       }
     });
