@@ -30,7 +30,7 @@ These files provide fallback data when Supabase tables are empty:
 | `useNfsOperatorUpdate()` | `nfs_operators` (mutation) | — |
 | `useNfsOperatorProperties(opId)` | `nfs_properties` | [] |
 
-## NFStay Tables (nfs_ prefix)
+## nfstay Tables (nfs_ prefix)
 
 | Table | Purpose | Wired? |
 |-------|---------|--------|

@@ -13,7 +13,7 @@
 
 ## Shared Infrastructure (Supabase)
 Both bookingsite and marketplace10 share the same Supabase project (`asazddtvjvmckouxcmmo`). When Supabase is wired:
-- NFStay tables are prefixed `nfs_` — do not touch non-`nfs_` tables
+- nfstay tables are prefixed `nfs_` — do not touch non-`nfs_` tables
 - Auth is shared (same `auth.users` table)
 - RLS policies must be in place before any mutation
 

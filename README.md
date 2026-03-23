@@ -1,4 +1,4 @@
-# NFStay Booking Site
+# nfstay Booking Site
 
 Standalone vacation rental booking platform at **nfstay.app**.
 

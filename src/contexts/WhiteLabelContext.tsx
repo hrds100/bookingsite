@@ -5,7 +5,7 @@ import type { NfsOperator } from "@/hooks/useNfsOperator";
 const SUPABASE_CONFIGURED = !!import.meta.env.VITE_SUPABASE_URL && !!import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 interface WhiteLabelState {
-  /** The resolved operator for this domain, or null if on the main NFStay site */
+  /** The resolved operator for this domain, or null if on the main nfstay site */
   operator: NfsOperator | null;
   /** True while we're resolving the domain */
   loading: boolean;
@@ -19,7 +19,7 @@ const WhiteLabelContext = createContext<WhiteLabelState>({
   isWhiteLabel: false,
 });
 
-/** Hostnames that are the main NFStay site (not white-label) */
+/** Hostnames that are the main nfstay site (not white-label) */
 const MAIN_HOSTNAMES = [
   "nfstay.app",
   "www.nfstay.app",

@@ -1,4 +1,4 @@
-# NFStay Booking Site — nfstay.app
+# nfstay Booking Site — nfstay.app
 
 Standalone vacation rental booking platform. React + Vite + TypeScript + Tailwind + shadcn/ui + Supabase.
 
@@ -10,7 +10,7 @@ reliability > UX polish > clean code > speed
 src/
   pages/              ← route-level components (landing, search, property, checkout, operator/*, admin/*)
   components/
-    nfs/              ← 16 NFStay-specific components (layouts, navbar, footer, cards, filters, maps)
+    nfs/              ← 16 nfstay-specific components (layouts, navbar, footer, cards, filters, maps)
     ui/               ← 39 shadcn/ui primitives (never hand-edit)
   contexts/           ← CurrencyContext (GBP/USD/EUR/AED/SGD)
   data/               ← mock properties, destinations, reservations (fallback when DB empty)

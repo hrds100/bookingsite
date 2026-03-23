@@ -2,7 +2,7 @@
 
 ## Overview
 
-NFStay booking site is a standalone React SPA deployed to Vercel at nfstay.app. It serves three user types through a single codebase with layout-based routing.
+nfstay booking site is a standalone React SPA deployed to Vercel at nfstay.app. It serves three user types through a single codebase with layout-based routing.
 
 ## User Portals
 
@@ -64,7 +64,7 @@ NFStay booking site is a standalone React SPA deployed to Vercel at nfstay.app. 
 
 ```
 src/components/
-├── nfs/                   ← 16 NFStay components
+├── nfs/                   ← 16 nfstay components
 │   ├── NfsMainLayout      ← Navbar + <Outlet> + Footer
 │   ├── NfsMainNavbar      ← Context-aware (home tabs / search bar)
 │   ├── NfsMainFooter      ← 4-column (About / Operators / Travelers / Legal)

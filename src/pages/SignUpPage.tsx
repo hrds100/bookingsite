@@ -55,7 +55,7 @@ function AuthShell({ children, showTabs, heading, subtitle }: { children: React.
       <div className="flex w-full h-screen overflow-hidden p-2 gap-2" style={{ backgroundColor: "#f3f3ee" }}>
         <div className="flex flex-col items-center justify-between flex-1 lg:w-1/2 w-full h-full overflow-y-auto bg-white rounded-3xl border" style={{ borderColor: "#e8e5df", padding: "clamp(24px, 3.5vh, 64px)" }}>
           <div className="flex items-center justify-center w-full">
-            <Link to="/" className="font-extrabold text-[#0a0a0a] tracking-tight no-underline" style={{ fontSize: "clamp(18px, 2.5vh, 24px)" }}>NFsTay</Link>
+            <Link to="/" className="font-extrabold text-[#0a0a0a] tracking-tight no-underline" style={{ fontSize: "clamp(18px, 2.5vh, 24px)" }}>nfstay</Link>
           </div>
 
           <div className="flex flex-col items-center justify-center w-full max-w-[480px] flex-1">
@@ -143,7 +143,7 @@ export default function SignUpPage() {
   // Social view (primary)
   if (view === "social") {
     return (
-      <AuthShell showTabs heading="Create your account" subtitle="Book unique stays or list your property on NFsTay">
+      <AuthShell showTabs heading="Create your account" subtitle="Book unique stays or list your property on nfstay">
         <div className="w-full flex flex-col" style={{ gap: "clamp(9px, 1.8vh, 22px)" }}>
           {error && <p className="text-sm text-red-500 text-center">{error}</p>}
 

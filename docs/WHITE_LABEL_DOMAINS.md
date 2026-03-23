@@ -3,11 +3,11 @@
 ## How it works
 
 The app detects the current hostname on load:
-- **Main site** (`nfstay.app`, `www.nfstay.app`, `localhost`, `*.vercel.app`) → normal NFStay experience
+- **Main site** (`nfstay.app`, `www.nfstay.app`, `localhost`, `*.vercel.app`) → normal nfstay experience
 - **Subdomain** (`sunset.nfstay.app`) → looks up `nfs_operators.subdomain = 'sunset'`
 - **Custom domain** (`stays.theircompany.com`) → looks up `nfs_operators.custom_domain = 'stays.theircompany.com'`
 
-If a matching operator is found, the site shows only that operator's properties with their branding (logo, colors, hero, FAQs). Marketplace-specific sections (destinations, testimonials, "Why NFStay", operator CTA) are hidden.
+If a matching operator is found, the site shows only that operator's properties with their branding (logo, colors, hero, FAQs). Marketplace-specific sections (destinations, testimonials, "Why nfstay", operator CTA) are hidden.
 
 ## Subdomain setup (*.nfstay.app)
 
@@ -34,7 +34,7 @@ If a matching operator is found, the site shows only that operator's properties 
 |--------|----------|
 | `subdomain` | e.g. `sunset` → `sunset.nfstay.app` |
 | `custom_domain` | e.g. `stays.theircompany.com` |
-| `brand_name` | Shown in navbar/footer instead of "NFsTay" |
+| `brand_name` | Shown in navbar/footer instead of "nfstay" |
 | `logo_url` | Logo image in navbar/footer |
 | `accent_color` | Brand color (future: CSS variable override) |
 | `hero_photo` | Landing page hero background |
