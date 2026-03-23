@@ -1,24 +1,37 @@
 import { Link } from "react-router-dom";
-import { Users, Building2, CalendarDays, TrendingUp, ShieldCheck, ArrowUpRight, AlertCircle } from "lucide-react";
+import { Users, Building2, CalendarDays, TrendingUp, ShieldCheck, ArrowUpRight, AlertCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NfsStatusBadge } from "@/components/nfs/NfsStatusBadge";
-import { mockPlatformStats, mockPlatformRevenue, mockOperatorApplications, mockUsers } from "@/data/mock-admin";
-import { mockReservations } from "@/data/mock-reservations";
+import { mockOperatorApplications } from "@/data/mock-admin";
 import { useCurrency } from "@/contexts/CurrencyContext";
+import { useAdminPlatformStats, useAdminMonthlyData } from "@/hooks/useAdminStats";
+import { useAdminUsers } from "@/hooks/useAdminUsers";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, AreaChart, Area } from "recharts";
-
-const stats = mockPlatformStats;
 
 export default function AdminDashboard() {
   const { formatPrice } = useCurrency();
+  const { data: stats, isLoading: statsLoading } = useAdminPlatformStats();
+  const { data: monthlyData, isLoading: chartLoading } = useAdminMonthlyData();
+  const { data: allUsers } = useAdminUsers();
   const pendingApps = mockOperatorApplications.filter(a => a.status === 'pending');
-  const recentUsers = mockUsers.slice(0, 5);
+  const recentUsers = (allUsers ?? []).slice(0, 5);
+
+  if (statsLoading) {
+    return (
+      <div className="p-6 flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  const s = stats ?? { totalUsers: 0, totalOperators: 0, totalBookings: 0, totalRevenue: 0, pendingApprovals: 0, totalProperties: 0 };
+  const chartData = monthlyData ?? [];
 
   const statCards = [
-    { label: "Total Users", value: stats.totalUsers.toLocaleString(), icon: Users, change: `+${stats.monthlyGrowth}%`, color: "text-primary" },
-    { label: "Operators", value: stats.totalOperators, icon: Building2, change: `${stats.pendingApprovals} pending`, color: "text-warning" },
-    { label: "Total Bookings", value: stats.totalBookings.toLocaleString(), icon: CalendarDays, change: "+8.2%", color: "text-info" },
-    { label: "Platform Revenue", value: formatPrice(stats.totalRevenue), icon: TrendingUp, change: "+15.3%", color: "text-primary" },
+    { label: "Total Users", value: s.totalUsers.toLocaleString(), icon: Users, change: `${s.totalOperators} operators`, color: "text-primary" },
+    { label: "Operators", value: s.totalOperators, icon: Building2, change: `${s.pendingApprovals} pending`, color: "text-warning" },
+    { label: "Total Bookings", value: s.totalBookings.toLocaleString(), icon: CalendarDays, change: `${s.totalProperties} properties`, color: "text-info" },
+    { label: "Platform Revenue", value: formatPrice(s.totalRevenue), icon: TrendingUp, change: `${s.totalBookings} bookings`, color: "text-primary" },
   ];
 
   return (
@@ -65,7 +78,7 @@ export default function AdminDashboard() {
         <div className="bg-card border border-border rounded-2xl p-5">
           <h2 className="text-sm font-semibold mb-4">Platform Revenue</h2>
           <ResponsiveContainer width="100%" height={220}>
-            <AreaChart data={mockPlatformRevenue}>
+            <AreaChart data={chartData}>
               <defs>
                 <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="hsl(145, 63%, 42%)" stopOpacity={0.3} />
@@ -82,7 +95,7 @@ export default function AdminDashboard() {
         <div className="bg-card border border-border rounded-2xl p-5">
           <h2 className="text-sm font-semibold mb-4">Monthly Bookings</h2>
           <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={mockPlatformRevenue}>
+            <BarChart data={chartData}>
               <XAxis dataKey="month" tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
               <Tooltip />
