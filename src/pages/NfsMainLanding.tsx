@@ -77,7 +77,7 @@ export default function NfsMainLanding() {
         heading={heroHeading}
         subHeading={heroSubHeading}
         desc={heroDesc}
-        btnText="Explore property"
+        btnText="Explore"
       />
 
       {/* Recently Viewed */}
