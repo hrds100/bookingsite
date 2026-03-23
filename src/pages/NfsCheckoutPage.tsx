@@ -101,7 +101,6 @@ export default function NfsCheckoutPage() {
 
       if (error || !data?.url) {
         // Fallback to mock flow if edge function fails
-        console.warn("Stripe checkout failed, using mock flow:", error);
         const reservation = {
           id: `res-${Date.now()}`,
           ...intent,

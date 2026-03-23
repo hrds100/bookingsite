@@ -15,7 +15,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 export default function OperatorProperties() {
   const { formatPrice } = useCurrency();
   const { operatorId } = useAuth();
-  const { data: realProperties } = useNfsOperatorProperties(operatorId);
+  const { data: realProperties, isLoading } = useNfsOperatorProperties(operatorId);
   const [search, setSearch] = useState("");
   const [view, setView] = useState<"table" | "grid">("table");
 
@@ -50,7 +50,11 @@ export default function OperatorProperties() {
         </div>
       </div>
 
-      {filtered.length === 0 ? (
+      {isLoading ? (
+        <div className="flex items-center justify-center py-20">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+        </div>
+      ) : filtered.length === 0 ? (
         <NfsEmptyState
           icon={Search}
           title="No properties found"

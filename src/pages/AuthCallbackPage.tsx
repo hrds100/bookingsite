@@ -1,19 +1,23 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 
 export default function AuthCallbackPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // In production, Supabase Auth will handle the token exchange
-    // from the email redirect URL. This page catches the redirect,
-    // processes the hash, and sends the user to the app.
-    const timer = setTimeout(() => {
-      navigate("/", { replace: true });
-    }, 2000);
-
-    return () => clearTimeout(timer);
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        navigate("/", { replace: true });
+      } else {
+        // Fallback: wait briefly for hash-based token exchange
+        const timer = setTimeout(() => {
+          navigate("/", { replace: true });
+        }, 1500);
+        return () => clearTimeout(timer);
+      }
+    });
   }, [navigate]);
 
   return (

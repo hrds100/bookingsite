@@ -1,4 +1,4 @@
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate, Navigate, Link } from "react-router-dom";
 import { format, parseISO, differenceInDays } from "date-fns";
 import { ArrowLeft, CalendarDays, MapPin, Users, CreditCard, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -6,11 +6,26 @@ import { NfsStatusBadge } from "@/components/nfs/NfsStatusBadge";
 import { NfsEmptyState } from "@/components/nfs/NfsEmptyState";
 import { mockReservations, getReservationProperty } from "@/data/mock-reservations";
 import { useCurrency } from "@/contexts/CurrencyContext";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function TravelerReservationDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { formatPrice } = useCurrency();
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/signin" replace />;
+  }
+
   const res = mockReservations.find(r => r.id === id);
 
   if (!res) {
