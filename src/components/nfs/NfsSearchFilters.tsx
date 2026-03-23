@@ -67,11 +67,11 @@ export function NfsSearchFilters({
   return (
     <div className="space-y-3">
       {/* Results bar */}
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-foreground font-semibold">
+      <div className="flex items-center justify-between gap-2 min-w-0">
+        <p className="text-sm text-foreground font-semibold shrink-0">
           {resultCount}+ results
         </p>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 min-w-0 overflow-x-auto">
           <div className="flex items-center border border-border rounded-lg overflow-hidden">
             <span className="text-xs text-muted-foreground px-3">Sort by:</span>
             <Select value={sortBy} onValueChange={onSortChange}>
@@ -114,7 +114,7 @@ export function NfsSearchFilters({
 
       {/* Expanded filters panel */}
       {showFilters && (
-        <div className="bg-card border border-border rounded-xl p-4 flex flex-wrap items-center gap-4">
+        <div className="bg-card border border-border rounded-xl p-4 flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3 sm:gap-4 overflow-x-hidden">
           <div className="flex items-center gap-2">
             <span className="text-xs font-medium text-muted-foreground">Type:</span>
             <Select value={activeType} onValueChange={onTypeChange}>

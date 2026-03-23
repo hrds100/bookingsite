@@ -64,7 +64,7 @@ export default function NfsSearchPage() {
   };
 
   return (
-    <div className="flex h-[calc(100vh-80px)]">
+    <div className="flex h-[calc(100vh-80px)] w-full overflow-x-hidden">
       {/* Left panel – listings */}
       <div className="w-full lg:w-[50%] flex flex-col overflow-hidden border-r border-border">
         <div className="px-5 pt-4 pb-2 shrink-0">
