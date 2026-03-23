@@ -92,57 +92,73 @@ The site is partially wired to real backend services. Data hooks fall back to mo
 
 | Feature | Status |
 |---------|--------|
-| Landing page | Live (real + mock data for properties) |
-| Search + filters | Live (real data, real Google Maps with geocoding fallback) |
-| Property detail | Live (real data, map works with or without lat/lng) |
-| Auth (sign in/up) | Real - Supabase Auth (same accounts as hub.nfstay.com) |
-| Navbar auth state | Real - shows sign out when logged in |
-| Checkout / booking | Real - Stripe Checkout via Edge Function |
-| Currency switching | Real (client-side conversion, persists to localStorage) |
-| Google Maps (search) | Real - live map with markers, hover-to-zoom, geocoding fallback for properties without lat/lng |
-| Google Maps (property detail) | Real - embed iframe, falls back to city+country name when lat/lng missing |
-| Operator properties | Real - queries nfs_properties (falls back to mock) |
-| Operator settings | Real - saves to nfs_operators |
-| Operator reservations | Real - queries nfs_reservations (falls back to mock) |
-| Admin dashboard | Mock - hardcoded stats, **auth-protected** (isAdmin check) |
-| Admin portal access | Protected - requires admin email (admin@hub.nfstay.com or hugo@nfstay.com) |
-| Social login (Google/Apple) | Real - Particle Network OAuth (shared with hub.nfstay.com) |
-| Hospitable sync | Not wired - credentials saved |
-| Email notifications | Real - n8n webhook on booking confirm (Resend API) |
-| Property create/edit form | UI exists, not saving to DB |
-| Photo upload | UI exists, not wired to Supabase Storage |
-| Stripe Connect (operator payouts) | Not wired - credentials saved |
-| White-label / subdomains | Not built |
-| Verify email resend button | UI exists, not wired |
-| OAuth callback logic | TODO in code - not fully implemented |
+| Landing page | Live — legacy VPS layout (no hero image, centered text + search bar) |
+| Search + filters | Live — real data, beds/bathrooms/bedrooms/type/price filters, 3-col grid on xl |
+| Property detail | Live — real data, taller images (500px), larger title, smooth map fly-to |
+| Auth (sign in/up) | Real — Supabase Auth (same accounts as hub.nfstay.com), branded [nf]stay logo |
+| Navbar | Legacy design — grid-cols-3, animated gradient toggle pill, gradient Sign In, mobile bottom nav |
+| Checkout / booking | Real — Stripe Checkout via Edge Function |
+| Currency switching | Real — localStorage persistence |
+| Google Maps (search) | Real — markers, geocoding fallback, smooth fly-to (zoom out → pan → zoom in) |
+| Google Maps (property detail) | Real — embed iframe, city+country fallback when lat/lng missing |
+| Property form save | Real — writes to nfs_properties via mutation hooks |
+| Photo upload | Real — uploads to nfs-images Storage bucket |
+| Operator properties | Real — queries nfs_properties (falls back to mock) |
+| Operator settings | Real — saves to nfs_operators |
+| Operator reservations | Real — queries nfs_reservations (falls back to mock) |
+| Admin dashboard stats | Real — queries profiles, nfs_operators, nfs_reservations |
+| Admin charts | Real — monthly aggregation from reservations |
+| Operator dashboard revenue | Real — computed from operator's reservations |
+| Operator analytics | Real — revenue, occupancy, bookings charts |
+| Admin portal access | Protected — requires admin email (admin@hub.nfstay.com or hugo@nfstay.com) |
+| Traveler reservation detail | Protected — auth guard, redirects to /signin |
+| Social login (Google/Apple/X/Facebook) | Real — Particle Network OAuth (shared with hub.nfstay.com) |
+| White-label preview | Real — ?preview=operator-id, operator branding + accent color |
+| White-label subdomains | Code ready — Vercel wildcard domain not configured yet |
+| Operator footer contacts | Real — phone (tel:), WhatsApp (wa.me), email, social links |
+| Email notifications | Real — n8n webhook on booking confirm (Resend API) |
+| Hospitable sync | Not wired — credentials saved |
+| Stripe Connect (payouts) | Not wired — credentials saved |
+| Verify email resend | UI exists, not wired |
+| OAuth callback | TODO — for Stripe Connect/Hospitable (social login works separately) |
+| Avg Rating | Placeholder — no reviews table yet |
 
-### Audit fixes shipped (2026-03-23)
+### All PRs shipped (2026-03-23 session)
 
-| Fix | PR |
-|-----|-----|
-| Branding: page title, meta tags, OG tags, favicon | #20 |
-| Security: admin portal auth guard (isAdmin) | #20 |
-| Security: traveler reservation detail auth guard | #20 |
-| Crash fix: JSON.parse try/catch on payment success | #20 |
-| UX: loading spinners on search, operator properties, operator reservations | #20 |
-| Mobile: search filter responsive widths, carousel touch arrows, booking widget breakpoints | #20 |
-| Auth: callback page uses session check instead of hardcoded delay | #20 |
-| Cleanup: removed console.warn/error from production pages | #20 |
-| Footer: social links open in new tab | #20 |
-| Maps: property detail shows map via city name when lat/lng null | #21 |
-| Maps: search map geocodes properties without lat/lng, hover-zoom works | #21 |
+| PR | What |
+|----|------|
+| #20 | Audit: security, branding, UX, mobile (14 fixes) |
+| #21 | Map geocoding fallback |
+| #22 | Docs update |
+| #23 | Admin + operator dashboards wired to real data |
+| #24 | White-label preview mode |
+| #25 | Legacy structure: footer contacts, filters, ratings, operator colors |
+| #26 | Visual restructure: legacy proportions |
+| #27 | Full legacy VPS UI port: gradient buttons, no-image hero, card proportions |
+| #28 | Navbar rewrite: exact legacy match |
+| #29 | Purple → green brand gradient |
+| #30 | White booking widget, smooth map fly-to, "Explore" text |
+| #31 | New logo on sign in/up pages |
 
 ---
 
 ## 8. UI DESIGN STANDARDS
 
-- **Reference:** Airbnb, Booking.com - clean, minimal, confident
-- **Spacing:** consistent 4px/8px grid
-- **Typography:** Inter font family, one scale
-- **Colors:** existing Tailwind tokens only - never introduce new hex values
+- **Visual reference:** Legacy nfstay-frontend-vps — same structure, layout, proportions
+- **Brand reference:** hub.nfstay.com/brand (password: 5891)
+- **Primary color:** NFStay Green `#1E9A80`
+- **Gradient:** `linear-gradient(270deg, #27dea0 0%, #1E9A80 100%)`
+- **Background:** White `#FFFFFF`
+- **Logo:** [nf]stay — Sora font, NfsLogo component
+- **Typography:** Inter (body/nav/buttons), Sora (logo only)
+- **Buttons:** `rounded-full` for CTAs, `bg-primary-gradient text-white`
+- **Cards:** `rounded-2xl`, `aspect-[320/300]`, `hover:scale-110`
+- **Navbar:** `h-16 sm:h-20`, `grid grid-cols-3`, animated gradient toggle pill
+- **Footer (main):** `bg-[#f0f3f7]`, green hover accents `#1E9A80`
+- **Footer (operator):** `bg-gray-900` dark, with contact info
 - **Components:** shadcn/ui first, custom only when necessary
-- **Motion:** subtle only (200–300ms transitions)
-- **Mobile first:** 375px → tablet → desktop
+- **Motion:** 200–300ms transitions, map fly-to uses zoom-out→pan→zoom-in
+- **Mobile first:** 375px → tablet → desktop, bottom nav with gradient active state
 - **Empty states:** always designed, never blank screens
 - **Loading states:** skeleton or spinner, never layout shift
 
