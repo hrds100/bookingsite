@@ -63,8 +63,11 @@ export function WhiteLabelProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const hostname = window.location.hostname;
 
-    // Main site — skip resolution
-    if (isMainSite(hostname)) {
+    // Preview mode: ?preview=<operator-id> forces white-label view on main site
+    const previewId = new URLSearchParams(window.location.search).get("preview");
+
+    // Main site — skip resolution (unless preview mode)
+    if (isMainSite(hostname) && !previewId) {
       setState({ operator: null, loading: false, isWhiteLabel: false });
       return;
     }
@@ -81,7 +84,14 @@ export function WhiteLabelProvider({ children }: { children: ReactNode }) {
     async function resolveOperator() {
       try {
         let query;
-        if (subdomain) {
+        if (previewId) {
+          // Preview mode — look up operator by ID
+          query = supabase
+            .from("nfs_operators")
+            .select("*")
+            .eq("id", previewId)
+            .maybeSingle();
+        } else if (subdomain) {
           // Match by subdomain column
           query = supabase
             .from("nfs_operators")
