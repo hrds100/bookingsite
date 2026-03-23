@@ -2,16 +2,14 @@ import { Link } from "react-router-dom";
 import { Building2, CalendarDays, TrendingUp, Star, ArrowUpRight, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NfsStatusBadge } from "@/components/nfs/NfsStatusBadge";
-import { mockOperatorStats, mockMonthlyRevenue, mockOccupancyData } from "@/data/mock-operator";
 import { getReservationProperty } from "@/data/mock-reservations";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { useAuth } from "@/hooks/useAuth";
 import { useNfsOperator, useNfsOperatorProperties } from "@/hooks/useNfsOperator";
 import { useNfsOperatorReservations } from "@/hooks/useNfsReservations";
+import { useOperatorMonthlyRevenue, useOperatorOccupancy, useOperatorTotalRevenue } from "@/hooks/useOperatorStats";
 import { format, parseISO } from "date-fns";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line } from "recharts";
-
-const stats = mockOperatorStats;
 
 export default function OperatorDashboard() {
   const { formatPrice } = useCurrency();
@@ -19,13 +17,16 @@ export default function OperatorDashboard() {
   const { data: operator } = useNfsOperator();
   const { data: realProperties } = useNfsOperatorProperties(operatorId);
   const { data: realReservations } = useNfsOperatorReservations(operatorId);
+  const { data: totalRevenue } = useOperatorTotalRevenue(operatorId);
+  const { data: revenueData } = useOperatorMonthlyRevenue(operatorId);
+  const { data: occupancyData } = useOperatorOccupancy(operatorId);
   const recentReservations = (realReservations ?? []).slice(0, 5);
 
   const propCount = realProperties?.length ?? 0;
   const resCount = realReservations?.length ?? 0;
 
   const statCards = [
-    { label: "Total Revenue", value: formatPrice(0), icon: TrendingUp, change: "—", sub: "coming soon" },
+    { label: "Total Revenue", value: formatPrice(totalRevenue ?? 0), icon: TrendingUp, change: `${resCount} bookings`, sub: "all time" },
     { label: "Active Listings", value: propCount, icon: Building2, change: `${propCount} total`, sub: "properties" },
     { label: "Reservations", value: resCount, icon: CalendarDays, change: `${resCount} total`, sub: "reservations" },
     { label: "Avg Rating", value: "—", icon: Star, change: "—", sub: "coming soon" },
@@ -68,7 +69,7 @@ export default function OperatorDashboard() {
         <div className="bg-card border border-border rounded-2xl p-5">
           <h2 className="text-sm font-semibold mb-4">Monthly Revenue</h2>
           <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={mockMonthlyRevenue}>
+            <BarChart data={revenueData ?? []}>
               <XAxis dataKey="month" tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
               <Tooltip />
@@ -79,7 +80,7 @@ export default function OperatorDashboard() {
         <div className="bg-card border border-border rounded-2xl p-5">
           <h2 className="text-sm font-semibold mb-4">Occupancy Rate (%)</h2>
           <ResponsiveContainer width="100%" height={220}>
-            <LineChart data={mockOccupancyData}>
+            <LineChart data={occupancyData ?? []}>
               <XAxis dataKey="month" tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize: 12 }} axisLine={false} tickLine={false} domain={[0, 100]} />
               <Tooltip />
