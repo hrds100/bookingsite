@@ -43,7 +43,7 @@ export function NfsMainFooter() {
             {!isWhiteLabel && (
               <div className="flex gap-3">
                 {['Instagram', 'Twitter', 'Facebook', 'TikTok'].map((s) => (
-                  <a key={s} href="#" target="_blank" rel="noopener noreferrer" className="text-xs text-muted-foreground hover:text-[#8B5CF6] transition-colors">{s}</a>
+                  <a key={s} href="#" target="_blank" rel="noopener noreferrer" className="text-xs text-muted-foreground hover:text-[#1E9A80] transition-colors">{s}</a>
                 ))}
               </div>
             )}
@@ -51,7 +51,7 @@ export function NfsMainFooter() {
             {isWhiteLabel && socialLinks.length > 0 && (
               <div className="flex gap-3 mt-2">
                 {socialLinks.map((s) => (
-                  <a key={s.label} href={s.url} target="_blank" rel="noopener noreferrer" className="text-xs text-muted-foreground hover:text-[#8B5CF6] transition-colors">{s.label}</a>
+                  <a key={s.label} href={s.url} target="_blank" rel="noopener noreferrer" className="text-xs text-muted-foreground hover:text-[#1E9A80] transition-colors">{s.label}</a>
                 ))}
               </div>
             )}
@@ -62,10 +62,10 @@ export function NfsMainFooter() {
             <div>
               <h4 className="text-sm font-semibold text-foreground mb-3">For Operators</h4>
               <ul className="space-y-2">
-                <li><Link to="/signup" className="text-sm text-muted-foreground hover:text-[#8B5CF6] transition-colors">List your property</Link></li>
-                <li><Link to="/signup" className="text-sm text-muted-foreground hover:text-[#8B5CF6] transition-colors">Sign up</Link></li>
-                <li><a href="#how-it-works" className="text-sm text-muted-foreground hover:text-[#8B5CF6] transition-colors">How it works</a></li>
-                <li><a href="#" className="text-sm text-muted-foreground hover:text-[#8B5CF6] transition-colors">Pricing</a></li>
+                <li><Link to="/signup" className="text-sm text-muted-foreground hover:text-[#1E9A80] transition-colors">List your property</Link></li>
+                <li><Link to="/signup" className="text-sm text-muted-foreground hover:text-[#1E9A80] transition-colors">Sign up</Link></li>
+                <li><a href="#how-it-works" className="text-sm text-muted-foreground hover:text-[#1E9A80] transition-colors">How it works</a></li>
+                <li><a href="#" className="text-sm text-muted-foreground hover:text-[#1E9A80] transition-colors">Pricing</a></li>
               </ul>
             </div>
           )}
@@ -77,7 +77,7 @@ export function NfsMainFooter() {
               <ul className="space-y-2">
                 {operator.contact_email && (
                   <li>
-                    <a href={`mailto:${operator.contact_email}`} className="text-sm text-muted-foreground hover:text-[#8B5CF6] transition-colors flex items-center gap-2">
+                    <a href={`mailto:${operator.contact_email}`} className="text-sm text-muted-foreground hover:text-[#1E9A80] transition-colors flex items-center gap-2">
                       <Mail className="w-3.5 h-3.5" />
                       {operator.contact_email}
                     </a>
@@ -85,7 +85,7 @@ export function NfsMainFooter() {
                 )}
                 {operator.contact_phone && (
                   <li>
-                    <a href={`tel:${operator.contact_phone}`} className="text-sm text-muted-foreground hover:text-[#8B5CF6] transition-colors flex items-center gap-2">
+                    <a href={`tel:${operator.contact_phone}`} className="text-sm text-muted-foreground hover:text-[#1E9A80] transition-colors flex items-center gap-2">
                       <Phone className="w-3.5 h-3.5" />
                       {operator.contact_phone}
                     </a>
@@ -93,7 +93,7 @@ export function NfsMainFooter() {
                 )}
                 {operator.contact_whatsapp && (
                   <li>
-                    <a href={`https://wa.me/${operator.contact_whatsapp.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-[#8B5CF6] transition-colors flex items-center gap-2">
+                    <a href={`https://wa.me/${operator.contact_whatsapp.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-[#1E9A80] transition-colors flex items-center gap-2">
                       <MessageCircle className="w-3.5 h-3.5" />
                       WhatsApp
                     </a>
@@ -109,12 +109,12 @@ export function NfsMainFooter() {
               {isWhiteLabel ? "Quick Links" : "For Travelers"}
             </h4>
             <ul className="space-y-2">
-              <li><Link to="/search" className="text-sm text-muted-foreground hover:text-[#8B5CF6] transition-colors">Search properties</Link></li>
-              <li><a href="#how-it-works" className="text-sm text-muted-foreground hover:text-[#8B5CF6] transition-colors">How to book</a></li>
+              <li><Link to="/search" className="text-sm text-muted-foreground hover:text-[#1E9A80] transition-colors">Search properties</Link></li>
+              <li><a href="#how-it-works" className="text-sm text-muted-foreground hover:text-[#1E9A80] transition-colors">How to book</a></li>
               {!isWhiteLabel && (
-                <li><a href="#" className="text-sm text-muted-foreground hover:text-[#8B5CF6] transition-colors">Guest protection</a></li>
+                <li><a href="#" className="text-sm text-muted-foreground hover:text-[#1E9A80] transition-colors">Guest protection</a></li>
               )}
-              <li><a href="#" className="text-sm text-muted-foreground hover:text-[#8B5CF6] transition-colors">Contact</a></li>
+              <li><a href="#" className="text-sm text-muted-foreground hover:text-[#1E9A80] transition-colors">Contact</a></li>
             </ul>
           </div>
 
@@ -122,9 +122,9 @@ export function NfsMainFooter() {
           <div>
             <h4 className="text-sm font-semibold text-foreground mb-3">Legal</h4>
             <ul className="space-y-2">
-              <li><a href="#" className="text-sm text-muted-foreground hover:text-[#8B5CF6] transition-colors">Privacy policy</a></li>
-              <li><a href="#" className="text-sm text-muted-foreground hover:text-[#8B5CF6] transition-colors">Terms of service</a></li>
-              <li><a href="#" className="text-sm text-muted-foreground hover:text-[#8B5CF6] transition-colors">Cookie policy</a></li>
+              <li><a href="#" className="text-sm text-muted-foreground hover:text-[#1E9A80] transition-colors">Privacy policy</a></li>
+              <li><a href="#" className="text-sm text-muted-foreground hover:text-[#1E9A80] transition-colors">Terms of service</a></li>
+              <li><a href="#" className="text-sm text-muted-foreground hover:text-[#1E9A80] transition-colors">Cookie policy</a></li>
             </ul>
           </div>
         </div>

@@ -91,7 +91,7 @@ export function NfsMainNavbar() {
 
             {!isSearchPage && (
               <div className="hidden lg:flex items-center justify-center">
-                <div className="relative bg-white/95 backdrop-blur-sm border border-gray-200/50 rounded-full p-1.5 shadow-lg shadow-purple-500/5 hover:shadow-purple-500/10 transition-all duration-300">
+                <div className="relative bg-white/95 backdrop-blur-sm border border-gray-200/50 rounded-full p-1.5 shadow-lg shadow-emerald-500/5 hover:shadow-emerald-500/10 transition-all duration-300">
                   {/* Animated gradient indicator */}
                   <div
                     className={`absolute top-1.5 h-[calc(100%-12px)] bg-primary-gradient rounded-full transition-all duration-500 ease-out shadow-sm ${
@@ -103,7 +103,7 @@ export function NfsMainNavbar() {
                   <button
                     onClick={() => handleNavToggle("traveler")}
                     className={`relative z-10 px-4 xl:px-6 py-2.5 rounded-full text-sm font-medium transition-all duration-300 min-w-[120px] xl:min-w-[140px] transform hover:scale-105 ${
-                      navMode === "traveler" || isSearchPage ? "text-white" : "text-gray-600 hover:text-purple-600"
+                      navMode === "traveler" || isSearchPage ? "text-white" : "text-gray-600 hover:text-[#1E9A80]"
                     }`}
                   >
                     <span className="hidden xl:inline">Search Properties</span>
@@ -112,7 +112,7 @@ export function NfsMainNavbar() {
                   <button
                     onClick={() => handleNavToggle("reservations")}
                     className={`relative z-10 px-4 xl:px-6 py-2.5 rounded-full text-sm font-medium transition-all duration-300 min-w-[120px] xl:min-w-[140px] transform hover:scale-105 ${
-                      navMode === "reservations" ? "text-white" : "text-gray-600 hover:text-purple-600"
+                      navMode === "reservations" ? "text-white" : "text-gray-600 hover:text-[#1E9A80]"
                     }`}
                   >
                     <span className="hidden xl:inline">My Reservations</span>
@@ -256,13 +256,13 @@ export function NfsMainNavbar() {
           </div>
           <div className="flex flex-col items-center space-y-6 p-6 text-sm text-gray-800">
             {isOperator && !isWhiteLabel && (
-              <Link to="/nfstay" onClick={() => setDrawerOpen(false)} className="flex items-center gap-3 hover:text-purple-600 font-semibold transition-colors">
+              <Link to="/nfstay" onClick={() => setDrawerOpen(false)} className="flex items-center gap-3 hover:text-[#1E9A80] font-semibold transition-colors">
                 Dashboard
               </Link>
             )}
             <button
               onClick={() => { signOut(); setDrawerOpen(false); }}
-              className="flex items-center gap-3 cursor-pointer hover:text-purple-600 font-semibold transition-colors"
+              className="flex items-center gap-3 cursor-pointer hover:text-[#1E9A80] font-semibold transition-colors"
             >
               <LogOut className="w-4 h-4" />
               Log Out
@@ -287,17 +287,17 @@ export function NfsMainNavbar() {
                   key={link.label}
                   to={link.href}
                   onClick={() => setDrawerOpen(false)}
-                  className="flex items-center py-3 px-6 text-sm font-medium text-gray-700 hover:bg-purple-50 hover:text-purple-600 transition-colors duration-200 border-l-2 border-transparent hover:border-purple-500"
+                  className="flex items-center py-3 px-6 text-sm font-medium text-gray-700 hover:bg-emerald-50 hover:text-[#1E9A80] transition-colors duration-200 border-l-2 border-transparent hover:border-[#1E9A80]"
                 >
                   {link.label}
                 </Link>
               ))}
             </div>
-            <div className="border-t border-gray-100 bg-gradient-to-r from-purple-50/50 to-green-50/50 py-6 px-6 space-y-4">
+            <div className="border-t border-gray-100 bg-gradient-to-r from-emerald-50/50 to-emerald-50/30 py-6 px-6 space-y-4">
               <Link
                 to="/signin"
                 onClick={() => setDrawerOpen(false)}
-                className="block w-full px-4 py-3 font-medium bg-primary-gradient text-white rounded-xl hover:opacity-90 transition-opacity text-center shadow-lg shadow-purple-500/25"
+                className="block w-full px-4 py-3 font-medium bg-primary-gradient text-white rounded-xl hover:opacity-90 transition-opacity text-center shadow-lg shadow-emerald-500/25"
               >
                 Sign In
               </Link>
@@ -318,7 +318,7 @@ export function NfsMainNavbar() {
       {/* Backdrop overlay */}
       {(sidebarOpen || drawerOpen) && (
         <div
-          className="fixed inset-0 bg-gradient-to-br from-purple-900/30 via-black/40 to-green-900/30 backdrop-blur-sm z-[55] animate-in fade-in duration-300"
+          className="fixed inset-0 bg-gradient-to-br from-emerald-900/20 via-black/30 to-emerald-900/20 backdrop-blur-sm z-[55] animate-in fade-in duration-300"
           onClick={() => { setSidebarOpen(false); setDrawerOpen(false); }}
         />
       )}
@@ -332,7 +332,7 @@ export function NfsMainNavbar() {
               className={`flex-1 px-4 py-2.5 rounded-full text-sm font-medium transition-all duration-300 ${
                 navMode === "traveler" || isSearchPage
                   ? "bg-primary-gradient text-white shadow-sm"
-                  : "text-gray-600 hover:text-purple-600"
+                  : "text-gray-600 hover:text-[#1E9A80]"
               }`}
             >
               Search
@@ -342,7 +342,7 @@ export function NfsMainNavbar() {
               className={`flex-1 px-4 py-2.5 rounded-full text-sm font-medium transition-all duration-300 ${
                 navMode === "reservations"
                   ? "bg-primary-gradient text-white shadow-sm"
-                  : "text-gray-600 hover:text-purple-600"
+                  : "text-gray-600 hover:text-[#1E9A80]"
               }`}
             >
               Bookings

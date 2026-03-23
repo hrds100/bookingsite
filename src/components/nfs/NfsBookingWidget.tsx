@@ -85,7 +85,7 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
   return (
     <div className="bg-card border border-border rounded-2xl p-4 sm:p-6 shadow-card">
       <div className="mb-4">
-        <span className="text-xl sm:text-2xl font-bold text-purple-600">{currency?.symbol}{property.base_rate_amount}</span>
+        <span className="text-xl sm:text-2xl font-bold text-[#1E9A80]">{currency?.symbol}{property.base_rate_amount}</span>
         <span className="text-base font-normal text-gray-900 ml-1">/ night</span>
       </div>
 

@@ -87,6 +87,6 @@
 
 @layer utilities {
   .bg-primary-gradient {
-    background: linear-gradient(270deg, #27dea0 0%, #974bfc 100%);
+    background: linear-gradient(270deg, #27dea0 0%, #1E9A80 100%);
   }
 }
