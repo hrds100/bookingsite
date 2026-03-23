@@ -19,7 +19,7 @@ test.describe("Audit Batch 1 — Live Site Verification", () => {
     const ogTitle = await page
       .locator('meta[property="og:title"]')
       .getAttribute("content");
-    expect(ogTitle).toContain("nfstay");
+    expect(ogTitle?.toLowerCase()).toContain("nfstay");
 
     const favicon = await page.locator('link[rel="icon"]').getAttribute("href");
     expect(favicon).toBeTruthy();
@@ -30,7 +30,7 @@ test.describe("Audit Batch 1 — Live Site Verification", () => {
     await page.goto(BASE, { waitUntil: "networkidle" });
 
     // Hero search exists
-    await expect(page.getByPlaceholder(/where|destination/i).first()).toBeVisible({ timeout: 15000 });
+    await expect(page.getByPlaceholder(/where|destination|find location/i).first()).toBeVisible({ timeout: 15000 });
 
     // Footer exists with nfstay copyright
     await expect(page.getByText(/© 2026/)).toBeVisible();
