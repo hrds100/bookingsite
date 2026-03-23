@@ -204,13 +204,17 @@ export default function NfsPropertyView() {
           <div>
             <h2 className="text-lg font-semibold mb-2">Where you'll be</h2>
             <p className="text-sm text-muted-foreground mb-3">{property.city}, {property.state}, {property.country}</p>
-            {property.lat && property.lng && import.meta.env.VITE_GOOGLE_MAPS_API_KEY ? (
+            {import.meta.env.VITE_GOOGLE_MAPS_API_KEY ? (
               <iframe
                 title="Property location"
                 className="w-full h-[300px] rounded-2xl border-0"
                 loading="lazy"
                 referrerPolicy="no-referrer-when-downgrade"
-                src={`https://www.google.com/maps/embed/v1/place?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}&q=${property.lat},${property.lng}&zoom=14`}
+                src={
+                  property.lat && property.lng
+                    ? `https://www.google.com/maps/embed/v1/place?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}&q=${property.lat},${property.lng}&zoom=14`
+                    : `https://www.google.com/maps/embed/v1/place?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}&q=${encodeURIComponent(`${property.city}, ${property.country}`)}&zoom=12`
+                }
               />
             ) : (
               <div className="bg-muted rounded-2xl h-[300px] flex items-center justify-center">
