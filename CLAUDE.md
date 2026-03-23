@@ -55,13 +55,19 @@ git push origin main # auto-deploys to Vercel → nfstay.app
 | Operator settings save | Real — writes to nfs_operators |
 | Operator reservations | Real — queries nfs_reservations (falls back to mock) |
 | Guest checkout | Real — Stripe Checkout via Edge Function |
-| Google Maps on search | Real — live map with markers |
+| Google Maps on search | Real — live map with markers, geocoding fallback for properties without lat/lng |
+| Google Maps on property detail | Real — embed iframe, city+country fallback when lat/lng missing |
 | Currency switching | Real — localStorage |
 | Email notifications | Real — n8n webhook on booking confirm (fire-and-forget) |
 | Property search/filters | Mock — client-side filtering of mock data |
-| Admin dashboard | Mock — hardcoded stats |
+| Admin dashboard | Mock — hardcoded stats, auth-protected (isAdmin) |
 | Social login (Google/Apple) | Real — Particle Network (same accounts as hub.nfstay.com) |
 | Hospitable sync | Not wired yet — credentials saved |
+| Property form save | UI exists, not writing to DB |
+| Photo upload | UI exists, not wired to Supabase Storage |
+| Stripe Connect (payouts) | Not wired — credentials saved |
+| Verify email resend | UI exists, not wired |
+| OAuth callback logic | TODO — not fully implemented |
 
 ## Domains
 - **Live:** https://nfstay.app
