@@ -1,5 +1,5 @@
 /**
- * n8n webhook integration for NFStay booking site.
+ * n8n webhook integration for nfstay booking site.
  *
  * All notifications (booking confirmation emails, admin alerts, etc.)
  * are sent via n8n webhooks. If the webhook fails, the app continues

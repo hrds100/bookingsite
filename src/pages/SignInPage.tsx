@@ -120,14 +120,14 @@ export default function SignInPage() {
           style={{ borderColor: "#e8e5df", padding: "clamp(24px, 3.5vh, 64px)" }}
         >
           <div className="flex items-center justify-center w-full">
-            <Link to="/" className="font-extrabold text-[#0a0a0a] tracking-tight" style={{ fontSize: "clamp(18px, 2.5vh, 24px)" }}>NFsTay</Link>
+            <Link to="/" className="font-extrabold text-[#0a0a0a] tracking-tight" style={{ fontSize: "clamp(18px, 2.5vh, 24px)" }}>nfstay</Link>
           </div>
 
           <div className="flex flex-col items-center justify-center w-full max-w-[480px] flex-1">
             {/* Heading */}
             <div className="text-center w-full" style={{ marginBottom: "clamp(16px, 2.5vh, 32px)" }}>
               <h2 className="font-semibold text-[#0a0a0a] leading-tight tracking-tight" style={{ fontSize: "clamp(20px, 2.7vh, 30px)" }}>Welcome back</h2>
-              <p className="text-base text-[#737373] text-center mt-1.5 leading-relaxed">Sign in to your NFsTay account</p>
+              <p className="text-base text-[#737373] text-center mt-1.5 leading-relaxed">Sign in to your nfstay account</p>
             </div>
 
             {/* Tab switcher */}

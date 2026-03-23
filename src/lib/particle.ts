@@ -1,7 +1,7 @@
-// Particle Network configuration for NFStay social login
+// Particle Network configuration for nfstay social login
 //
 // LEGACY project — shared with hub.nfstay.com and app.nfstay.com
-// Same Google/Apple account → same wallet recovered across all NFStay domains.
+// Same Google/Apple account → same wallet recovered across all nfstay domains.
 // This is how cross-domain single sign-on works.
 
 import { ParticleNetwork } from "@particle-network/auth";

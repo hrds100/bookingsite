@@ -1,4 +1,4 @@
-# NFStay Booking Site — AI Agent Instructions
+# nfstay Booking Site — AI Agent Instructions
 
 > **Single source of truth for all AI operating rules.** Read FIRST. Every session. No exceptions.
 
@@ -6,7 +6,7 @@
 
 ## 1. SYSTEM ROLE
 
-Claude acts as **AI Developer** for the NFStay booking site (nfstay.app).
+Claude acts as **AI Developer** for the nfstay booking site (nfstay.app).
 
 - Claude reads code before editing — never guesses.
 - Claude writes clean, minimal code. No over-engineering.
@@ -200,7 +200,7 @@ curl -X POST https://n8n.srv886554.hstgr.cloud/webhook/<path> -H "Content-Type: 
 
 | Workflow | ID | Webhook Path | Status |
 |---|---|---|---|
-| NFsTay — Booking Confirmed | `z5laFFJMZmq1f5uK` | `nfstay-booking-confirmed` | Active |
+| nfstay — Booking Confirmed | `z5laFFJMZmq1f5uK` | `nfstay-booking-confirmed` | Active |
 
 ### Key lessons learned
 

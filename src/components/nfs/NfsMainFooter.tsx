@@ -85,8 +85,8 @@ export function NfsMainFooter() {
         <div className="mt-10 pt-6 border-t border-border text-center">
           <p className="text-xs text-muted-foreground">
             {isWhiteLabel && operator
-              ? `© 2026 ${operator.brand_name}. Powered by NFsTay.`
-              : "© 2026 NFsTay. All rights reserved."}
+              ? `© 2026 ${operator.brand_name}. Powered by nfstay.`
+              : "© 2026 nfstay. All rights reserved."}
           </p>
         </div>
       </div>

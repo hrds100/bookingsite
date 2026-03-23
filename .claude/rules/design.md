@@ -1,4 +1,4 @@
-# NFStay Design Cheatsheet — nfstay.app
+# nfstay Design Cheatsheet — nfstay.app
 
 > This file auto-loads in every Claude session for bookingsite.
 > Follow these tokens exactly. Never introduce new hex values or random colours.
@@ -45,7 +45,7 @@
 - **Icons:** Lucide React only — no other icon libraries
 - **Conditional classes:** use `cn()` from `@/lib/utils`
 - **Never hand-edit** files in `src/components/ui/` — those are shadcn-managed
-- **NFStay-specific components** live in `src/components/nfs/` (16 components)
+- **nfstay-specific components** live in `src/components/nfs/` (16 components)
 
 ## Responsive
 - **Mobile first:** style for 375px, then `sm:`, `md:`, `lg:`, `xl:`

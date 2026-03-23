@@ -11,7 +11,7 @@
 
 ## What this project is
 
-Standalone vacation rental booking site for NFStay. Separate from marketplace10 (hub.nfstay.com). Same Supabase database, same auth — different frontend, different Vercel project.
+Standalone vacation rental booking site for nfstay. Separate from marketplace10 (hub.nfstay.com). Same Supabase database, same auth — different frontend, different Vercel project.
 
 - React + Vite + TypeScript + Tailwind + shadcn/ui
 - Supabase for auth + database + edge functions
@@ -65,7 +65,7 @@ Standalone vacation rental booking site for NFStay. Separate from marketplace10 
 
 ## One blocker to resolve
 
-**Resend API key** — The n8n workflow `NFsTay — Booking Confirmed` (ID: `vp5QBp1qIT08WJCt`) has `re_placeholder` in the code nodes. Once Hugo provides the real Resend key (`re_...`), update it in:
+**Resend API key** — The n8n workflow `nfstay — Booking Confirmed` (ID: `vp5QBp1qIT08WJCt`) has `re_placeholder` in the code nodes. Once Hugo provides the real Resend key (`re_...`), update it in:
 
 - n8n → workflow `vp5QBp1qIT08WJCt` → "Send Guest Email" node → replace `re_placeholder`
 - n8n → workflow `vp5QBp1qIT08WJCt` → "Notify Admin" node → replace `re_placeholder`

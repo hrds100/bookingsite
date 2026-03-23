@@ -4,7 +4,7 @@ const SLIDES = [
   {
     image: 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&h=1200&fit=crop',
     headline: 'Find your perfect stay, anywhere',
-    body: 'NFsTay connects travellers with unique vacation rentals across the globe. Book directly with verified operators.',
+    body: 'nfstay connects travellers with unique vacation rentals across the globe. Book directly with verified operators.',
     type: 'stats' as const,
     stats: [
       { number: '1,800+', label: 'Verified properties' },
@@ -25,7 +25,7 @@ const SLIDES = [
   {
     image: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&h=1200&fit=crop',
     headline: 'Trusted by travellers worldwide',
-    body: 'Join thousands of guests who book unique stays with confidence on NFsTay.',
+    body: 'Join thousands of guests who book unique stays with confidence on nfstay.',
     type: 'avatars' as const,
     avatars: [
       'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=96&h=96&fit=crop&crop=face',
@@ -34,7 +34,7 @@ const SLIDES = [
       'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=96&h=96&fit=crop&crop=face',
       'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=96&h=96&fit=crop&crop=face',
     ],
-    avatarLabel: '4,200+ guests trust NFsTay',
+    avatarLabel: '4,200+ guests trust nfstay',
   },
 ];
 

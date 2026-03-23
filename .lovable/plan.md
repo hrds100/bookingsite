@@ -1,6 +1,6 @@
 
 
-# NFStay — Phase 1: Foundation + Traveler Portal
+# nfstay — Phase 1: Foundation + Traveler Portal
 
 ## Overview
 Build the complete design system, app structure, layouts, and the full guest-facing traveler experience using realistic mock data. This creates a polished, demo-ready product that can be wired to Supabase later.
@@ -8,7 +8,7 @@ Build the complete design system, app structure, layouts, and the full guest-fac
 ---
 
 ## 1. Design System & Global Setup
-- Apply Inter font, NFStay CSS variables (green primary `hsl(145 63% 42%)`), typography scale, button variants, card styles, input styles
+- Apply Inter font, nfstay CSS variables (green primary `hsl(145 63% 42%)`), typography scale, button variants, card styles, input styles
 - Status badge components, skeleton loaders, empty state component, toast configuration
 - Constants file: currencies, property types, cancellation policies, check-in/out times
 
@@ -25,7 +25,7 @@ Build the complete design system, app structure, layouts, and the full guest-fac
 - Hero section with dark overlay, badge, H1, subtitle, and `NfsHeroSearch` widget
 - Popular Destinations carousel (Embla, 10 hardcoded cities with photos)
 - Featured Properties grid (8 mock properties using `NfsPropertyCard`)
-- How It Works (3 cards), Why NFStay (3×2 grid), Testimonials carousel (6 reviews), FAQ accordion (8 items), CTA banner
+- How It Works (3 cards), Why nfstay (3×2 grid), Testimonials carousel (6 reviews), FAQ accordion (8 items), CTA banner
 
 ## 5. `NfsHeroSearch` Component
 - Location input with Google Places autocomplete (graceful fallback if no API key)
