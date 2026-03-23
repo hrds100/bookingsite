@@ -83,7 +83,7 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
   );
 
   return (
-    <div className="bg-card border border-border rounded-2xl p-4 sm:p-6 shadow-sm">
+    <div className="bg-card border border-border rounded-2xl p-4 sm:p-6 shadow-card">
       <div className="mb-4">
         <span className="text-xl sm:text-2xl font-bold">{currency?.symbol}{property.base_rate_amount}</span>
         <span className="text-muted-foreground text-sm"> /night</span>
@@ -197,7 +197,7 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
       <Button
         onClick={handleReserve}
         disabled={!nights || belowMinStay}
-        className="w-full rounded-xl py-3 text-base font-semibold"
+        className="w-full rounded-2xl py-3 text-base font-semibold"
         size="lg"
       >
         {nights > 0 ? 'Reserve' : 'Check availability'}

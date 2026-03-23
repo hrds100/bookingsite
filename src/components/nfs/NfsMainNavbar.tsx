@@ -30,7 +30,7 @@ export function NfsMainNavbar() {
 
   return (
     <header className="sticky top-0 z-50 bg-card border-b border-border">
-      <div className="max-w-[1600px] mx-auto flex items-center h-16 px-4 gap-3">
+      <div className="max-w-[1600px] mx-auto flex items-center h-20 px-4 gap-3">
         {/* Left: hamburger + logo */}
         <div className="flex items-center gap-2 shrink-0">
           <button
@@ -98,7 +98,7 @@ export function NfsMainNavbar() {
                 <Users className="w-4 h-4" />
                 <span>1 guest</span>
               </button>
-              <Button size="sm" className="rounded-full px-5 ml-1" onClick={handleSearch}>
+              <Button size="sm" className="rounded-2xl px-5 ml-1" onClick={handleSearch}>
                 Search
               </Button>
             </div>
@@ -211,6 +211,31 @@ export function NfsMainNavbar() {
           )}
         </div>
       )}
+      {/* Mobile bottom nav */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 lg:hidden pb-[env(safe-area-inset-bottom)]">
+        <div className="flex items-center justify-center p-3">
+          <div className="flex items-center bg-card border border-border rounded-full p-1 shadow-card w-full max-w-[300px]">
+            <Link
+              to="/search"
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-full text-sm font-medium transition-colors ${
+                isSearchPage ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <Search className="w-4 h-4" />
+              Search
+            </Link>
+            <Link
+              to="/traveler/reservations"
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-full text-sm font-medium transition-colors ${
+                location.pathname.includes('/traveler') ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <CalendarDays className="w-4 h-4" />
+              Bookings
+            </Link>
+          </div>
+        </div>
+      </div>
     </header>
   );
 }
