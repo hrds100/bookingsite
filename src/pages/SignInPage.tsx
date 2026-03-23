@@ -120,7 +120,10 @@ export default function SignInPage() {
           style={{ borderColor: "#e8e5df", padding: "clamp(24px, 3.5vh, 64px)" }}
         >
           <div className="flex items-center justify-center w-full">
-            <Link to="/" className="font-extrabold text-[#0a0a0a] tracking-tight" style={{ fontSize: "clamp(18px, 2.5vh, 24px)" }}>nfstay</Link>
+            <Link to="/" className="flex items-center gap-[3px] no-underline">
+              <span className="flex items-center justify-center font-bold leading-none" style={{ width: 28, height: 28, border: '2px solid #0a0a0a', borderRadius: 6, fontFamily: "'Sora', sans-serif", fontSize: 12, color: '#0a0a0a' }}>nf</span>
+              <span className="leading-none" style={{ fontFamily: "'Sora', sans-serif", fontWeight: 400, fontSize: 20, color: '#0a0a0a', letterSpacing: 1.5 }}>stay</span>
+            </Link>
           </div>
 
           <div className="flex flex-col items-center justify-center w-full max-w-[480px] flex-1">
