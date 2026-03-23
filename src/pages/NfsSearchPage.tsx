@@ -14,6 +14,8 @@ export default function NfsSearchPage() {
   const [priceMin, setPriceMin] = useState('');
   const [priceMax, setPriceMax] = useState('');
   const [bedrooms, setBedrooms] = useState(0);
+  const [beds, setBeds] = useState(0);
+  const [bathrooms, setBathrooms] = useState(0);
   const [sortBy, setSortBy] = useState('relevant');
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const { data: scopedProperties = [], isLoading } = useWhiteLabelProperties();
@@ -40,21 +42,25 @@ export default function NfsSearchPage() {
     if (priceMin) props = props.filter(p => p.base_rate_amount >= Number(priceMin));
     if (priceMax) props = props.filter(p => p.base_rate_amount <= Number(priceMax));
     if (bedrooms > 0) props = props.filter(p => p.room_counts.bedrooms >= bedrooms);
+    if (beds > 0) props = props.filter(p => (p.room_counts.beds ?? p.room_counts.bedrooms) >= beds);
+    if (bathrooms > 0) props = props.filter(p => p.room_counts.bathrooms >= bathrooms);
 
     if (sortBy === 'price-asc') props.sort((a, b) => a.base_rate_amount - b.base_rate_amount);
     else if (sortBy === 'price-desc') props.sort((a, b) => b.base_rate_amount - a.base_rate_amount);
     else if (sortBy === 'newest') props.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
     return props;
-  }, [query, activeType, priceMin, priceMax, bedrooms, sortBy, scopedProperties]);
+  }, [query, activeType, priceMin, priceMax, bedrooms, beds, bathrooms, sortBy, scopedProperties]);
 
-  const hasFilters = activeType !== 'All' || priceMin || priceMax || bedrooms > 0;
+  const hasFilters = activeType !== 'All' || priceMin || priceMax || bedrooms > 0 || beds > 0 || bathrooms > 0;
 
   const clearFilters = () => {
     setActiveType('All');
     setPriceMin('');
     setPriceMax('');
     setBedrooms(0);
+    setBeds(0);
+    setBathrooms(0);
   };
 
   return (
@@ -76,6 +82,10 @@ export default function NfsSearchPage() {
             onPriceMaxChange={setPriceMax}
             bedrooms={bedrooms}
             onBedroomsChange={setBedrooms}
+            beds={beds}
+            onBedsChange={setBeds}
+            bathrooms={bathrooms}
+            onBathroomsChange={setBathrooms}
             hasFilters={!!hasFilters}
             onClearFilters={clearFilters}
           />

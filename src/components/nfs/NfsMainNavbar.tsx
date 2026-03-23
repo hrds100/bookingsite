@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
-import { Menu, X, Search, Clock, Users, Hotel, CalendarDays, LogOut } from "lucide-react";
+import { Menu, X, Search, Clock, Users, Hotel, CalendarDays, LogOut, MessageCircle } from "lucide-react";
 import { NfsLogo } from "./NfsLogo";
 import { NfsCurrencySelector } from "./NfsCurrencySelector";
 import { Button } from "@/components/ui/button";
@@ -109,6 +109,22 @@ export function NfsMainNavbar() {
 
         {/* Right: currency + account */}
         <div className="hidden md:flex items-center gap-2 shrink-0">
+          {/* Contact button */}
+          <a
+            href={
+              isWhiteLabel && wlOperator?.contact_whatsapp
+                ? `https://wa.me/${wlOperator.contact_whatsapp.replace(/[^0-9]/g, '')}`
+                : isWhiteLabel && wlOperator?.contact_email
+                  ? `mailto:${wlOperator.contact_email}`
+                  : "mailto:hello@nfstay.app"
+            }
+            target={isWhiteLabel && wlOperator?.contact_whatsapp ? "_blank" : undefined}
+            rel={isWhiteLabel && wlOperator?.contact_whatsapp ? "noopener noreferrer" : undefined}
+            className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors px-2 py-1.5 flex items-center gap-1.5"
+          >
+            <MessageCircle className="w-4 h-4" />
+            Contact
+          </a>
           <NfsCurrencySelector />
           {user ? (
             <div className="flex items-center gap-2">
@@ -155,6 +171,21 @@ export function NfsMainNavbar() {
           <Link to="/search" className="block text-sm font-medium text-foreground py-2" onClick={() => setMobileOpen(false)}>Find a stay</Link>
           <Link to="/traveler/reservations" className="block text-sm font-medium text-foreground py-2" onClick={() => setMobileOpen(false)}>Reservations</Link>
           <Link to="/booking" className="block text-sm font-medium text-foreground py-2" onClick={() => setMobileOpen(false)}>Find your booking</Link>
+          <a
+            href={
+              isWhiteLabel && wlOperator?.contact_whatsapp
+                ? `https://wa.me/${wlOperator.contact_whatsapp.replace(/[^0-9]/g, '')}`
+                : isWhiteLabel && wlOperator?.contact_email
+                  ? `mailto:${wlOperator.contact_email}`
+                  : "mailto:hello@nfstay.app"
+            }
+            target={isWhiteLabel && wlOperator?.contact_whatsapp ? "_blank" : undefined}
+            rel={isWhiteLabel && wlOperator?.contact_whatsapp ? "noopener noreferrer" : undefined}
+            className="block text-sm font-medium text-foreground py-2"
+            onClick={() => setMobileOpen(false)}
+          >
+            Contact us
+          </a>
           {!isWhiteLabel && (
             <>
               <hr className="border-border" />
