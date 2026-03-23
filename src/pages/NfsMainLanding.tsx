@@ -1,7 +1,6 @@
 import { useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import heroNightVilla from "@/assets/hero-night-villa.jpg";
-import { ChevronLeft, ChevronRight, Search, Star, Shield, CreditCard, Globe, Clock, MessageCircle, Headphones, ChevronDown } from "lucide-react";
+import { ChevronLeft, ChevronRight, Search, Star, Shield, CreditCard, Globe, Clock, MessageCircle, Headphones } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NfsHeroSearch } from "@/components/nfs/NfsHeroSearch";
 import { NfsPropertyCard } from "@/components/nfs/NfsPropertyCard";
@@ -47,12 +46,16 @@ export default function NfsMainLanding() {
   const allProperties = isWhiteLabel ? (wlProperties ?? []) : mockProperties;
   const recentProperties = recentIds.map(id => allProperties.find(p => p.id === id)).filter(Boolean);
 
-  // White-label hero content
-  const heroImage = isWhiteLabel && wlOperator?.hero_photo ? wlOperator.hero_photo : heroNightVilla;
-  const heroHeadline = isWhiteLabel && wlOperator?.hero_headline ? wlOperator.hero_headline : "Your next stay,\nbooked direct";
-  const heroSubheadline = isWhiteLabel && wlOperator?.hero_subheadline
+  // Hero content
+  const heroHeading = isWhiteLabel && wlOperator?.hero_headline
+    ? wlOperator.hero_headline
+    : "Host, Find Stays,";
+  const heroSubHeading = isWhiteLabel && wlOperator?.hero_headline
+    ? undefined
+    : "Book Direct and Save";
+  const heroDesc = isWhiteLabel && wlOperator?.hero_subheadline
     ? wlOperator.hero_subheadline
-    : "Discover handpicked vacation rentals from verified hosts. No middlemen, no hidden fees — just incredible stays.";
+    : "The comfort of your own home in the heart of the city.";
 
   // White-label FAQs
   const displayFaqs = isWhiteLabel && wlOperator?.faqs && wlOperator.faqs.length > 0
@@ -69,37 +72,13 @@ export default function NfsMainLanding() {
 
   return (
     <div>
-      {/* Hero */}
-      <section className="relative min-h-[600px] flex items-center justify-center overflow-hidden">
-        <div className="absolute inset-0 z-0">
-          <img
-            src={heroImage}
-            alt={isWhiteLabel && wlOperator ? wlOperator.brand_name : "Luxury vacation property"}
-            className="w-full h-full object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/30 to-black/10" />
-        </div>
-
-        <div className="relative z-10 w-full max-w-4xl mx-auto px-4 py-20 text-center">
-          {!isWhiteLabel && (
-            <span className="inline-block bg-primary/20 text-primary-foreground text-xs font-semibold px-3 py-1 rounded-full mb-4 backdrop-blur-sm border border-primary/30">
-              ✨ Book direct. Save more.
-            </span>
-          )}
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4 tracking-tight">
-            {heroHeadline.split("\n").map((line, i) => (
-              <span key={i}>{line}{i === 0 && heroHeadline.includes("\n") && <br />}</span>
-            ))}
-          </h1>
-          <p className="text-lg text-white/80 mb-8 max-w-xl mx-auto">
-            {heroSubheadline}
-          </p>
-
-          <div className="max-w-3xl mx-auto">
-            <NfsHeroSearch />
-          </div>
-        </div>
-      </section>
+      {/* Hero — legacy style: no background image, centered text + search */}
+      <NfsHeroSearch
+        heading={heroHeading}
+        subHeading={heroSubHeading}
+        desc={heroDesc}
+        btnText="Explore property"
+      />
 
       {/* Recently Viewed */}
       {recentProperties.length > 0 && (
@@ -157,7 +136,7 @@ export default function NfsMainLanding() {
             View all →
           </Button>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 gap-6">
           {featuredProperties.map((p) => (
             <NfsPropertyCard key={p.id} property={p} />
           ))}

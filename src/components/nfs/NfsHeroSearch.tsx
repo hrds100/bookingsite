@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Minus, Plus } from "lucide-react";
+import { MapPin, CalendarDays, CircleUserRound, ChevronDown, Minus, Plus } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -8,7 +8,14 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 import type { DateRange } from "react-day-picker";
 
-export function NfsHeroSearch() {
+interface NfsHeroSearchProps {
+  heading?: string;
+  subHeading?: string;
+  desc?: string;
+  btnText?: string;
+}
+
+export function NfsHeroSearch({ heading, subHeading, desc, btnText = "Search" }: NfsHeroSearchProps) {
   const navigate = useNavigate();
   const [location, setLocation] = useState('');
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
@@ -60,70 +67,112 @@ export function NfsHeroSearch() {
       : format(dateRange.from, 'MMM d')
     : null;
 
+  const formatGuestCount = () => {
+    const total = adults + children;
+    const parts = [];
+    if (total > 0) parts.push(`${total} guest${total > 1 ? 's' : ''}`);
+    if (infants > 0) parts.push(`${infants} infant${infants > 1 ? 's' : ''}`);
+    return parts.length ? parts.join(', ') : 'Any guests';
+  };
+
   return (
-    <div className="bg-card/95 backdrop-blur-sm rounded-full shadow-xl border border-border flex flex-col md:flex-row md:items-center">
-      {/* Destination */}
-      <div className="flex-1 px-7 py-4 min-w-0">
-        <p className="text-xs font-semibold text-foreground mb-0.5">Destination</p>
-        <input
-          type="text"
-          value={location}
-          onChange={(e) => setLocation(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter") handleSearch(); }}
-          placeholder="Search a destination..."
-          className="w-full text-sm bg-transparent outline-none placeholder:text-muted-foreground text-foreground"
-        />
-      </div>
+    <div className="border-b border-gray-200 pb-8 md:pb-14">
+      <section className="flex items-center justify-center px-2">
+        <div className="w-full max-w-[500px] md:max-w-[1000px] mt-4 md:mt-16">
+          {/* Heading text */}
+          {(heading || desc) && (
+            <div className="text-center px-4 py-2 mb-4 md:mb-6">
+              {heading && (
+                <h1 className="text-3xl md:text-5xl font-semibold text-foreground">
+                  {heading}
+                </h1>
+              )}
+              {subHeading && (
+                <h1 className="text-3xl md:text-5xl font-semibold text-foreground mt-4">
+                  {subHeading}
+                </h1>
+              )}
+              {desc && (
+                <p className="text-[#9d9da1] mt-3 md:mt-6">{desc}</p>
+              )}
+            </div>
+          )}
 
-      <div className="hidden md:block h-10 w-px bg-border" />
+          {/* Search bar — legacy pill shape */}
+          <div className="border border-[#e6e6eb] lg:rounded-full rounded-3xl flex flex-col lg:flex-row justify-between lg:p-2 md:p-8 p-5 mx-auto relative transition-all duration-300 shadow-sm hover:shadow-md bg-white">
+            {/* Location */}
+            <div className="flex items-center flex-1 p-2 border-b lg:border-none relative lg:min-w-[200px] lg:max-w-[300px]">
+              <div className="flex items-center flex-1 gap-2 min-w-0">
+                <MapPin className="w-5 h-5 flex-shrink-0 text-black" />
+                <input
+                  type="text"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") handleSearch(); }}
+                  placeholder="Find Location"
+                  className="outline-none border-none w-full placeholder:text-black text-sm bg-transparent"
+                />
+                <ChevronDown className="w-4 h-4 text-black flex-shrink-0" />
+              </div>
+              <div className="h-7 w-px bg-[#e6e6eb] hidden lg:block absolute right-0" />
+            </div>
 
-      {/* Check-in/Check-out */}
-      <Popover>
-        <PopoverTrigger asChild>
-          <button className="px-7 py-4 text-left min-w-[180px]">
-            <p className="text-xs font-semibold text-foreground mb-0.5">Check-in/Check-out</p>
-            <p className={cn("text-sm", dateLabel ? "text-foreground" : "text-muted-foreground")}>
-              {dateLabel ?? "Any dates..."}
-            </p>
-          </button>
-        </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="start">
-          <Calendar
-            mode="range"
-            selected={dateRange}
-            onSelect={setDateRange}
-            numberOfMonths={2}
-            disabled={{ before: new Date() }}
-            className="p-3 pointer-events-auto"
-          />
-        </PopoverContent>
-      </Popover>
+            {/* Dates */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <button className="flex flex-1 justify-between items-center mt-5 lg:mt-0 p-2 gap-2 cursor-pointer border-b lg:border-none relative lg:min-w-[250px] lg:max-w-[350px]">
+                  <div className="flex flex-row gap-2 min-w-0">
+                    <CalendarDays className="w-5 h-5 flex-shrink-0 text-black" />
+                    <span className="text-nowrap overflow-hidden text-ellipsis text-sm">
+                      {dateLabel ?? "Any dates"}
+                    </span>
+                  </div>
+                  <ChevronDown className="w-4 h-4 flex-shrink-0" />
+                  <div className="h-7 w-px bg-[#e6e6eb] hidden lg:block absolute right-0" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="center">
+                <Calendar
+                  mode="range"
+                  selected={dateRange}
+                  onSelect={setDateRange}
+                  numberOfMonths={2}
+                  disabled={{ before: new Date() }}
+                  className="p-3 pointer-events-auto"
+                />
+              </PopoverContent>
+            </Popover>
 
-      <div className="hidden md:block h-10 w-px bg-border" />
+            {/* Guests */}
+            <Popover open={guestsOpen} onOpenChange={setGuestsOpen}>
+              <PopoverTrigger asChild>
+                <button className="flex flex-1 justify-between items-center p-2 mt-5 lg:mt-0 gap-2 cursor-pointer relative lg:min-w-[180px] lg:max-w-[250px]">
+                  <div className="flex flex-row gap-2 min-w-0">
+                    <CircleUserRound className="w-5 h-5 flex-shrink-0 text-black" />
+                    <span className="text-nowrap overflow-hidden text-ellipsis text-sm">
+                      {formatGuestCount()}
+                    </span>
+                  </div>
+                  <ChevronDown className="w-4 h-4 flex-shrink-0" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-72 p-4" align="end">
+                <Stepper label="Adults" sub="Ages 13 or above" value={adults} onChange={setAdults} min={1} />
+                <Stepper label="Children" sub="Ages 2–12" value={children} onChange={setChildren} />
+                <Stepper label="Infants" sub="Under 2" value={infants} onChange={setInfants} />
+              </PopoverContent>
+            </Popover>
 
-      {/* Guests */}
-      <Popover open={guestsOpen} onOpenChange={setGuestsOpen}>
-        <PopoverTrigger asChild>
-          <button className="px-7 py-4 text-left">
-            <p className="text-xs font-semibold text-foreground mb-0.5">Guests</p>
-            <p className={cn("text-sm", totalGuests > 1 ? "text-foreground" : "text-muted-foreground")}>
-              {totalGuests > 1 ? `${totalGuests} guests` : '1 guest'}
-            </p>
-          </button>
-        </PopoverTrigger>
-        <PopoverContent className="w-72 p-4" align="end">
-          <Stepper label="Adults" sub="Ages 13 or above" value={adults} onChange={setAdults} min={1} />
-          <Stepper label="Children" sub="Ages 2–12" value={children} onChange={setChildren} />
-          <Stepper label="Infants" sub="Under 2" value={infants} onChange={setInfants} />
-        </PopoverContent>
-      </Popover>
-
-      {/* Search button */}
-      <div className="pr-3 py-2">
-        <Button onClick={handleSearch} size="lg" className="h-12 rounded-2xl px-7 shrink-0 text-base">
-          Search
-        </Button>
-      </div>
+            {/* Search button — gradient */}
+            <button
+              onClick={handleSearch}
+              className="w-auto md:w-[140px] h-[50px] mt-4 lg:mt-0 bg-primary-gradient text-white font-semibold py-2 px-6 rounded-full hover:opacity-90 transition-opacity text-[14px] flex items-center justify-center"
+            >
+              {btnText}
+            </button>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }
