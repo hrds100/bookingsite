@@ -50,7 +50,7 @@ nfstay booking site is a standalone React SPA deployed to Vercel at nfstay.app. 
 /admin/nfstay/settings     → AdminSettings
 ```
 
-### Auth (standalone — no layout wrapper)
+### Auth (standalone - no layout wrapper)
 ```
 /signin                    → SignInPage
 /signup                    → SignUpPage
@@ -129,8 +129,8 @@ Data flows through **React Query hooks** that query Supabase. All hooks fall bac
 | Supabase | Auth, DB, Edge Functions, RLS | Connected |
 | Stripe | Guest payments via Checkout | Connected (edge function) |
 | Google Maps | Property maps on search page | Connected |
-| Hospitable | Calendar sync, listing sync | Not yet — credentials ready |
-| n8n | Webhooks, email notifications | Not yet — credentials ready |
+| Hospitable | Calendar sync, listing sync | Not yet - credentials ready |
+| n8n | Webhooks, email notifications | Not yet - credentials ready |
 
 ## Edge Functions
 

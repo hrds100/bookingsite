@@ -24,7 +24,7 @@ git push origin main → Vercel builds → nfstay.app updates (~2 min)
 |--------|-----------|
 | nfstay.app | Vercel (bookingsite project) |
 | www.nfstay.app | 308 redirect → nfstay.app |
-| hub.nfstay.com | Vercel (marketplace10 project — separate repo) |
+| hub.nfstay.com | Vercel (marketplace10 project - separate repo) |
 
 ## DNS
 
@@ -67,7 +67,7 @@ Or via Supabase Management API (if CLI has workdir issues).
 
 ## Vercel Config
 
-`vercel.json` enables SPA routing — all paths serve `index.html`:
+`vercel.json` enables SPA routing - all paths serve `index.html`:
 ```json
 {
   "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]

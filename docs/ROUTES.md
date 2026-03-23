@@ -2,11 +2,11 @@
 
 All routes are defined in `src/App.tsx`.
 
-## Traveler Routes (NfsMainLayout — navbar + footer)
+## Traveler Routes (NfsMainLayout - navbar + footer)
 
 | Path | Component | Description |
 |------|-----------|-------------|
-| `/` | NfsMainLanding | Homepage — hero, destinations, featured, how-it-works, testimonials, FAQ, CTA |
+| `/` | NfsMainLanding | Homepage - hero, destinations, featured, how-it-works, testimonials, FAQ, CTA |
 | `/search` | NfsSearchPage | Search results with filters (left) + map (right) |
 | `/property/:id` | NfsPropertyView | Property detail page with booking widget |
 | `/checkout` | NfsCheckoutPage | Guest checkout flow |
@@ -16,7 +16,7 @@ All routes are defined in `src/App.tsx`.
 | `/traveler/reservations` | TravelerReservations | Guest's booking history |
 | `/traveler/reservation/:id` | TravelerReservationDetail | Single booking detail |
 
-## Operator Routes (NfsOperatorLayout — sidebar)
+## Operator Routes (NfsOperatorLayout - sidebar)
 
 | Path | Component | Description |
 |------|-----------|-------------|
@@ -31,7 +31,7 @@ All routes are defined in `src/App.tsx`.
 | `/nfstay/analytics` | OperatorAnalytics | Charts and metrics |
 | `/nfstay/settings` | OperatorSettings | Account settings |
 
-## Admin Routes (NfsAdminLayout — sidebar)
+## Admin Routes (NfsAdminLayout - sidebar)
 
 | Path | Component | Description |
 |------|-----------|-------------|
@@ -41,7 +41,7 @@ All routes are defined in `src/App.tsx`.
 | `/admin/nfstay/analytics` | AdminAnalytics | Platform analytics |
 | `/admin/nfstay/settings` | AdminSettings | Platform config |
 
-## Auth Routes (standalone — no layout)
+## Auth Routes (standalone - no layout)
 
 | Path | Component | Description |
 |------|-----------|-------------|

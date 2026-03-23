@@ -17,7 +17,7 @@ If a matching operator is found, the site shows only that operator's properties 
 
 ### For each operator
 1. Operator sets their `subdomain` in Settings → Branding (e.g. `sunset`)
-2. `sunset.nfstay.app` immediately works — no per-operator DNS or Vercel config needed
+2. `sunset.nfstay.app` immediately works - no per-operator DNS or Vercel config needed
 
 ## Custom domain setup (stays.theircompany.com)
 
@@ -41,12 +41,12 @@ If a matching operator is found, the site shows only that operator's properties 
 | `hero_headline` | Landing page headline |
 | `hero_subheadline` | Landing page subheadline |
 | `about_bio` | About section on white-label landing |
-| `faqs` | JSONB array of {question, answer} — replaces default FAQs |
+| `faqs` | JSONB array of {question, answer} - replaces default FAQs |
 
 ## Architecture
 
-- `src/contexts/WhiteLabelContext.tsx` — domain detection + Supabase lookup
-- `src/hooks/useWhiteLabelProperties.ts` — operator-scoped property fetching
+- `src/contexts/WhiteLabelContext.tsx` - domain detection + Supabase lookup
+- `src/hooks/useWhiteLabelProperties.ts` - operator-scoped property fetching
 - Components check `useWhiteLabel()` to conditionally render branding
 
 ## Testing locally

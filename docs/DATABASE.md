@@ -10,11 +10,11 @@ The booking site is connected to **Supabase** (shared project with hub.nfstay.co
 ## Mock Data (fallback)
 
 These files provide fallback data when Supabase tables are empty:
-- `src/data/mock-properties.ts` — 12 properties
-- `src/data/mock-destinations.ts` — 10 cities
-- `src/data/mock-reservations.ts` — 8 reservations + 6 testimonials
-- `src/data/mock-operator.ts` — operator profile
-- `src/data/mock-admin.ts` — admin dashboard metrics
+- `src/data/mock-properties.ts` - 12 properties
+- `src/data/mock-destinations.ts` - 10 cities
+- `src/data/mock-reservations.ts` - 8 reservations + 6 testimonials
+- `src/data/mock-operator.ts` - operator profile
+- `src/data/mock-admin.ts` - admin dashboard metrics
 
 ## Data Hooks
 
@@ -27,16 +27,16 @@ These files provide fallback data when Supabase tables are empty:
 | `useNfsOperatorReservations(opId)` | `nfs_reservations` join `nfs_properties` | mockReservations |
 | `useNfsReservation(id)` | `nfs_reservations` | mockReservations.find() |
 | `useNfsOperator()` | `nfs_operators` | null |
-| `useNfsOperatorUpdate()` | `nfs_operators` (mutation) | — |
+| `useNfsOperatorUpdate()` | `nfs_operators` (mutation) | - |
 | `useNfsOperatorProperties(opId)` | `nfs_properties` | [] |
 
 ## nfstay Tables (nfs_ prefix)
 
 | Table | Purpose | Wired? |
 |-------|---------|--------|
-| `nfs_operators` | Operator profiles (brand, contact, settings) | Yes — read + update |
-| `nfs_properties` | Property listings (details, pricing, amenities, images) | Yes — read |
-| `nfs_reservations` | Guest bookings (dates, guests, status, payment) | Yes — read + insert via edge function |
+| `nfs_operators` | Operator profiles (brand, contact, settings) | Yes - read + update |
+| `nfs_properties` | Property listings (details, pricing, amenities, images) | Yes - read |
+| `nfs_reservations` | Guest bookings (dates, guests, status, payment) | Yes - read + insert via edge function |
 | `nfs_stripe_accounts` | Operator Stripe Connect accounts | Not yet |
 | `nfs_hospitable_connections` | Hospitable sync credentials | Not yet |
 | `nfs_promo_codes` | Discount codes per operator | Not yet |
@@ -47,14 +47,14 @@ These files provide fallback data when Supabase tables are empty:
 
 | Table | Purpose |
 |-------|---------|
-| `auth.users` | Supabase Auth — shared user accounts |
-| `profiles` | User profiles — shared across hub and booking site |
+| `auth.users` | Supabase Auth - shared user accounts |
+| `profiles` | User profiles - shared across hub and booking site |
 
 ## Auth
 
 - **Provider:** Supabase Auth (email/password)
-- **Social login:** Particle Network (Google/Apple) — shared with hub.nfstay.com, uses derivedPassword for cross-domain compatibility
-- **Shared:** Same `auth.users` table as hub.nfstay.com — login works cross-domain
+- **Social login:** Particle Network (Google/Apple) - shared with hub.nfstay.com, uses derivedPassword for cross-domain compatibility
+- **Shared:** Same `auth.users` table as hub.nfstay.com - login works cross-domain
 - **Operator detection:** `useAuth` checks `nfs_operators.profile_id` to set `isOperator`
 - **Admin detection:** Hardcoded admin emails: `admin@hub.nfstay.com`, `hugo@nfstay.com`
 
@@ -79,11 +79,11 @@ Booking notifications are sent via n8n webhooks (fire-and-forget, non-blocking).
 | Webhook Path | n8n Workflow ID | Trigger | Status |
 |---|---|---|---|
 | `nfstay-booking-confirmed` | `vp5QBp1qIT08WJCt` | Payment success page | Active (webhook created, email nodes need SMTP credential) |
-| `nfstay-booking-enquiry` | — | Not wired yet | Planned |
+| `nfstay-booking-enquiry` | - | Not wired yet | Planned |
 
 **n8n base URL:** `https://n8n.srv886554.hstgr.cloud`
 **Webhook URL:** `https://n8n.srv886554.hstgr.cloud/webhook/{path}`
-**Frontend helper:** `src/lib/n8n.ts` — postWebhook() with 8s AbortController timeout
+**Frontend helper:** `src/lib/n8n.ts` - postWebhook() with 8s AbortController timeout
 
 ## RLS Rules
 
@@ -91,7 +91,7 @@ Every `nfs_` table must have Row Level Security enabled:
 - Operators can only read/write their own data
 - Guests can read listed properties, write their own reservations
 - Admins have full access via service_role key
-- **Never bypass RLS** — always use anon key on the frontend
+- **Never bypass RLS** - always use anon key on the frontend
 
 ## Storage Buckets
 

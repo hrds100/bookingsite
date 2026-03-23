@@ -1,4 +1,4 @@
-# nfstay Booking Site — AI Agent Instructions
+# nfstay Booking Site - AI Agent Instructions
 
 > **Single source of truth for all AI operating rules.** Read FIRST. Every session. No exceptions.
 
@@ -8,16 +8,16 @@
 
 Claude acts as **AI Developer** for the nfstay booking site (nfstay.app).
 
-- Claude reads code before editing — never guesses.
+- Claude reads code before editing - never guesses.
 - Claude writes clean, minimal code. No over-engineering.
 - Claude reports to Hugo. No unrequested features.
 
-**Project:** Standalone vacation rental booking platform — React + Vite + TypeScript + Tailwind + shadcn/ui.
+**Project:** Standalone vacation rental booking platform - React + Vite + TypeScript + Tailwind + shadcn/ui.
 **Priority order:** reliability > UX polish > clean code > speed.
 
 ---
 
-## 2. DOC SCOPING — read before every task
+## 2. DOC SCOPING - read before every task
 
 | Task type | Docs to read |
 |-----------|-------------|
@@ -62,7 +62,7 @@ Claude acts as **AI Developer** for the nfstay booking site (nfstay.app).
 | `npm run build` | Production build | **Before every push** |
 | `npm run lint` | ESLint check | Before pushing |
 | `npm run test` | Vitest test suite | After code changes |
-| `npx playwright test` | Playwright e2e tests | **After every fix or feature — non-negotiable.** Write a test, run it, paste the result. |
+| `npx playwright test` | Playwright e2e tests | **After every fix or feature - non-negotiable.** Write a test, run it, paste the result. |
 
 ---
 
@@ -76,13 +76,13 @@ Claude acts as **AI Developer** for the nfstay booking site (nfstay.app).
 | Supabase | `asazddtvjvmckouxcmmo` (shared with hub.nfstay.com) |
 | Framework | React 18 + Vite + TypeScript |
 | UI library | shadcn/ui + Tailwind CSS |
-| Auth | Supabase Auth (email/password) — shared with hub.nfstay.com |
-| Database | Supabase PostgreSQL — `nfs_*` tables |
+| Auth | Supabase Auth (email/password) - shared with hub.nfstay.com |
+| Database | Supabase PostgreSQL - `nfs_*` tables |
 | Payments | Stripe Checkout via Edge Function |
 | Maps | Google Maps JavaScript API |
 | Icons | Lucide React |
 | State | React Query + Supabase + localStorage |
-| Related | hub.nfstay.com (marketplace10 — separate repo, same Supabase) |
+| Related | hub.nfstay.com (marketplace10 - separate repo, same Supabase) |
 
 ---
 
@@ -95,26 +95,26 @@ The site is partially wired to real backend services. Data hooks fall back to mo
 | Landing page | Live (real + mock data for properties) |
 | Search + filters | Live (real data, real Google Maps with geocoding fallback) |
 | Property detail | Live (real data, map works with or without lat/lng) |
-| Auth (sign in/up) | Real — Supabase Auth (same accounts as hub.nfstay.com) |
-| Navbar auth state | Real — shows sign out when logged in |
-| Checkout / booking | Real — Stripe Checkout via Edge Function |
+| Auth (sign in/up) | Real - Supabase Auth (same accounts as hub.nfstay.com) |
+| Navbar auth state | Real - shows sign out when logged in |
+| Checkout / booking | Real - Stripe Checkout via Edge Function |
 | Currency switching | Real (client-side conversion, persists to localStorage) |
-| Google Maps (search) | Real — live map with markers, hover-to-zoom, geocoding fallback for properties without lat/lng |
-| Google Maps (property detail) | Real — embed iframe, falls back to city+country name when lat/lng missing |
-| Operator properties | Real — queries nfs_properties (falls back to mock) |
-| Operator settings | Real — saves to nfs_operators |
-| Operator reservations | Real — queries nfs_reservations (falls back to mock) |
-| Admin dashboard | Mock — hardcoded stats, **auth-protected** (isAdmin check) |
-| Admin portal access | Protected — requires admin email (admin@hub.nfstay.com or hugo@nfstay.com) |
-| Social login (Google/Apple) | Real — Particle Network OAuth (shared with hub.nfstay.com) |
-| Hospitable sync | Not wired — credentials saved |
-| Email notifications | Real — n8n webhook on booking confirm (Resend API) |
+| Google Maps (search) | Real - live map with markers, hover-to-zoom, geocoding fallback for properties without lat/lng |
+| Google Maps (property detail) | Real - embed iframe, falls back to city+country name when lat/lng missing |
+| Operator properties | Real - queries nfs_properties (falls back to mock) |
+| Operator settings | Real - saves to nfs_operators |
+| Operator reservations | Real - queries nfs_reservations (falls back to mock) |
+| Admin dashboard | Mock - hardcoded stats, **auth-protected** (isAdmin check) |
+| Admin portal access | Protected - requires admin email (admin@hub.nfstay.com or hugo@nfstay.com) |
+| Social login (Google/Apple) | Real - Particle Network OAuth (shared with hub.nfstay.com) |
+| Hospitable sync | Not wired - credentials saved |
+| Email notifications | Real - n8n webhook on booking confirm (Resend API) |
 | Property create/edit form | UI exists, not saving to DB |
 | Photo upload | UI exists, not wired to Supabase Storage |
-| Stripe Connect (operator payouts) | Not wired — credentials saved |
+| Stripe Connect (operator payouts) | Not wired - credentials saved |
 | White-label / subdomains | Not built |
 | Verify email resend button | UI exists, not wired |
-| OAuth callback logic | TODO in code — not fully implemented |
+| OAuth callback logic | TODO in code - not fully implemented |
 
 ### Audit fixes shipped (2026-03-23)
 
@@ -136,10 +136,10 @@ The site is partially wired to real backend services. Data hooks fall back to mo
 
 ## 8. UI DESIGN STANDARDS
 
-- **Reference:** Airbnb, Booking.com — clean, minimal, confident
+- **Reference:** Airbnb, Booking.com - clean, minimal, confident
 - **Spacing:** consistent 4px/8px grid
 - **Typography:** Inter font family, one scale
-- **Colors:** existing Tailwind tokens only — never introduce new hex values
+- **Colors:** existing Tailwind tokens only - never introduce new hex values
 - **Components:** shadcn/ui first, custom only when necessary
 - **Motion:** subtle only (200–300ms transitions)
 - **Mobile first:** 375px → tablet → desktop
@@ -154,7 +154,7 @@ After completing a task:
 
 ```
 DONE
-What: [one sentence — what changed]
+What: [one sentence - what changed]
 Files: [list of files modified]
 Build: [pass/fail]
 Test: [clickable URL or "check locally at localhost:5173"]
@@ -200,12 +200,12 @@ curl -X POST https://n8n.srv886554.hstgr.cloud/webhook/<path> -H "Content-Type: 
 
 | Workflow | ID | Webhook Path | Status |
 |---|---|---|---|
-| nfstay — Booking Confirmed | `z5laFFJMZmq1f5uK` | `nfstay-booking-confirmed` | Active |
+| nfstay - Booking Confirmed | `z5laFFJMZmq1f5uK` | `nfstay-booking-confirmed` | Active |
 
 ### Key lessons learned
 
-1. **Webhook nodes MUST have a `webhookId` field** — without it the webhook URL won't register even if the workflow is active.
-2. **Webhook data arrives at `$input.first().json.body`** — not `$input.first().json` directly. Always use `const data = $input.first().json.body || $input.first().json;` in Code nodes.
-3. **Emails use Resend API** — called via `this.helpers.httpRequest()` in Code nodes, not via n8n Email Send nodes. The Resend API key is embedded in the Code node JS.
-4. **Deactivate before updating, then reactivate** — PUT updates don't always take effect on a live workflow.
-5. **Always prefer API over manual UI** — the n8n API can do everything: create, update, activate, deactivate, check executions.
+1. **Webhook nodes MUST have a `webhookId` field** - without it the webhook URL won't register even if the workflow is active.
+2. **Webhook data arrives at `$input.first().json.body`** - not `$input.first().json` directly. Always use `const data = $input.first().json.body || $input.first().json;` in Code nodes.
+3. **Emails use Resend API** - called via `this.helpers.httpRequest()` in Code nodes, not via n8n Email Send nodes. The Resend API key is embedded in the Code node JS.
+4. **Deactivate before updating, then reactivate** - PUT updates don't always take effect on a live workflow.
+5. **Always prefer API over manual UI** - the n8n API can do everything: create, update, activate, deactivate, check executions.

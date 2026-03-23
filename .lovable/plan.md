@@ -1,6 +1,6 @@
 
 
-# nfstay — Phase 1: Foundation + Traveler Portal
+# nfstay - Phase 1: Foundation + Traveler Portal
 
 ## Overview
 Build the complete design system, app structure, layouts, and the full guest-facing traveler experience using realistic mock data. This creates a polished, demo-ready product that can be wired to Supabase later.
@@ -19,7 +19,7 @@ Build the complete design system, app structure, layouts, and the full guest-fac
 - 404 page and property-not-found page
 
 ## 3. Auth Pages (UI only, no Supabase wiring)
-- **SignIn** / **SignUp** / **TravelerLogin** (magic link) / **VerifyEmail** / **AuthCallback** — all styled per spec with form validation
+- **SignIn** / **SignUp** / **TravelerLogin** (magic link) / **VerifyEmail** / **AuthCallback** - all styled per spec with form validation
 
 ## 4. Main Landing Page (`/`)
 - Hero section with dark overlay, badge, H1, subtitle, and `NfsHeroSearch` widget
@@ -84,8 +84,8 @@ Build the complete design system, app structure, layouts, and the full guest-fac
 - Print booking summary (`@media print` styles)
 
 ## 15. Mock Data Layer
-- `src/data/mock-properties.ts` — 12 diverse properties with images, amenities, pricing, locations
-- `src/data/mock-reservations.ts` — 8 sample reservations in various statuses
-- `src/data/mock-destinations.ts` — 10 popular cities with photos
+- `src/data/mock-properties.ts` - 12 diverse properties with images, amenities, pricing, locations
+- `src/data/mock-reservations.ts` - 8 sample reservations in various statuses
+- `src/data/mock-destinations.ts` - 10 popular cities with photos
 - All hooks stubbed to return mock data with simulated loading states
 
