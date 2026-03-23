@@ -92,18 +92,20 @@ The site is partially wired to real backend services. Data hooks fall back to mo
 
 | Feature | Status |
 |---------|--------|
-| Landing page | Live (mock data for properties) |
-| Search + filters | Live (mock data, real Google Maps) |
-| Property detail | Live (mock data) |
+| Landing page | Live (real + mock data for properties) |
+| Search + filters | Live (real data, real Google Maps with geocoding fallback) |
+| Property detail | Live (real data, map works with or without lat/lng) |
 | Auth (sign in/up) | Real — Supabase Auth (same accounts as hub.nfstay.com) |
 | Navbar auth state | Real — shows sign out when logged in |
 | Checkout / booking | Real — Stripe Checkout via Edge Function |
-| Currency switching | Real (client-side conversion) |
-| Google Maps | Real — live map with markers, hover-to-zoom |
+| Currency switching | Real (client-side conversion, persists to localStorage) |
+| Google Maps (search) | Real — live map with markers, hover-to-zoom, geocoding fallback for properties without lat/lng |
+| Google Maps (property detail) | Real — embed iframe, falls back to city+country name when lat/lng missing |
 | Operator properties | Real — queries nfs_properties (falls back to mock) |
 | Operator settings | Real — saves to nfs_operators |
 | Operator reservations | Real — queries nfs_reservations (falls back to mock) |
-| Admin dashboard | Mock — hardcoded stats |
+| Admin dashboard | Mock — hardcoded stats, **auth-protected** (isAdmin check) |
+| Admin portal access | Protected — requires admin email (admin@hub.nfstay.com or hugo@nfstay.com) |
 | Social login (Google/Apple) | Real — Particle Network OAuth (shared with hub.nfstay.com) |
 | Hospitable sync | Not wired — credentials saved |
 | Email notifications | Real — n8n webhook on booking confirm (Resend API) |
@@ -111,6 +113,24 @@ The site is partially wired to real backend services. Data hooks fall back to mo
 | Photo upload | UI exists, not wired to Supabase Storage |
 | Stripe Connect (operator payouts) | Not wired — credentials saved |
 | White-label / subdomains | Not built |
+| Verify email resend button | UI exists, not wired |
+| OAuth callback logic | TODO in code — not fully implemented |
+
+### Audit fixes shipped (2026-03-23)
+
+| Fix | PR |
+|-----|-----|
+| Branding: page title, meta tags, OG tags, favicon | #20 |
+| Security: admin portal auth guard (isAdmin) | #20 |
+| Security: traveler reservation detail auth guard | #20 |
+| Crash fix: JSON.parse try/catch on payment success | #20 |
+| UX: loading spinners on search, operator properties, operator reservations | #20 |
+| Mobile: search filter responsive widths, carousel touch arrows, booking widget breakpoints | #20 |
+| Auth: callback page uses session check instead of hardcoded delay | #20 |
+| Cleanup: removed console.warn/error from production pages | #20 |
+| Footer: social links open in new tab | #20 |
+| Maps: property detail shows map via city name when lat/lng null | #21 |
+| Maps: search map geocodes properties without lat/lng, hover-zoom works | #21 |
 
 ---
 
