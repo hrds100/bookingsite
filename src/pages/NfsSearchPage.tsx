@@ -64,7 +64,7 @@ export default function NfsSearchPage() {
   };
 
   return (
-    <div className="flex h-[calc(100vh-64px)]">
+    <div className="flex h-[calc(100vh-80px)]">
       {/* Left panel – listings */}
       <div className="w-full lg:w-[50%] flex flex-col overflow-hidden border-r border-border">
         <div className="px-5 pt-4 pb-2 shrink-0">
@@ -105,7 +105,7 @@ export default function NfsSearchPage() {
               onAction={clearFilters}
             />
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 pt-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 pt-3">
               {filteredProperties.map((p) => (
                 <NfsPropertyCard key={p.id} property={p} onHover={setHoveredId} />
               ))}

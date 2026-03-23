@@ -120,7 +120,7 @@ export function NfsHeroSearch() {
 
       {/* Search button */}
       <div className="pr-3 py-2">
-        <Button onClick={handleSearch} size="lg" className="h-12 rounded-full px-7 shrink-0 text-base">
+        <Button onClick={handleSearch} size="lg" className="h-12 rounded-2xl px-7 shrink-0 text-base">
           Search
         </Button>
       </div>

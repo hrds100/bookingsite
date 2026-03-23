@@ -89,7 +89,7 @@ export default function NfsPropertyView() {
 
       {/* Photo Gallery */}
       <div className="max-w-7xl mx-auto px-4 mt-4">
-        <div className="hidden md:grid grid-cols-4 grid-rows-2 gap-2 h-[420px] rounded-2xl overflow-hidden">
+        <div className="hidden md:grid grid-cols-4 grid-rows-2 gap-2 h-[500px] rounded-2xl overflow-hidden">
           <div className="col-span-2 row-span-2 cursor-pointer" onClick={() => { setLightboxIndex(0); setLightboxOpen(true); }}>
             <img src={sortedImages[0]?.url} alt={sortedImages[0]?.caption} className="w-full h-full object-cover" />
           </div>
@@ -107,7 +107,7 @@ export default function NfsPropertyView() {
         <div className="md:hidden rounded-2xl overflow-hidden aspect-video cursor-pointer" onClick={() => { setLightboxIndex(0); setLightboxOpen(true); }}>
           <img src={sortedImages[0]?.url} alt={sortedImages[0]?.caption} className="w-full h-full object-cover" />
         </div>
-        <button onClick={() => { setLightboxIndex(0); setLightboxOpen(true); }} className="mt-2 text-xs font-semibold bg-card border border-border rounded-full px-3 py-1.5">
+        <button onClick={() => { setLightboxIndex(0); setLightboxOpen(true); }} className="mt-2 text-xs font-semibold bg-card border border-border rounded-2xl px-3 py-1.5">
           View all {sortedImages.length} photos
         </button>
       </div>
@@ -137,7 +137,7 @@ export default function NfsPropertyView() {
       )}
 
       {/* Main content */}
-      <div className="max-w-7xl mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-8">
+      <div className="max-w-7xl mx-auto px-4 py-8 grid grid-cols-1 xl:grid-cols-[1fr_384px] gap-8">
         <div className="space-y-8">
           <div>
             <h1 className="text-2xl font-bold tracking-tight mb-1">{property.public_title}</h1>
@@ -171,7 +171,7 @@ export default function NfsPropertyView() {
               ))}
             </div>
             {amenityList.length > 10 && (
-              <Button variant="outline" className="mt-4 rounded-xl" onClick={() => setShowAllAmenities(!showAllAmenities)}>
+              <Button variant="outline" className="mt-4 rounded-2xl" onClick={() => setShowAllAmenities(!showAllAmenities)}>
                 {showAllAmenities ? 'Show fewer' : `Show all ${amenityList.length} amenities`}
               </Button>
             )}
@@ -226,7 +226,7 @@ export default function NfsPropertyView() {
             )}
           </div>
         </div>
-        <div className="lg:sticky lg:top-20 lg:self-start">
+        <div className="xl:sticky xl:top-24 xl:self-start">
           <NfsBookingWidget property={property} />
         </div>
       </div>

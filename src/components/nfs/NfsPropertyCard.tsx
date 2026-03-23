@@ -46,7 +46,7 @@ export function NfsPropertyCard({ property, onHover }: NfsPropertyCardProps) {
       onMouseLeave={() => { setIsHovered(false); onHover?.(null); }}
     >
       {/* Image area */}
-      <div className="relative aspect-[4/3] rounded-xl overflow-hidden mb-2.5">
+      <div className="relative aspect-[16/15] rounded-2xl overflow-hidden mb-2.5">
         <img
           src={sortedImages[currentImage]?.url}
           alt={sortedImages[currentImage]?.caption || property.public_title}
