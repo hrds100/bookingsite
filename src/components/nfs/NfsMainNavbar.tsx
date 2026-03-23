@@ -55,21 +55,20 @@ export function NfsMainNavbar() {
         {/* Center: context-dependent */}
         {isHomePage ? (
           /* Homepage: Find a stay / Reservations tabs */
-          <div className="hidden md:flex items-center justify-center flex-1">
-            <div className="flex items-center bg-secondary/50 rounded-full border border-border px-1 py-1 gap-0.5">
+          <div className="hidden lg:flex items-center justify-center flex-1">
+            <div className="relative bg-white/95 backdrop-blur-sm border border-gray-200/50 rounded-full p-1.5 shadow-lg shadow-purple-500/5 hover:shadow-purple-500/10 transition-all duration-300">
+              <div className="absolute top-1.5 h-[calc(100%-12px)] bg-primary-gradient rounded-full transition-all duration-500 ease-out shadow-sm left-1.5 w-[calc(50%-6px)]" />
               <Link
                 to="/search"
-                className="flex items-center gap-2 px-5 py-2 rounded-full text-sm font-medium bg-card text-primary shadow-sm"
+                className="relative z-10 px-4 xl:px-6 py-2.5 rounded-full text-sm font-medium transition-all duration-300 min-w-[120px] xl:min-w-[140px] text-white inline-flex items-center justify-center"
               >
-                <Hotel className="w-4 h-4" />
-                Find a stay
+                Search Properties
               </Link>
               <Link
                 to="/traveler/reservations"
-                className="flex items-center gap-2 px-5 py-2 rounded-full text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                className="relative z-10 px-4 xl:px-6 py-2.5 rounded-full text-sm font-medium transition-all duration-300 min-w-[120px] xl:min-w-[140px] text-gray-600 hover:text-purple-600 inline-flex items-center justify-center"
               >
-                <CalendarDays className="w-4 h-4" />
-                Reservations
+                My Reservations
               </Link>
             </div>
           </div>
@@ -144,9 +143,9 @@ export function NfsMainNavbar() {
           ) : (
             <Link
               to="/signin"
-              className="text-sm font-medium text-foreground hover:text-primary transition-colors px-3 py-2 rounded-lg border border-border"
+              className="text-sm font-medium bg-primary-gradient text-white px-4 py-2 rounded-full hover:opacity-90 transition-opacity"
             >
-              Account
+              Sign In
             </Link>
           )}
         </div>
@@ -212,25 +211,24 @@ export function NfsMainNavbar() {
         </div>
       )}
       {/* Mobile bottom nav */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 lg:hidden pb-[env(safe-area-inset-bottom)]">
+      {/* Mobile bottom nav — legacy gradient style */}
+      <div className="fixed bottom-0 left-0 right-0 shadow-lg z-40 lg:hidden">
         <div className="flex items-center justify-center p-3">
-          <div className="flex items-center bg-card border border-border rounded-full p-1 shadow-card w-full max-w-[300px]">
+          <div className="flex items-center bg-white border border-gray-200 rounded-full p-1 shadow-sm w-full max-w-[300px]">
             <Link
               to="/search"
-              className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-full text-sm font-medium transition-colors ${
-                isSearchPage ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+              className={`flex-1 px-4 py-2.5 rounded-full text-sm font-medium transition-all duration-300 text-center ${
+                isSearchPage || isHomePage ? 'bg-primary-gradient text-white shadow-sm' : 'text-gray-600 hover:text-purple-600'
               }`}
             >
-              <Search className="w-4 h-4" />
               Search
             </Link>
             <Link
               to="/traveler/reservations"
-              className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-full text-sm font-medium transition-colors ${
-                location.pathname.includes('/traveler') ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+              className={`flex-1 px-4 py-2.5 rounded-full text-sm font-medium transition-all duration-300 text-center ${
+                location.pathname.includes('/traveler') ? 'bg-primary-gradient text-white shadow-sm' : 'text-gray-600 hover:text-purple-600'
               }`}
             >
-              <CalendarDays className="w-4 h-4" />
               Bookings
             </Link>
           </div>

@@ -6,7 +6,7 @@
 
 @layer base {
   :root {
-    --background: 60 17% 94%;
+    --background: 0 0% 100%;
     --foreground: 0 0% 11%;
     --card: 30 14% 96%;
     --card-foreground: 0 0% 11%;
@@ -82,5 +82,11 @@
   body {
     @apply bg-background text-foreground;
     font-family: 'Inter', system-ui, sans-serif;
+  }
+}
+
+@layer utilities {
+  .bg-primary-gradient {
+    background: linear-gradient(270deg, #27dea0 0%, #974bfc 100%);
   }
 }

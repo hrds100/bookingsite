@@ -89,7 +89,7 @@ export default function NfsPropertyView() {
 
       {/* Photo Gallery */}
       <div className="max-w-7xl mx-auto px-4 mt-4">
-        <div className="hidden md:grid grid-cols-4 grid-rows-2 gap-2 h-[500px] rounded-2xl overflow-hidden">
+        <div className="hidden md:grid grid-cols-4 grid-rows-2 gap-4 h-[400px] md:h-[480px] lg:h-[500px] rounded-2xl overflow-hidden mb-10">
           <div className="col-span-2 row-span-2 cursor-pointer" onClick={() => { setLightboxIndex(0); setLightboxOpen(true); }}>
             <img src={sortedImages[0]?.url} alt={sortedImages[0]?.caption} className="w-full h-full object-cover" />
           </div>
@@ -137,21 +137,25 @@ export default function NfsPropertyView() {
       )}
 
       {/* Main content */}
-      <div className="max-w-7xl mx-auto px-4 py-8 grid grid-cols-1 xl:grid-cols-[1fr_384px] gap-8">
-        <div className="space-y-8">
+      <div className="w-full px-4 sm:px-6 lg:px-8 py-8 lg:py-12 flex flex-col xl:flex-row gap-8 xl:gap-12 max-w-7xl mx-auto">
+        <main className="flex-1 xl:max-w-4xl space-y-8">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight mb-1">{property.public_title}</h1>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              {isNew && <span className="text-primary font-medium">★ New</span>}
-              <MapPin className="w-3.5 h-3.5" />
+            <h1 className="text-2xl md:text-3xl lg:text-4xl font-semibold leading-tight mb-4">{property.public_title}</h1>
+            <div className="flex flex-wrap items-center gap-2 text-gray-600 text-sm md:text-base">
+              <MapPin className="w-4 h-4" />
               <span>{property.city}, {property.country}</span>
+              <span>·</span>
+              <span className="capitalize">{property.property_type}</span>
+              <span>·</span>
+              <span>{property.max_guests} guests</span>
+              <span>·</span>
+              <span>{property.room_counts?.bedrooms ?? 0} bedrooms</span>
+              <span>·</span>
+              <span>{property.room_counts?.bathrooms ?? 0} bathrooms</span>
+              {isNew && <><span>·</span><span className="text-primary font-medium">★ New</span></>}
             </div>
           </div>
-          <div className="flex gap-6 text-sm">
-            <div className="flex items-center gap-2"><Users className="w-4 h-4 text-muted-foreground" />{property.max_guests} guests</div>
-            <div className="flex items-center gap-2"><BedDouble className="w-4 h-4 text-muted-foreground" />{property.room_counts?.bedrooms ?? 0} bedrooms</div>
-            <div className="flex items-center gap-2"><Bath className="w-4 h-4 text-muted-foreground" />{property.room_counts?.bathrooms ?? 0} bathrooms</div>
-          </div>
+          {/* Room info merged into title area above */}
           <hr className="border-border" />
           <div>
             <h2 className="text-lg font-semibold mb-3">About this place</h2>
@@ -225,10 +229,10 @@ export default function NfsPropertyView() {
               </div>
             )}
           </div>
-        </div>
-        <div className="xl:sticky xl:top-24 xl:self-start">
+        </main>
+        <aside className="xl:w-96 xl:sticky xl:top-24 z-40 xl:self-start">
           <NfsBookingWidget property={property} />
-        </div>
+        </aside>
       </div>
     </div>
   );
