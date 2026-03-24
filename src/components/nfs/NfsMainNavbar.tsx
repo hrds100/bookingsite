@@ -124,9 +124,9 @@ export function NfsMainNavbar() {
 
             {/* CENTER: Search bar (search page only) */}
             {isSearchPage && (
-              <div className="flex flex-1 justify-center w-full max-w-[800px] px-2 sm:px-4">
-                <div data-feature="NFSTAY__NAVBAR_SEARCH" className="flex items-center border border-gray-200 rounded-full bg-white px-2 py-1.5 shadow-sm w-full">
-                  <div className="flex items-center gap-2 flex-1 px-3">
+              <div className="flex flex-1 justify-center w-full max-w-[800px] px-2 sm:px-4 min-w-0">
+                <div data-feature="NFSTAY__NAVBAR_SEARCH" className="flex items-center border border-gray-200 rounded-full bg-white px-2 py-1.5 shadow-sm w-full min-w-0">
+                  <div className="flex items-center gap-2 flex-1 px-3 min-w-0">
                     <Search className="w-4 h-4 text-gray-400 shrink-0" />
                     <input
                       type="text"
@@ -134,20 +134,20 @@ export function NfsMainNavbar() {
                       onChange={(e) => setQuery(e.target.value)}
                       onKeyDown={handleKeyDown}
                       placeholder="Where to?"
-                      className="text-sm bg-transparent outline-none flex-1 placeholder:text-gray-400"
+                      className="text-sm bg-transparent outline-none flex-1 placeholder:text-gray-400 min-w-0"
                     />
                   </div>
-                  <div className="h-6 w-px bg-gray-200" />
-                  <button className="flex items-center gap-1.5 text-sm text-gray-500 px-3 hover:text-gray-900 transition-colors whitespace-nowrap">
+                  <div className="h-6 w-px bg-gray-200 hidden sm:block" />
+                  <button className="hidden sm:flex items-center gap-1.5 text-sm text-gray-500 px-3 hover:text-gray-900 transition-colors whitespace-nowrap">
                     <Clock className="w-4 h-4" />
                     <span>Any dates...</span>
                   </button>
-                  <div className="h-6 w-px bg-gray-200" />
-                  <button className="flex items-center gap-1.5 text-sm text-gray-500 px-3 hover:text-gray-900 transition-colors whitespace-nowrap">
+                  <div className="h-6 w-px bg-gray-200 hidden sm:block" />
+                  <button className="hidden sm:flex items-center gap-1.5 text-sm text-gray-500 px-3 hover:text-gray-900 transition-colors whitespace-nowrap">
                     <Users className="w-4 h-4" />
                     <span>1 guest</span>
                   </button>
-                  <button onClick={handleSearch} className="bg-primary-gradient text-white font-medium py-2 px-5 rounded-full text-sm hover:opacity-90 transition-opacity ml-1">
+                  <button onClick={handleSearch} className="bg-primary-gradient text-white font-medium py-2 px-5 rounded-full text-sm hover:opacity-90 transition-opacity ml-1 shrink-0">
                     Search
                   </button>
                 </div>
