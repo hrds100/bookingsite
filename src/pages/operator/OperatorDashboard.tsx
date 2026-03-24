@@ -73,7 +73,7 @@ export default function OperatorDashboard() {
               <XAxis dataKey="month" tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
               <Tooltip />
-              <Bar dataKey="revenue" fill="hsl(145, 63%, 42%)" radius={[6, 6, 0, 0]} />
+              <Bar dataKey="revenue" fill="hsl(164, 73%, 34%)" radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -84,7 +84,7 @@ export default function OperatorDashboard() {
               <XAxis dataKey="month" tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize: 12 }} axisLine={false} tickLine={false} domain={[0, 100]} />
               <Tooltip />
-              <Line type="monotone" dataKey="rate" stroke="hsl(145, 63%, 42%)" strokeWidth={2} dot={{ r: 4, fill: "hsl(145, 63%, 42%)" }} />
+              <Line type="monotone" dataKey="rate" stroke="hsl(164, 73%, 34%)" strokeWidth={2} dot={{ r: 4, fill: "hsl(164, 73%, 34%)" }} />
             </LineChart>
           </ResponsiveContainer>
         </div>
