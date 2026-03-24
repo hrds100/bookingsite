@@ -138,6 +138,7 @@ export function WhiteLabelProvider({ children }: { children: ReactNode }) {
             .from("nfs_operators")
             .select("*")
             .eq("subdomain", subdomain)
+            .eq("landing_page_enabled", true)
             .maybeSingle();
         } else {
           // Match by custom_domain column
@@ -145,6 +146,7 @@ export function WhiteLabelProvider({ children }: { children: ReactNode }) {
             .from("nfs_operators")
             .select("*")
             .eq("custom_domain", hostname)
+            .eq("custom_domain_verified", true)
             .maybeSingle();
         }
 
