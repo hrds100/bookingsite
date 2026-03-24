@@ -51,6 +51,15 @@ Claude acts as **AI Developer** for the nfstay booking site (nfstay.app).
 10. **Mobile first.** Every component works at 375px before desktop.
 11. **No Lorem Ipsum.** Use realistic property/travel data as placeholders.
 12. **Playwright e2e test is mandatory before marking DONE.** After every fix or feature, write a Playwright test that verifies the change works, run it with `npx playwright test`, and include the pass/fail result in the report. No exceptions. Do not claim something is "working" or "fixed" without a passing Playwright test. Use the existing `playwright-fixture.ts` for imports (`test`, `expect`). Config is in `playwright.config.ts`.
+13. **Do NOT revert or overwrite existing styles** unless the task explicitly requires it. AI agents tend to "clean up" styles and accidentally undo previous fixes. Preserve all existing CSS/Tailwind classes unless Hugo specifically asks to change them.
+14. **DONE format required.** Every completed task must end with this exact report:
+    ```
+    DONE
+    What: [one sentence]
+    Files: [list of files modified]
+    Build: pass/fail
+    Test: [Playwright result + preview URL]
+    ```
 
 ---
 
