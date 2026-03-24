@@ -2,7 +2,7 @@ import { useCurrency } from "@/contexts/CurrencyContext";
 import { mockPlatformStats, mockPlatformRevenue, mockUserGrowth } from "@/data/mock-admin";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, AreaChart, Area, LineChart, Line, Legend, PieChart, Pie, Cell } from "recharts";
 
-const COLORS = ['hsl(145, 63%, 42%)', 'hsl(217, 91%, 60%)', 'hsl(38, 92%, 50%)', 'hsl(0, 84%, 60%)'];
+const COLORS = ['hsl(164, 73%, 34%)', 'hsl(217, 91%, 60%)', 'hsl(38, 92%, 50%)', 'hsl(0, 84%, 60%)'];
 
 const bookingsByType = [
   { name: 'Apartment', value: 340 },
@@ -54,14 +54,14 @@ export default function AdminAnalytics() {
             <AreaChart data={mockPlatformRevenue}>
               <defs>
                 <linearGradient id="adminRevGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="hsl(145, 63%, 42%)" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="hsl(145, 63%, 42%)" stopOpacity={0} />
+                  <stop offset="5%" stopColor="hsl(164, 73%, 34%)" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="hsl(164, 73%, 34%)" stopOpacity={0} />
                 </linearGradient>
               </defs>
               <XAxis dataKey="month" tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
               <Tooltip />
-              <Area type="monotone" dataKey="revenue" stroke="hsl(145, 63%, 42%)" fill="url(#adminRevGrad)" strokeWidth={2} />
+              <Area type="monotone" dataKey="revenue" stroke="hsl(164, 73%, 34%)" fill="url(#adminRevGrad)" strokeWidth={2} />
             </AreaChart>
           </ResponsiveContainer>
         </div>
@@ -73,7 +73,7 @@ export default function AdminAnalytics() {
               <YAxis tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
               <Tooltip />
               <Legend />
-              <Line type="monotone" dataKey="travelers" stroke="hsl(145, 63%, 42%)" strokeWidth={2} dot={{ r: 3 }} />
+              <Line type="monotone" dataKey="travelers" stroke="hsl(164, 73%, 34%)" strokeWidth={2} dot={{ r: 3 }} />
               <Line type="monotone" dataKey="operators" stroke="hsl(217, 91%, 60%)" strokeWidth={2} dot={{ r: 3 }} />
             </LineChart>
           </ResponsiveContainer>
@@ -111,7 +111,7 @@ export default function AdminAnalytics() {
               <XAxis type="number" tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
               <YAxis dataKey="city" type="category" tick={{ fontSize: 12 }} axisLine={false} tickLine={false} width={80} />
               <Tooltip />
-              <Bar dataKey="bookings" fill="hsl(145, 63%, 42%)" radius={[0, 6, 6, 0]} />
+              <Bar dataKey="bookings" fill="hsl(164, 73%, 34%)" radius={[0, 6, 6, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
