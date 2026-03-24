@@ -298,3 +298,64 @@ curl -X POST https://n8n.srv886554.hstgr.cloud/webhook/<path> -H "Content-Type: 
 3. **Emails use Resend API** - called via `this.helpers.httpRequest()` in Code nodes, not via n8n Email Send nodes. The Resend API key is embedded in the Code node JS.
 4. **Deactivate before updating, then reactivate** - PUT updates don't always take effect on a live workflow.
 5. **Always prefer API over manual UI** - the n8n API can do everything: create, update, activate, deactivate, check executions.
+
+---
+
+## Two-Phase Execution Protocol
+
+Every interaction follows this protocol. No exceptions. No skipping Phase 1.
+
+### PHASE 1 - PROMPT REFINEMENT
+
+When Hugo sends any prompt:
+
+1. Do NOT start executing the task.
+2. Do NOT write code or audit source files yet.
+
+Instead, refine Hugo's prompt. Return this structure:
+
+```
+REFINED PROMPT
+Objective: [one clear sentence]
+Systems affected: [UI / Supabase / Auth / Stripe / Hospitable / Admin]
+Source files to inspect: [exact file paths]
+Constraints: [TypeScript zero errors, TDD, no new features]
+Implementation steps: [numbered, specific]
+Success = [what "done" looks like]
+```
+
+End every Phase 1 response with:
+> Reply **CORRECT** to execute.
+
+### PHASE 2 - EXECUTION
+
+Only when Hugo replies CORRECT.
+
+Then:
+1. Read all docs listed in the refined prompt
+2. Read the actual source files you will modify
+3. Follow all rules in this document
+4. Write Playwright test BEFORE implementing
+5. Run npx tsc --noEmit - zero errors
+6. Output the report:
+
+```
+DONE
+What: [one sentence]
+Files: [list of files modified]
+Build: pass/fail
+Test: [Playwright result + preview URL]
+```
+
+### Auto-approve mode
+
+If Hugo says "review the prompts yourself" or "auto-approve":
+- You refine the prompt yourself
+- You approve it yourself
+- You execute without waiting for CORRECT
+- Auto-approve is per-request, reverts to default next time
+
+Even in auto-approve mode, STOP and ask Hugo if:
+- You're not sure what Hugo wants
+- The task requires destructive actions
+- The task affects production data or auth
