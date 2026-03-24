@@ -1,7 +1,10 @@
+import { NfsLogo } from "@/components/nfs/NfsLogo";
+
 export default function TermsPage() {
   return (
     <div data-feature="NFSTAY__TERMS" className="min-h-screen bg-background">
       <div className="max-w-3xl mx-auto px-4 py-16">
+        <div className="mb-8"><NfsLogo /></div>
         <h1 className="text-3xl font-bold text-foreground mb-2">nfstay Terms and Conditions</h1>
         <p className="text-sm text-muted-foreground mb-10">Last updated: March 2026</p>
 
