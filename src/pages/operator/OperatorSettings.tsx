@@ -290,7 +290,7 @@ export default function OperatorSettings() {
   };
 
   return (
-    <div className="p-4 sm:p-6 max-w-3xl space-y-6">
+    <div data-feature="NFSTAY__OP_SETTINGS" className="p-4 sm:p-6 max-w-3xl space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
         <p className="text-sm text-muted-foreground">Manage your operator profile, branding, and preferences.</p>
@@ -364,7 +364,7 @@ export default function OperatorSettings() {
             </div>
           </section>
           <div className="flex justify-end">
-            <Button onClick={handleSaveProfile} className="rounded-lg" disabled={saving === "Profile"}>
+            <Button data-feature="NFSTAY__OP_SETTINGS_SAVE" onClick={handleSaveProfile} className="rounded-lg" disabled={saving === "Profile"}>
               {saving === "Profile" ? "Saving..." : "Save Profile"}
             </Button>
           </div>

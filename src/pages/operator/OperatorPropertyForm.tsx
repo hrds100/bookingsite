@@ -399,10 +399,10 @@ export default function OperatorPropertyForm() {
   // --- Render ---
 
   return (
-    <div className="p-4 md:p-6 max-w-3xl space-y-6">
+    <div data-feature="NFSTAY__OP_PROPERTY_FORM" className="p-4 md:p-6 max-w-3xl space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <button onClick={() => navigate(-1)} className="p-2 rounded-lg hover:bg-secondary">
+        <button data-feature="NFSTAY__OP_PROPERTY_BACK" onClick={() => navigate(-1)} className="p-2 rounded-lg hover:bg-secondary">
           <ArrowLeft className="w-4 h-4" />
         </button>
         <div>
@@ -857,7 +857,7 @@ export default function OperatorPropertyForm() {
           <Button variant="outline" type="button" className="rounded-lg" onClick={() => navigate(-1)}>
             Cancel
           </Button>
-          <Button type="submit" className="rounded-lg" disabled={saving || imageUploading}>
+          <Button data-feature="NFSTAY__OP_PROPERTY_SAVE" type="submit" className="rounded-lg" disabled={saving || imageUploading}>
             {saving ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />

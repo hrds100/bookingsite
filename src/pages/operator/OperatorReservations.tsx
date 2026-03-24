@@ -88,7 +88,7 @@ export default function OperatorReservations() {
   };
 
   return (
-    <div className="p-6 max-w-7xl space-y-6">
+    <div data-feature="NFSTAY__OP_RESERVATIONS" className="p-6 max-w-7xl space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Reservations</h1>
@@ -102,7 +102,7 @@ export default function OperatorReservations() {
         </div>
       </div>
 
-      <div className="relative max-w-sm">
+      <div data-feature="NFSTAY__OP_RESERVATIONS_SEARCH" className="relative max-w-sm">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
         <Input placeholder="Search by guest, property, or ID..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 rounded-lg" />
       </div>
@@ -113,7 +113,7 @@ export default function OperatorReservations() {
         </div>
       ) : (
       <Tabs defaultValue="all">
-        <TabsList>
+        <TabsList data-feature="NFSTAY__OP_RESERVATIONS_FILTER">
           <TabsTrigger value="all">All ({all.length})</TabsTrigger>
           <TabsTrigger value="pending">Pending ({pending.length})</TabsTrigger>
           <TabsTrigger value="upcoming">Upcoming ({upcoming.length})</TabsTrigger>

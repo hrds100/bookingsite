@@ -25,7 +25,7 @@ export default function OperatorReservationDetail() {
   const nights = differenceInDays(parseISO(res.check_out), parseISO(res.check_in));
 
   return (
-    <div className="p-6 max-w-3xl">
+    <div data-feature="NFSTAY__OP_RESERVATION_DETAIL" className="p-6 max-w-3xl">
       <button onClick={() => navigate('/nfstay/reservations')} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-6">
         <ArrowLeft className="w-4 h-4" /> Back to reservations
       </button>
@@ -67,7 +67,7 @@ export default function OperatorReservationDetail() {
 
         <hr className="border-border" />
 
-        <div>
+        <div data-feature="NFSTAY__OP_RESERVATION_GUEST">
           <h3 className="text-sm font-semibold mb-2">Guest</h3>
           <p className="text-sm">{res.guest_first_name} {res.guest_last_name}</p>
           <p className="text-sm text-muted-foreground">{res.guest_email}</p>
@@ -76,7 +76,7 @@ export default function OperatorReservationDetail() {
 
         <hr className="border-border" />
 
-        <div>
+        <div data-feature="NFSTAY__OP_RESERVATION_PAYMENT">
           <h3 className="text-sm font-semibold mb-2 flex items-center gap-2"><CreditCard className="w-4 h-4" /> Payment</h3>
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">Total</span>

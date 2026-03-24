@@ -25,7 +25,7 @@ export default function AdminSettings() {
   };
 
   return (
-    <div className="p-6 max-w-3xl space-y-6">
+    <div data-feature="NFSTAY__ADMIN_SETTINGS" className="p-6 max-w-3xl space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">System Settings</h1>
         <p className="text-sm text-muted-foreground">Configure platform-wide settings and policies.</p>
@@ -69,7 +69,7 @@ export default function AdminSettings() {
           <section className="bg-card border border-border rounded-2xl p-6 space-y-4">
             <h2 className="text-lg font-semibold">Commission & Fees</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
+              <div data-feature="NFSTAY__ADMIN_SETTINGS_COMMISSION">
                 <Label>Platform Commission (%)</Label>
                 <Input type="number" min={0} max={100} value={commissionRate} onChange={e => setCommissionRate(e.target.value)} className="mt-1.5" />
                 <p className="text-xs text-muted-foreground mt-1">Applied to each booking as a platform fee.</p>
@@ -117,7 +117,7 @@ export default function AdminSettings() {
         <TabsContent value="advanced" className="mt-6 space-y-6">
           <section className="bg-card border border-border rounded-2xl p-6 space-y-5">
             <h2 className="text-lg font-semibold">Advanced Settings</h2>
-            <div className="flex items-center justify-between">
+            <div data-feature="NFSTAY__ADMIN_SETTINGS_MAINTENANCE" className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium flex items-center gap-2">
                   <AlertTriangle className="w-4 h-4 text-warning" /> Maintenance Mode
@@ -144,7 +144,7 @@ export default function AdminSettings() {
       </Tabs>
 
       <div className="flex justify-end">
-        <Button onClick={handleSave} className="rounded-lg" disabled={saving}>{saving ? "Saving..." : "Save Changes"}</Button>
+        <Button data-feature="NFSTAY__ADMIN_SETTINGS_SAVE" onClick={handleSave} className="rounded-lg" disabled={saving}>{saving ? "Saving..." : "Save Changes"}</Button>
       </div>
     </div>
   );

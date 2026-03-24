@@ -94,7 +94,7 @@ export default function OperatorOnboarding() {
   const prev = () => setStep(s => Math.max(s - 1, 0));
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div data-feature="NFSTAY__OP_ONBOARDING" className="min-h-screen bg-background flex flex-col">
       {/* Header */}
       <header className="border-b border-border bg-card">
         <div className="max-w-3xl mx-auto px-4 h-16 flex items-center justify-between">
@@ -105,7 +105,7 @@ export default function OperatorOnboarding() {
 
       <div className="flex-1 max-w-3xl w-full mx-auto px-4 py-10">
         {/* Step indicators */}
-        <div className="flex items-center justify-center gap-2 mb-10">
+        <div data-feature="NFSTAY__OP_ONBOARDING_STEP" className="flex items-center justify-center gap-2 mb-10">
           {steps.map((s, i) => (
             <div key={i} className="flex items-center gap-2">
               <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
@@ -256,10 +256,10 @@ export default function OperatorOnboarding() {
         {/* Navigation */}
         {step < 3 && (
           <div className="flex items-center justify-between mt-6">
-            <Button variant="ghost" onClick={prev} disabled={step === 0} className="gap-2 rounded-lg">
+            <Button data-feature="NFSTAY__OP_ONBOARDING_BACK" variant="ghost" onClick={prev} disabled={step === 0} className="gap-2 rounded-lg">
               <ArrowLeft className="w-4 h-4" /> Back
             </Button>
-            <Button onClick={next} className="rounded-lg gap-2">
+            <Button data-feature="NFSTAY__OP_ONBOARDING_NEXT" onClick={next} className="rounded-lg gap-2">
               Continue <ArrowRight className="w-4 h-4" />
             </Button>
           </div>

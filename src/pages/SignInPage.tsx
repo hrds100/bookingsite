@@ -111,7 +111,7 @@ export default function SignInPage() {
   if (user) return null;
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center" style={{ backgroundColor: "#f3f3ee" }}>
+    <div data-feature="NFSTAY__SIGNIN" className="min-h-screen w-full flex items-center justify-center" style={{ backgroundColor: "#f3f3ee" }}>
       <div className="flex w-full h-screen overflow-hidden p-2 gap-2" style={{ backgroundColor: "#f3f3ee" }}>
 
         {/* Left panel */}
@@ -141,7 +141,7 @@ export default function SignInPage() {
 
             <div className="w-full flex flex-col" style={{ gap: "clamp(9px, 1.8vh, 22px)" }}>
               {/* Social 2x2 */}
-              <div className="flex gap-2">
+              <div data-feature="NFSTAY__SIGNIN_SOCIAL" className="flex gap-2">
                 {PROVIDERS.slice(0, 2).map(({ id, label, icon }) => (
                   <button key={id} onClick={() => handleSocialLogin(id)} disabled={loading || socialLoading !== null}
                     className="flex-1 flex items-center justify-center gap-2 bg-transparent text-[#0a0a0a] border border-[#e5e5e5] rounded-full text-[15px] font-medium cursor-pointer transition-all duration-150 hover:bg-[#f5f5f5] hover:border-[#c8c8c8] disabled:opacity-50 relative"
@@ -175,7 +175,7 @@ export default function SignInPage() {
                   <label className="text-sm font-medium text-[#525252] tracking-wide">Email</label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#737373] pointer-events-none" />
-                    <input type="email" placeholder="Enter your email" value={email} onChange={e => setEmail(e.target.value)} required
+                    <input data-feature="NFSTAY__SIGNIN_EMAIL" type="email" placeholder="Enter your email" value={email} onChange={e => setEmail(e.target.value)} required
                       className="w-full h-[41px] bg-white text-[#0a0a0a] border border-[#e5e5e5] rounded-[10px] text-sm outline-none transition-all duration-150 shadow-[0_4px_8px_-1px_rgba(0,0,0,0.05)] focus:border-[#1e9a80] focus:shadow-[0_0_0_3px_rgba(30,154,128,0.15)]"
                       style={{ padding: "4px 12px 4px 40px" }} />
                   </div>
@@ -184,7 +184,7 @@ export default function SignInPage() {
                   <label className="text-sm font-medium text-[#525252] tracking-wide">Password</label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#737373] pointer-events-none" />
-                    <input type={showPassword ? "text" : "password"} placeholder="Enter your password" value={password} onChange={e => setPassword(e.target.value)} required
+                    <input data-feature="NFSTAY__SIGNIN_PASSWORD" type={showPassword ? "text" : "password"} placeholder="Enter your password" value={password} onChange={e => setPassword(e.target.value)} required
                       className="w-full h-[41px] bg-white text-[#0a0a0a] border border-[#e5e5e5] rounded-[10px] text-sm outline-none transition-all duration-150 shadow-[0_4px_8px_-1px_rgba(0,0,0,0.05)] focus:border-[#1e9a80] focus:shadow-[0_0_0_3px_rgba(30,154,128,0.15)]"
                       style={{ padding: "4px 40px 4px 40px" }} />
                     <button type="button" onClick={() => setShowPassword(!showPassword)} tabIndex={-1}
@@ -205,12 +205,12 @@ export default function SignInPage() {
                       }} />
                     <label htmlFor="remember" className="text-sm text-[#1b1b1b] cursor-pointer select-none">Remember me</label>
                   </div>
-                  <Link to="#" className="bg-transparent border-none text-[#1e9a80] text-sm font-medium cursor-pointer p-0 hover:underline no-underline">Forgot Password?</Link>
+                  <Link data-feature="NFSTAY__SIGNIN_FORGOT" to="#" className="bg-transparent border-none text-[#1e9a80] text-sm font-medium cursor-pointer p-0 hover:underline no-underline">Forgot Password?</Link>
                 </div>
 
                 {error && <p className="text-sm text-red-500">{error}</p>}
 
-                <button type="submit" disabled={loading || !email.trim() || !password.trim()}
+                <button data-feature="NFSTAY__SIGNIN_SUBMIT" type="submit" disabled={loading || !email.trim() || !password.trim()}
                   className="w-full rounded-lg font-medium text-white cursor-pointer transition-all duration-150 hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
                   style={{ height: 37, backgroundColor: "#1e9a80", fontSize: 16, padding: "8px 16px", border: "none", boxShadow: "0 4px 8px -1px rgba(0,0,0,0.05)" }}>
                   {loading && <Loader2 className="w-4 h-4 animate-spin" />}
@@ -220,7 +220,7 @@ export default function SignInPage() {
 
               <p className="text-sm text-[#737373] text-center mt-2">
                 Don&apos;t have an account?{" "}
-                <Link to="/signup" className="text-[#1e9a80] font-semibold no-underline">Sign up</Link>
+                <Link data-feature="NFSTAY__SIGNIN_SIGNUP_LINK" to="/signup" className="text-[#1e9a80] font-semibold no-underline">Sign up</Link>
               </p>
             </div>
           </div>

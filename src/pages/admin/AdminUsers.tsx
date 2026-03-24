@@ -140,6 +140,7 @@ function UserTable({ data, search }: { data: AdminUser[]; search: string }) {
                           <Mail className="w-4 h-4" /> Send email
                         </DropdownMenuItem>
                         <DropdownMenuItem
+                          data-feature="NFSTAY__ADMIN_USERS_SUSPEND"
                           className="gap-2 text-destructive"
                           onClick={() =>
                             toast({
@@ -194,7 +195,7 @@ export default function AdminUsers() {
   }
 
   return (
-    <div className="p-6 max-w-7xl space-y-6">
+    <div data-feature="NFSTAY__ADMIN_USERS" className="p-6 max-w-7xl space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">User Management</h1>
         <p className="text-sm text-muted-foreground">
@@ -202,7 +203,7 @@ export default function AdminUsers() {
         </p>
       </div>
 
-      <div className="relative max-w-sm">
+      <div data-feature="NFSTAY__ADMIN_USERS_SEARCH" className="relative max-w-sm">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
         <Input
           placeholder="Search by name or email..."

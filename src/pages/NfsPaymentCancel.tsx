@@ -6,7 +6,7 @@ export default function NfsPaymentCancel() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4">
+    <div data-feature="NFSTAY__CANCEL" className="min-h-screen flex items-center justify-center px-4">
       <div className="text-center max-w-sm">
         <div className="w-16 h-16 rounded-full bg-[hsl(38_92%_50%/0.1)] flex items-center justify-center mx-auto mb-4">
           <AlertTriangle className="w-8 h-8 text-warning" />

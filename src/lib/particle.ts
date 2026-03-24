@@ -1,8 +1,12 @@
-// Particle Network configuration for nfstay social login
+// Particle Network configuration for nfstay
 //
-// LEGACY project — shared with hub.nfstay.com and app.nfstay.com
-// Same Google/Apple account → same wallet recovered across all nfstay domains.
-// This is how cross-domain single sign-on works.
+// TWO PROJECTS:
+//   LEGACY — social login (Google/Apple/Twitter/Facebook). Same project as hub.nfstay.com.
+//            Same Google account → same wallet recovered across all nfstay domains.
+//   HUB    — JWT auth only. JWKS endpoint configured. Used for email/password wallet creation.
+//
+// Rule: social login always uses PARTICLE_LEGACY_CONFIG so legacy wallets are recovered.
+// Rule: NEVER rename '_NFsTay2!' in derivedPassword() — it breaks ALL social login users.
 
 import { ParticleNetwork } from "@particle-network/auth";
 
@@ -18,6 +22,13 @@ export const particle = new ParticleNetwork({
   chainName: "Ethereum" as never,
   chainId: 1,
 });
+
+// Hub project — JWT auth (email/password users get wallets via this config)
+export const PARTICLE_CONFIG = {
+  projectId: "470629ca-91af-45fa-a52b-62ed2adf9ef0",
+  clientKey: "cTHFOA18eAs4iRrkgn8lG1QARC8HFkkv5jeYQPc1",
+  appId: "a82d525c-85da-4786-a0ed-e4cf110c8377",
+};
 
 export type SocialType = "google" | "apple" | "twitter" | "facebook";
 

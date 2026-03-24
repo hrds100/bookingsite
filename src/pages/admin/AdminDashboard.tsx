@@ -35,7 +35,7 @@ export default function AdminDashboard() {
   ];
 
   return (
-    <div className="p-6 space-y-6 max-w-7xl">
+    <div data-feature="NFSTAY__ADMIN_DASHBOARD" className="p-6 space-y-6 max-w-7xl">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Admin Dashboard</h1>
         <p className="text-sm text-muted-foreground">Platform overview and key metrics.</p>
@@ -58,7 +58,7 @@ export default function AdminDashboard() {
       )}
 
       {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div data-feature="NFSTAY__ADMIN_STATS" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {statCards.map((s) => (
           <div key={s.label} className="bg-card border border-border rounded-2xl p-5">
             <div className="flex items-center justify-between mb-3">

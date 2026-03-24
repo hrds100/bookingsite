@@ -83,8 +83,8 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
   );
 
   return (
-    <div className="bg-white border border-gray-200 rounded-2xl p-4 sm:p-6 shadow-card">
-      <div className="mb-4">
+    <div data-feature="NFSTAY__BOOKING_WIDGET" className="bg-white border border-gray-200 rounded-2xl p-4 sm:p-6 shadow-card">
+      <div data-feature="NFSTAY__WIDGET_PRICE" className="mb-4">
         <span className="text-xl sm:text-2xl font-bold text-[#1E9A80]">{currency?.symbol}{property.base_rate_amount}</span>
         <span className="text-base font-normal text-gray-900 ml-1">/ night</span>
       </div>
@@ -92,7 +92,7 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
       {/* Dates */}
       <Popover>
         <PopoverTrigger asChild>
-          <button className="w-full border border-border rounded-xl overflow-hidden mb-3">
+          <button data-feature="NFSTAY__WIDGET_CHECKIN" className="w-full border border-border rounded-xl overflow-hidden mb-3">
             <div className="grid grid-cols-2 divide-x divide-border">
               <div className="p-3 text-left">
                 <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block">Check in</label>
@@ -124,7 +124,7 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
       {/* Guests */}
       <Popover open={guestsOpen} onOpenChange={setGuestsOpen}>
         <PopoverTrigger asChild>
-          <button className="w-full border border-border rounded-xl p-3 text-left mb-4">
+          <button data-feature="NFSTAY__WIDGET_GUESTS" className="w-full border border-border rounded-xl p-3 text-left mb-4">
             <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block">Guests (max {property.max_guests})</label>
             <div className="flex items-center gap-2 mt-0.5">
               <Users className="w-4 h-4 text-muted-foreground" />
@@ -195,6 +195,7 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
       )}
 
       <button
+        data-feature="NFSTAY__WIDGET_RESERVE"
         onClick={handleReserve}
         disabled={!nights || belowMinStay}
         className="w-full bg-primary-gradient text-white font-semibold py-4 px-6 rounded-full hover:opacity-90 transition-all duration-200 hover:shadow-lg text-base disabled:opacity-50 disabled:cursor-not-allowed"

@@ -56,6 +56,7 @@ nfstay booking site is a standalone React SPA deployed to Vercel at nfstay.app. 
 /signup                    → SignUpPage
 /traveler/login            → TravelerLoginPage
 /verify-email              → VerifyEmailPage
+/verify-otp                → VerifyOtpPage (WhatsApp OTP after email sign-up)
 /nfstay/oauth-callback     → OAuthCallbackPage
 /auth/callback             → AuthCallbackPage
 ```
@@ -81,6 +82,9 @@ src/components/
 │   ├── NfsOperatorSidebar ← Operator navigation
 │   ├── NfsAdminLayout     ← Sidebar layout for admins
 │   └── NfsAdminSidebar    ← Admin navigation
+├── CountryCodeSelect      ← Country code picker for WhatsApp input
+├── WalletProvisioner      ← Silent wallet creation (renders null)
+├── ParticleWalletCreator  ← JWT-based wallet creation (dynamically imported)
 └── ui/                    ← 39 shadcn/ui primitives
 ```
 

@@ -27,11 +27,11 @@ export function NfsOperatorLayout() {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full">
+      <div data-feature="NFSTAY__OP_LAYOUT" className="min-h-screen flex w-full">
         <NfsOperatorSidebar />
         <div className="flex-1 flex flex-col min-w-0">
           <header className="h-14 flex items-center border-b border-border px-4 bg-card shrink-0">
-            <SidebarTrigger className="mr-4" />
+            <SidebarTrigger data-feature="NFSTAY__OP_SIDEBAR_COLLAPSE" className="mr-4" />
             <span className="text-sm font-semibold text-muted-foreground">
               {operator.brand_name || "Operator Portal"}
             </span>

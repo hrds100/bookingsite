@@ -49,6 +49,7 @@ All routes are defined in `src/App.tsx`.
 | `/signup` | SignUpPage | Sign up |
 | `/traveler/login` | TravelerLoginPage | Alternative login |
 | `/verify-email` | VerifyEmailPage | Email verification |
+| `/verify-otp` | VerifyOtpPage | WhatsApp OTP verification after email sign-up |
 | `/nfstay/oauth-callback` | OAuthCallbackPage | OAuth redirect |
 | `/auth/callback` | AuthCallbackPage | Auth callback |
 | `*` | NotFound | 404 |

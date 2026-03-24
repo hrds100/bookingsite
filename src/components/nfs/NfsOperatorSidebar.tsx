@@ -37,7 +37,7 @@ export function NfsOperatorSidebar() {
   }, [location.pathname, isMobile, setOpenMobile]);
 
   return (
-    <Sidebar collapsible="icon" className="border-r border-sidebar-border">
+    <Sidebar collapsible="icon" className="border-r border-sidebar-border" data-feature="NFSTAY__OP_SIDEBAR">
       <SidebarHeader className="p-4">
         {collapsed ? (
           <div className="flex justify-center">
@@ -61,6 +61,7 @@ export function NfsOperatorSidebar() {
                       end={item.url === "/nfstay"}
                       className="hover:bg-sidebar-accent"
                       activeClassName="bg-sidebar-accent text-primary font-medium"
+                      data-feature={`NFSTAY__OP_SIDEBAR_${item.title.toUpperCase()}`}
                     >
                       <item.icon className="mr-2 h-4 w-4" />
                       {!collapsed && <span>{item.title}</span>}
@@ -87,7 +88,7 @@ export function NfsOperatorSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
-              <Link to="/" className="hover:bg-sidebar-accent text-muted-foreground">
+              <Link to="/" data-feature="NFSTAY__OP_LOGOUT" className="hover:bg-sidebar-accent text-muted-foreground">
                 <LogOut className="mr-2 h-4 w-4" />
                 {!collapsed && <span>Back to site</span>}
               </Link>

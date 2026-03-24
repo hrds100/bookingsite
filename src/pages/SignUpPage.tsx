@@ -1,8 +1,11 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Loader2, Eye, EyeOff, Mail, Lock, User, ArrowLeft } from "lucide-react";
+import { Loader2, Eye, EyeOff, Mail, Lock, User, ArrowLeft, Phone } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { NfsAuthSlidePanel } from "@/components/nfs/NfsAuthSlidePanel";
+import { sendOtp } from "@/lib/n8n";
+import { toast } from "sonner";
+import CountryCodeSelect from "@/components/CountryCodeSelect";
 import type { SocialType } from "@/lib/particle";
 
 const PROVIDERS: { id: SocialType; label: string; icon: React.ReactNode }[] = [
@@ -51,7 +54,7 @@ type ViewState = "social" | "email";
 
 function AuthShell({ children, showTabs, heading, subtitle }: { children: React.ReactNode; showTabs: boolean; heading: string; subtitle: string }) {
   return (
-    <div className="min-h-screen w-full flex items-center justify-center" style={{ backgroundColor: "#f3f3ee" }}>
+    <div data-feature="NFSTAY__SIGNUP" className="min-h-screen w-full flex items-center justify-center" style={{ backgroundColor: "#f3f3ee" }}>
       <div className="flex w-full h-screen overflow-hidden p-2 gap-2" style={{ backgroundColor: "#f3f3ee" }}>
         <div className="flex flex-col items-center justify-between flex-1 lg:w-1/2 w-full h-full overflow-y-auto bg-white rounded-3xl border" style={{ borderColor: "#e8e5df", padding: "clamp(24px, 3.5vh, 64px)" }}>
           <div className="flex items-center justify-center w-full">
@@ -95,6 +98,8 @@ export default function SignUpPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [phone, setPhone] = useState("");
+  const [countryCode, setCountryCode] = useState("+44");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -125,15 +130,31 @@ export default function SignUpPage() {
 
     if (password !== confirmPassword) { setError("Passwords do not match"); return; }
     if (password.length < 6) { setError("Password must be at least 6 characters"); return; }
+    if (!phone.trim()) { setError("WhatsApp number is required"); return; }
 
     setLoading(true);
     try {
-      const { error: authError } = await signUp(email.trim().toLowerCase(), password, name.trim());
+      const cleanEmail = email.trim().toLowerCase();
+      const cleanName = name.trim();
+      const fullPhone = countryCode + phone.replace(/[^0-9]/g, "");
+
+      const { error: authError } = await signUp(cleanEmail, password, cleanName);
       if (authError) {
         setError(authError.message);
-      } else {
-        navigate("/verify-email");
+        return;
       }
+
+      // Send WhatsApp OTP
+      try {
+        await sendOtp(fullPhone);
+        toast.success("Account created! Check WhatsApp for your code.");
+      } catch {
+        toast.success("Account created! Sending verification code...");
+      }
+
+      navigate(
+        `/verify-otp?phone=${encodeURIComponent(fullPhone)}&name=${encodeURIComponent(cleanName)}&email=${encodeURIComponent(cleanEmail)}`
+      );
     } catch {
       setError("Something went wrong. Please try again.");
     } finally {
@@ -151,7 +172,7 @@ export default function SignUpPage() {
           {error && <p className="text-sm text-red-500 text-center">{error}</p>}
 
           {/* Social stacked */}
-          <div className="flex flex-col gap-2 w-full">
+          <div data-feature="NFSTAY__SIGNUP_SOCIAL" className="flex flex-col gap-2 w-full">
             {PROVIDERS.map(({ id, label, icon }) => (
               <button key={id} onClick={() => handleSocialLogin(id)} disabled={socialLoading !== null}
                 className="w-full flex items-center justify-center gap-2 bg-transparent text-[#0a0a0a] border border-[#e5e5e5] rounded-full text-[15px] font-medium cursor-pointer transition-all duration-150 hover:bg-[#f5f5f5] hover:border-[#c8c8c8] disabled:opacity-50 relative"
@@ -201,7 +222,7 @@ export default function SignUpPage() {
             <label className="text-sm font-medium text-[#525252] tracking-wide">Full Name <span className="text-red-500">*</span></label>
             <div className="relative">
               <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#737373] pointer-events-none" />
-              <input type="text" placeholder="Enter full name" value={name} onChange={e => setName(e.target.value)} required
+              <input data-feature="NFSTAY__SIGNUP_NAME" type="text" placeholder="Enter full name" value={name} onChange={e => setName(e.target.value)} required
                 className="w-full h-[41px] bg-white text-[#0a0a0a] border border-[#e5e5e5] rounded-[10px] text-sm outline-none transition-all duration-150 shadow-[0_4px_8px_-1px_rgba(0,0,0,0.05)] focus:border-[#1e9a80] focus:shadow-[0_0_0_3px_rgba(30,154,128,0.15)]"
                 style={{ padding: "4px 12px 4px 40px" }} />
             </div>
@@ -212,7 +233,7 @@ export default function SignUpPage() {
             <label className="text-sm font-medium text-[#525252] tracking-wide">Email <span className="text-red-500">*</span></label>
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#737373] pointer-events-none" />
-              <input type="email" placeholder="Enter your email" value={email} onChange={e => setEmail(e.target.value)} required
+              <input data-feature="NFSTAY__SIGNUP_EMAIL" type="email" placeholder="Enter your email" value={email} onChange={e => setEmail(e.target.value)} required
                 className="w-full h-[41px] bg-white text-[#0a0a0a] border border-[#e5e5e5] rounded-[10px] text-sm outline-none transition-all duration-150 shadow-[0_4px_8px_-1px_rgba(0,0,0,0.05)] focus:border-[#1e9a80] focus:shadow-[0_0_0_3px_rgba(30,154,128,0.15)]"
                 style={{ padding: "4px 12px 4px 40px" }} />
             </div>
@@ -223,7 +244,7 @@ export default function SignUpPage() {
             <label className="text-sm font-medium text-[#525252] tracking-wide">Password <span className="text-red-500">*</span></label>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#737373] pointer-events-none" />
-              <input type={showPassword ? "text" : "password"} placeholder="Min 6 characters" value={password} onChange={e => setPassword(e.target.value)} required
+              <input data-feature="NFSTAY__SIGNUP_PASSWORD" type={showPassword ? "text" : "password"} placeholder="Min 6 characters" value={password} onChange={e => setPassword(e.target.value)} required
                 className="w-full h-[41px] bg-white text-[#0a0a0a] border border-[#e5e5e5] rounded-[10px] text-sm outline-none transition-all duration-150 shadow-[0_4px_8px_-1px_rgba(0,0,0,0.05)] focus:border-[#1e9a80] focus:shadow-[0_0_0_3px_rgba(30,154,128,0.15)]"
                 style={{ padding: "4px 40px 4px 40px" }} />
               <button type="button" onClick={() => setShowPassword(!showPassword)} tabIndex={-1}
@@ -248,8 +269,23 @@ export default function SignUpPage() {
             </div>
           </div>
 
+          {/* WhatsApp */}
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium text-[#525252] tracking-wide">WhatsApp Number <span className="text-red-500">*</span></label>
+            <div className="flex">
+              <CountryCodeSelect value={countryCode} onChange={setCountryCode} />
+              <div className="relative flex-1">
+                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#737373] pointer-events-none" />
+                <input data-feature="NFSTAY__SIGNUP_PHONE" type="tel" placeholder="7863 992 555" value={phone} onChange={e => setPhone(e.target.value)}
+                  className="w-full h-[41px] bg-white text-[#0a0a0a] border border-[#e5e5e5] rounded-r-[10px] text-sm outline-none transition-all duration-150 shadow-[0_4px_8px_-1px_rgba(0,0,0,0.05)] focus:border-[#1e9a80] focus:shadow-[0_0_0_3px_rgba(30,154,128,0.15)]"
+                  style={{ padding: "4px 12px 4px 40px" }} />
+              </div>
+            </div>
+            <p className="text-[11px] text-[#737373] mt-1">We will send a verification code via WhatsApp</p>
+          </div>
+
           {/* Submit */}
-          <button type="submit" disabled={loading}
+          <button data-feature="NFSTAY__SIGNUP_SUBMIT" type="submit" disabled={loading}
             className="w-full rounded-lg font-medium text-white cursor-pointer transition-all duration-150 hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
             style={{ height: 37, backgroundColor: "#1e9a80", fontSize: 16, padding: "8px 16px", border: "none", boxShadow: "0 4px 8px -1px rgba(0,0,0,0.05)" }}>
             {loading && <Loader2 className="w-4 h-4 animate-spin" />}

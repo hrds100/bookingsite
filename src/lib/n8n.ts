@@ -52,6 +52,78 @@ async function postWebhook(path: string, payload: Record<string, unknown>): Prom
   }
 }
 
+/** Strip spaces, dashes, parens from phone numbers: "+44 7863 992555" -> "+447863992555" */
+function cleanPhone(phone: string): string {
+  return phone.replace(/[^0-9+]/g, "");
+}
+
+/** POST /webhook/send-otp -> { phone } -> { success, message_id } */
+export async function sendOtp(
+  phone: string
+): Promise<{ success: boolean; message_id?: string }> {
+  if (!N8N_BASE) throw new Error("N8N_BASE not configured");
+
+  const clean = cleanPhone(phone);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
+
+  try {
+    const res = await fetch(`${N8N_BASE}/send-otp`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ phone: clean }),
+      signal: controller.signal,
+    });
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(errText);
+    }
+    const data = await res.json();
+    return data;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+/**
+ * POST /webhook/verify-otp -> { phone, code, name, email? } -> { success, error? }
+ * NOTE: n8n verify-otp may return empty body (no Respond to Webhook node).
+ * We treat empty 200 as success.
+ */
+export async function verifyOtp(params: {
+  phone: string;
+  code: string;
+  name: string;
+  email?: string;
+}): Promise<{ success: boolean; error?: string }> {
+  if (!N8N_BASE) throw new Error("N8N_BASE not configured");
+
+  const clean = cleanPhone(params.phone);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
+
+  try {
+    const res = await fetch(`${N8N_BASE}/verify-otp`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...params, phone: clean }),
+      signal: controller.signal,
+    });
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(errText);
+    }
+    const text = await res.text();
+    if (!text.trim()) {
+      // n8n workflow ran but has no Respond to Webhook node - treat as success
+      return { success: true };
+    }
+    return JSON.parse(text);
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 /**
  * Notify n8n that a booking was confirmed.
  * Triggers: guest confirmation email + admin alert.

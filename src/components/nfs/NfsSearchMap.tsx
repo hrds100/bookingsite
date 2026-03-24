@@ -294,7 +294,7 @@ export function NfsSearchMap({ properties, hoveredId }: NfsSearchMapProps) {
   }
 
   return (
-    <div style={{ position: "relative", height: "100%", width: "100%", borderRadius: 16, overflow: "hidden" }}>
+    <div data-feature="NFSTAY__MAP" style={{ position: "relative", height: "100%", width: "100%", borderRadius: 16, overflow: "hidden" }}>
       <div ref={containerRef} style={{ height: "100%", width: "100%" }} />
       {!ready && (
         <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "hsl(var(--muted))" }}>

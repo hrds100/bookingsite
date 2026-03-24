@@ -135,7 +135,7 @@ export default function NfsCheckoutPage() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8">
+    <div data-feature="NFSTAY__CHECKOUT" className="max-w-5xl mx-auto px-4 py-8">
       {/* Expiry banner */}
       {timeLeft > 0 && timeLeft < 10 * 60 * 1000 && (
         <div className="bg-[hsl(38_92%_50%/0.1)] border border-warning/30 rounded-xl p-3 mb-6 flex items-center gap-2">
@@ -146,7 +146,7 @@ export default function NfsCheckoutPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-8">
         {/* Left - Form */}
-        <div className="space-y-6">
+        <div data-feature="NFSTAY__CHECKOUT_FORM" className="space-y-6">
           <div>
             <h1 className="text-2xl font-bold tracking-tight mb-1">Complete your booking</h1>
             <p className="text-sm text-muted-foreground">Fill in your details to confirm your reservation</p>
@@ -193,6 +193,7 @@ export default function NfsCheckoutPage() {
           </div>
 
           <Button
+            data-feature="NFSTAY__CHECKOUT_PAY"
             onClick={handleComplete}
             disabled={!isValid || loading}
             className="w-full rounded-xl py-3.5 text-base font-semibold"
@@ -204,7 +205,7 @@ export default function NfsCheckoutPage() {
 
         {/* Right - Summary */}
         <div className="lg:sticky lg:top-20 lg:self-start">
-          <div className="bg-card border border-border rounded-2xl p-5 space-y-4">
+          <div data-feature="NFSTAY__CHECKOUT_SUMMARY" className="bg-card border border-border rounded-2xl p-5 space-y-4">
             <div className="flex gap-3">
               <img src={intent.propertyImage} alt={intent.propertyTitle} className="w-24 h-20 rounded-xl object-cover" />
               <div>

@@ -76,7 +76,7 @@ export function NfsHeroSearch({ heading, subHeading, desc, btnText = "Search" }:
   };
 
   return (
-    <div className="border-b border-gray-200 pb-8 md:pb-14">
+    <div data-feature="NFSTAY__HERO_SEARCH" className="border-b border-gray-200 pb-8 md:pb-14">
       <section className="flex items-center justify-center px-2">
         <div className="w-full max-w-[500px] md:max-w-[1000px] mt-4 md:mt-16">
           {/* Heading text */}
@@ -105,6 +105,7 @@ export function NfsHeroSearch({ heading, subHeading, desc, btnText = "Search" }:
               <div className="flex items-center flex-1 gap-2 min-w-0">
                 <MapPin className="w-5 h-5 flex-shrink-0 text-black" />
                 <input
+                  data-feature="NFSTAY__HERO_LOCATION"
                   type="text"
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
@@ -120,7 +121,7 @@ export function NfsHeroSearch({ heading, subHeading, desc, btnText = "Search" }:
             {/* Dates */}
             <Popover>
               <PopoverTrigger asChild>
-                <button className="flex flex-1 justify-between items-center mt-5 lg:mt-0 p-2 gap-2 cursor-pointer border-b lg:border-none relative lg:min-w-[250px] lg:max-w-[350px]">
+                <button data-feature="NFSTAY__HERO_CHECKIN" className="flex flex-1 justify-between items-center mt-5 lg:mt-0 p-2 gap-2 cursor-pointer border-b lg:border-none relative lg:min-w-[250px] lg:max-w-[350px]">
                   <div className="flex flex-row gap-2 min-w-0">
                     <CalendarDays className="w-5 h-5 flex-shrink-0 text-black" />
                     <span className="text-nowrap overflow-hidden text-ellipsis text-sm">
@@ -146,7 +147,7 @@ export function NfsHeroSearch({ heading, subHeading, desc, btnText = "Search" }:
             {/* Guests */}
             <Popover open={guestsOpen} onOpenChange={setGuestsOpen}>
               <PopoverTrigger asChild>
-                <button className="flex flex-1 justify-between items-center p-2 mt-5 lg:mt-0 gap-2 cursor-pointer relative lg:min-w-[180px] lg:max-w-[250px]">
+                <button data-feature="NFSTAY__HERO_GUESTS" className="flex flex-1 justify-between items-center p-2 mt-5 lg:mt-0 gap-2 cursor-pointer relative lg:min-w-[180px] lg:max-w-[250px]">
                   <div className="flex flex-row gap-2 min-w-0">
                     <CircleUserRound className="w-5 h-5 flex-shrink-0 text-black" />
                     <span className="text-nowrap overflow-hidden text-ellipsis text-sm">
@@ -165,6 +166,7 @@ export function NfsHeroSearch({ heading, subHeading, desc, btnText = "Search" }:
 
             {/* Search button — gradient */}
             <button
+              data-feature="NFSTAY__HERO_SEARCH_BTN"
               onClick={handleSearch}
               className="w-auto md:w-[140px] h-[50px] mt-4 lg:mt-0 bg-primary-gradient text-white font-semibold py-2 px-6 rounded-full hover:opacity-90 transition-opacity text-[14px] flex items-center justify-center"
             >
