@@ -31,13 +31,16 @@ src/
   components/
     nfs/              ← 18 NFStay-specific components (layouts, navbar, footer, cards, filters, maps)
     ui/               ← 39 shadcn/ui primitives (never hand-edit)
+    CountryCodeSelect ← Country code picker for WhatsApp input
+    WalletProvisioner ← Silent Particle wallet creation (renders null, mounts in App.tsx)
+    ParticleWalletCreator ← JWT wallet creation (dynamically imported by particleIframe.ts)
   contexts/           ← CurrencyContext (GBP/USD/EUR/AED/SGD), WhiteLabelContext (operator preview)
   data/               ← mock properties, destinations, reservations (fallback when DB empty)
   hooks/              ← useAuth, useNfsProperties, useNfsReservations, useNfsOperator, useRecentlyViewed, useAdminStats, useOperatorStats
-  lib/                ← supabase.ts, n8n.ts, particle.ts, constants.ts, utils.ts
+  lib/                ← supabase.ts, n8n.ts, particle.ts, particleIframe.ts, constants.ts, utils.ts
   test/               ← Vitest setup
 docs/                 ← architecture, agent instructions, deployment, database
-e2e/                  ← Playwright e2e tests (13 tests against live site)
+e2e/                  ← Playwright e2e tests (99+ tests: audit, auth-otp-wallet)
 supabase/functions/   ← Edge functions (nfs-create-checkout)
 ```
 
@@ -72,7 +75,7 @@ git push origin main # auto-deploys to Vercel → nfstay.app
 ## What's Real vs Mock
 | Feature | Status |
 |---------|--------|
-| Auth (email/password sign in/up) | Real — Supabase Auth |
+| Auth (email/password sign in/up) | Real — Supabase Auth + WhatsApp OTP + Particle wallet |
 | Social login (Google/Apple/X/Facebook) | Real — Particle Network (shared with hub.nfstay.com) |
 | Navbar auth state | Real — shows sign out when logged in |
 | Property form save | Real — writes to nfs_properties via mutation hooks |
@@ -98,6 +101,10 @@ git push origin main # auto-deploys to Vercel → nfstay.app
 | Verify email resend | UI exists, not wired |
 | OAuth callback logic | TODO — for Stripe Connect/Hospitable, not for social login |
 | Avg Rating on operator dashboard | Placeholder — no reviews table yet |
+| WhatsApp OTP on email sign-up | Real — n8n send-otp/verify-otp webhooks, matches marketplace10 |
+| Wallet creation on email sign-up | Real — particle-generate-jwt + WalletProvisioner (silent) |
+| CountryCodeSelect component | Real — country code picker on sign-up form |
+| VerifyOtp page (/verify-otp) | Real — 4-digit OTP input, auto-verify, JWT generation |
 
 ## Operator White-Label System
 - Preview any operator: `https://nfstay.app?preview=OPERATOR_ID`
@@ -127,16 +134,28 @@ git push origin main # auto-deploys to Vercel → nfstay.app
 |----|------|
 | #20 | 14 audit fixes (security, branding, UX, mobile) |
 | #21 | Map geocoding fallback for properties without lat/lng |
-| #22 | Docs update — audit status |
+| #22 | Docs update - audit status |
 | #23 | Admin + operator dashboards wired to real Supabase data |
 | #24 | White-label preview mode (?preview=operator-id) |
-| #25 | Legacy structure alignment — footer contacts, filters, ratings, operator colors |
-| #26 | Visual restructure — legacy proportions with brand tokens |
-| #27 | Full legacy VPS UI port — gradient buttons, no-image hero, card proportions |
-| #28 | Navbar rewrite — exact legacy match (grid-cols-3, gradient toggle, sidebars) |
-| #29 | Purple → green brand gradient swap |
+| #25 | Legacy structure alignment - footer contacts, filters, ratings, operator colors |
+| #26 | Visual restructure - legacy proportions with brand tokens |
+| #27 | Full legacy VPS UI port - gradient buttons, no-image hero, card proportions |
+| #28 | Navbar rewrite - exact legacy match (grid-cols-3, gradient toggle, sidebars) |
+| #29 | Purple to green brand gradient swap |
 | #30 | White booking widget, smooth map fly-to, "Explore" text |
 | #31 | New [nf]stay logo on sign in/up pages |
+| #33 | Fix search page mobile overflow (375px) + og:title branding + e2e test fixes |
+
+## Full Playwright Audit (2026-03-23)
+152 automated e2e tests run against live site. Results:
+- **All public pages:** pass (landing, search, property detail, signin, signup, 404, checkout, payment)
+- **All operator pages:** pass (dashboard, onboarding, properties, reservations, analytics, settings)
+- **All admin pages:** pass (dashboard, users, operators, analytics, settings)
+- **Auth protection:** pass (unauthenticated users blocked from operator/admin/traveler pages)
+- **Search functionality:** pass (22 property cards, filters, map, click-to-detail navigation)
+- **Mobile responsiveness:** pass (375px viewport, no overflow after PR #33)
+- **Performance:** pass (landing 228ms, search 291ms, signin 835ms)
+- **Known gaps:** Hospitable sync, Stripe Connect payouts, verify email resend, reviews system, traveler settings page, user profile photo - all not built yet
 
 ## Domains
 - **Live:** https://nfstay.app
@@ -145,3 +164,22 @@ git push origin main # auto-deploys to Vercel → nfstay.app
 - **Supabase:** `asazddtvjvmckouxcmmo` (shared with hub.nfstay.com)
 - **Related:** hub.nfstay.com (marketplace10 — separate repo)
 - **Legacy reference:** /Users/hugo/Downloads/AI Folder/openclaw/nfstay-frontend-vps/
+
+---
+
+## Feature Map System (added 2026-03-24)
+
+Note: the Feature Map System lives in the marketplace10 repo
+(feature-map.json), not this repo. The BOOKING_NFSTAY and
+BOOKING_NFSTAY__* sessions in that map cover the NFStay
+components that live in marketplace10/src/pages/nfstay/ and
+marketplace10/src/components/nfstay/.
+
+This bookingsite repo is the standalone nfstay.app traveler
+booking site. When working across both repos:
+1. Check marketplace10/feature-map.json for the BOOKING_NFSTAY
+   scope before touching shared NFStay logic.
+2. Any change that affects both repos must be described in plain
+   text and approved by Hugo before implementing.
+3. Use AI_SESSION_TEMPLATE.md (in marketplace10 root) when
+   coordinating cross-repo NFStay tasks.
