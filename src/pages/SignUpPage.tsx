@@ -201,6 +201,13 @@ export default function SignUpPage() {
             Already have an account?{" "}
             <Link to="/signin" className="text-[#1e9a80] font-semibold no-underline">Sign in</Link>
           </p>
+
+          <p data-feature="AUTH__TERMS_NOTICE" className="text-[11px] text-muted-foreground text-center mt-4">
+            By signing up, you confirm that you accept our{" "}
+            <a href="/terms" className="text-primary underline">Terms and Conditions</a>{" "}
+            and{" "}
+            <a href="/privacy" className="text-primary underline">Privacy Policy</a>.
+          </p>
         </div>
       </AuthShell>
     );
@@ -296,6 +303,13 @@ export default function SignUpPage() {
         <p className="text-sm text-[#737373] text-center mt-2">
           Already have an account?{" "}
           <Link to="/signin" className="text-[#1e9a80] font-semibold no-underline">Sign in</Link>
+        </p>
+
+        <p data-feature="AUTH__TERMS_NOTICE" className="text-[11px] text-muted-foreground text-center mt-4">
+          By signing up, you confirm that you accept our{" "}
+          <a href="/terms" className="text-primary underline">Terms and Conditions</a>{" "}
+          and{" "}
+          <a href="/privacy" className="text-primary underline">Privacy Policy</a>.
         </p>
       </div>
     </AuthShell>

@@ -122,8 +122,8 @@ export function NfsMainFooter() {
           <div data-feature="NFSTAY__FOOTER_LEGAL">
             <h4 className="text-sm font-semibold text-foreground mb-3">Legal</h4>
             <ul className="space-y-2">
-              <li><a href="#" className="text-sm text-muted-foreground hover:text-[#1E9A80] transition-colors">Privacy policy</a></li>
-              <li><a href="#" className="text-sm text-muted-foreground hover:text-[#1E9A80] transition-colors">Terms of service</a></li>
+              <li><Link to="/privacy" className="text-sm text-muted-foreground hover:text-[#1E9A80] transition-colors">Privacy policy</Link></li>
+              <li><Link to="/terms" className="text-sm text-muted-foreground hover:text-[#1E9A80] transition-colors">Terms of service</Link></li>
               <li><a href="#" className="text-sm text-muted-foreground hover:text-[#1E9A80] transition-colors">Cookie policy</a></li>
             </ul>
           </div>
