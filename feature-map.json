@@ -1,0 +1,161 @@
+{
+  "NFSTAY__LANDING": {
+    "description": "Main landing page and homepage",
+    "session": "LANDING",
+    "active": true,
+    "files": [
+      "src/pages/NfsMainLanding.tsx",
+      "src/pages/Index.tsx",
+      "src/components/nfs/NfsHeroSearch.tsx"
+    ]
+  },
+  "NFSTAY__SEARCH": {
+    "description": "Property search page with filters and map",
+    "session": "SEARCH",
+    "active": true,
+    "files": [
+      "src/pages/NfsSearchPage.tsx",
+      "src/components/nfs/NfsSearchFilters.tsx",
+      "src/components/nfs/NfsSearchMap.tsx",
+      "src/components/nfs/NfsPlacesAutocomplete.tsx",
+      "src/components/nfs/NfsPropertyCard.tsx"
+    ]
+  },
+  "NFSTAY__PROPERTY": {
+    "description": "Property detail view with booking widget",
+    "session": "PROPERTY",
+    "active": true,
+    "files": [
+      "src/pages/NfsPropertyView.tsx",
+      "src/components/nfs/NfsBookingWidget.tsx"
+    ]
+  },
+  "NFSTAY__CHECKOUT": {
+    "description": "Checkout flow, payment success, and payment cancel pages",
+    "session": "CHECKOUT",
+    "active": true,
+    "files": [
+      "src/pages/NfsCheckoutPage.tsx",
+      "src/pages/NfsPaymentSuccess.tsx",
+      "src/pages/NfsPaymentCancel.tsx"
+    ]
+  },
+  "NFSTAY__TRAVELER": {
+    "description": "Guest reservations list, reservation detail, and booking lookup",
+    "session": "TRAVELER",
+    "active": true,
+    "files": [
+      "src/pages/TravelerReservations.tsx",
+      "src/pages/TravelerReservationDetail.tsx",
+      "src/pages/NfsGuestBookingLookup.tsx",
+      "src/pages/TravelerLoginPage.tsx"
+    ]
+  },
+  "NFSTAY__AUTH": {
+    "description": "Sign in, sign up, OTP verification, email verification, OAuth callbacks, and wallet provisioning",
+    "session": "AUTH",
+    "active": true,
+    "note": "Shares auth with marketplace10. Coordinate changes with Hugo.",
+    "files": [
+      "src/pages/SignInPage.tsx",
+      "src/pages/SignUpPage.tsx",
+      "src/pages/VerifyOtpPage.tsx",
+      "src/pages/VerifyEmailPage.tsx",
+      "src/pages/AuthCallbackPage.tsx",
+      "src/pages/OAuthCallbackPage.tsx",
+      "src/components/nfs/NfsAuthSlidePanel.tsx",
+      "src/components/WalletProvisioner.tsx",
+      "src/components/ParticleWalletCreator.tsx",
+      "src/hooks/useAuth.ts",
+      "src/lib/particle.ts",
+      "src/lib/particle.test.ts",
+      "src/lib/particleIframe.ts"
+    ]
+  },
+  "NFSTAY__OPERATOR": {
+    "description": "Operator dashboard, properties CRUD, reservations, analytics, settings, and onboarding",
+    "session": "OPERATOR",
+    "active": true,
+    "files": [
+      "src/pages/operator/OperatorDashboard.tsx",
+      "src/pages/operator/OperatorProperties.tsx",
+      "src/pages/operator/OperatorPropertyForm.tsx",
+      "src/pages/operator/OperatorReservations.tsx",
+      "src/pages/operator/OperatorReservationDetail.tsx",
+      "src/pages/operator/OperatorCreateReservation.tsx",
+      "src/pages/operator/OperatorAnalytics.tsx",
+      "src/pages/operator/OperatorSettings.tsx",
+      "src/pages/operator/OperatorOnboarding.tsx",
+      "src/hooks/useNfsOperator.ts",
+      "src/hooks/useNfsProperties.ts",
+      "src/hooks/useNfsReservations.ts",
+      "src/hooks/useNfsPropertyMutation.ts",
+      "src/hooks/useNfsImageUpload.ts",
+      "src/hooks/useOperatorStats.ts",
+      "src/hooks/useWhiteLabelProperties.ts"
+    ]
+  },
+  "NFSTAY__ADMIN": {
+    "description": "Admin dashboard, user management, operator management, analytics, and settings",
+    "session": "ADMIN",
+    "active": true,
+    "files": [
+      "src/pages/admin/AdminDashboard.tsx",
+      "src/pages/admin/AdminUsers.tsx",
+      "src/pages/admin/AdminOperators.tsx",
+      "src/pages/admin/AdminAnalytics.tsx",
+      "src/pages/admin/AdminSettings.tsx",
+      "src/hooks/useAdminUsers.ts",
+      "src/hooks/useAdminOperators.ts",
+      "src/hooks/useAdminStats.ts"
+    ]
+  },
+  "NFSTAY__NAV_LAYOUT": {
+    "description": "Navbar, footer, main layout, operator layout, admin layout, and sidebars",
+    "session": "NAV_LAYOUT",
+    "active": true,
+    "files": [
+      "src/components/nfs/NfsMainNavbar.tsx",
+      "src/components/nfs/NfsMainFooter.tsx",
+      "src/components/nfs/NfsMainLayout.tsx",
+      "src/components/nfs/NfsOperatorLayout.tsx",
+      "src/components/nfs/NfsOperatorSidebar.tsx",
+      "src/components/nfs/NfsAdminLayout.tsx",
+      "src/components/nfs/NfsAdminSidebar.tsx",
+      "src/components/nfs/NfsLogo.tsx",
+      "src/components/NavLink.tsx",
+      "src/pages/NotFound.tsx"
+    ]
+  },
+  "NFSTAY__SHARED": {
+    "description": "Utility components, contexts, shared hooks, lib files, data files, and dev tools",
+    "session": "SHARED",
+    "active": true,
+    "files": [
+      "src/components/CountryCodeSelect.tsx",
+      "src/components/nfs/NfsCurrencySelector.tsx",
+      "src/components/nfs/NfsEmptyState.tsx",
+      "src/components/nfs/NfsStatusBadge.tsx",
+      "src/components/dev/FeatureInspector.tsx",
+      "src/contexts/CurrencyContext.tsx",
+      "src/contexts/WhiteLabelContext.tsx",
+      "src/hooks/use-mobile.tsx",
+      "src/hooks/use-toast.ts",
+      "src/hooks/useRecentlyViewed.ts",
+      "src/lib/supabase.ts",
+      "src/lib/n8n.ts",
+      "src/lib/constants.ts",
+      "src/lib/utils.ts",
+      "src/data/mock-properties.ts",
+      "src/data/mock-destinations.ts",
+      "src/data/mock-reservations.ts",
+      "src/data/mock-operator.ts",
+      "src/data/mock-admin.ts",
+      "src/App.tsx",
+      "src/main.tsx",
+      "src/index.css",
+      "src/App.css",
+      "src/vite-env.d.ts"
+    ]
+  }
+}
