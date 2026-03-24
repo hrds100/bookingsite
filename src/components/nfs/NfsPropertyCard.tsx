@@ -40,7 +40,7 @@ export function NfsPropertyCard({ property, onHover }: NfsPropertyCardProps) {
 
   return (
     <Link
-      to={`/property/${property.id}`}
+      to={`/property/${property.slug || property.id}`}
       className="group block"
       onMouseEnter={() => { setIsHovered(true); onHover?.(property.id); }}
       onMouseLeave={() => { setIsHovered(false); onHover?.(null); }}

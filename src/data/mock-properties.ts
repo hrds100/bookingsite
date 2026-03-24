@@ -27,11 +27,13 @@ export interface MockProperty {
   listing_status: string;
   created_at: string;
   minimum_stay: number;
+  slug?: string;
 }
 
 export const mockProperties: MockProperty[] = [
   {
     id: 'prop-001',
+    slug: 'stunning-marina-view-apartment-prop-001',
     operator_id: 'op-001',
     public_title: 'Stunning Marina View Apartment',
     property_type: 'Apartment',
@@ -68,6 +70,7 @@ export const mockProperties: MockProperty[] = [
   },
   {
     id: 'prop-002',
+    slug: 'balinese-villa-with-private-pool-prop-002',
     operator_id: 'op-001',
     public_title: 'Balinese Villa with Private Pool',
     property_type: 'Villa',
@@ -104,6 +107,7 @@ export const mockProperties: MockProperty[] = [
   },
   {
     id: 'prop-003',
+    slug: 'cozy-camden-town-loft-prop-003',
     operator_id: 'op-002',
     public_title: 'Cozy Camden Town Loft',
     property_type: 'Loft',
@@ -138,6 +142,7 @@ export const mockProperties: MockProperty[] = [
   },
   {
     id: 'prop-004',
+    slug: 'alfama-heritage-apartment-prop-004',
     operator_id: 'op-002',
     public_title: 'Alfama Heritage Apartment',
     property_type: 'Apartment',
@@ -173,6 +178,7 @@ export const mockProperties: MockProperty[] = [
   },
   {
     id: 'prop-005',
+    slug: 'gothic-quarter-penthouse-prop-005',
     operator_id: 'op-003',
     public_title: 'Gothic Quarter Penthouse',
     property_type: 'Penthouse',
@@ -210,6 +216,7 @@ export const mockProperties: MockProperty[] = [
   },
   {
     id: 'prop-006',
+    slug: 'canal-side-houseboat-prop-006',
     operator_id: 'op-003',
     public_title: 'Canal-Side Houseboat',
     property_type: 'Boat',
@@ -244,6 +251,7 @@ export const mockProperties: MockProperty[] = [
   },
   {
     id: 'prop-007',
+    slug: 'montmartre-artist-studio-prop-007',
     operator_id: 'op-004',
     public_title: 'Montmartre Artist Studio',
     property_type: 'Studio',
@@ -278,6 +286,7 @@ export const mockProperties: MockProperty[] = [
   },
   {
     id: 'prop-008',
+    slug: 'manhattan-skyline-apartment-prop-008',
     operator_id: 'op-004',
     public_title: 'Manhattan Skyline Apartment',
     property_type: 'Apartment',
@@ -313,6 +322,7 @@ export const mockProperties: MockProperty[] = [
   },
   {
     id: 'prop-009',
+    slug: 'algarve-cliffside-villa-prop-009',
     operator_id: 'op-005',
     public_title: 'Algarve Cliffside Villa',
     property_type: 'Villa',
@@ -351,6 +361,7 @@ export const mockProperties: MockProperty[] = [
   },
   {
     id: 'prop-010',
+    slug: 'bondi-beach-house-prop-010',
     operator_id: 'op-005',
     public_title: 'Bondi Beach House',
     property_type: 'Beach House',
@@ -385,6 +396,7 @@ export const mockProperties: MockProperty[] = [
   },
   {
     id: 'prop-011',
+    slug: 'cotswolds-stone-cottage-prop-011',
     operator_id: 'op-006',
     public_title: 'Cotswolds Stone Cottage',
     property_type: 'Cottage',
@@ -419,6 +431,7 @@ export const mockProperties: MockProperty[] = [
   },
   {
     id: 'prop-012',
+    slug: 'norwegian-fjord-cabin-prop-012',
     operator_id: 'op-006',
     public_title: 'Norwegian Fjord Cabin',
     property_type: 'Cabin',

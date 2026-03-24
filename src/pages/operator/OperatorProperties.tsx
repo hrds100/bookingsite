@@ -98,7 +98,7 @@ export default function OperatorProperties() {
                           <button className="p-1.5 rounded-lg hover:bg-secondary"><MoreHorizontal className="w-4 h-4" /></button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem asChild><Link to={`/property/${p.id}`} className="gap-2"><Eye className="w-4 h-4" /> View listing</Link></DropdownMenuItem>
+                          <DropdownMenuItem asChild><Link to={`/property/${(p as any).slug || p.id}`} className="gap-2"><Eye className="w-4 h-4" /> View listing</Link></DropdownMenuItem>
                           <DropdownMenuItem asChild><Link to={`/nfstay/properties/${p.id}`} className="gap-2"><Pencil className="w-4 h-4" /> Edit</Link></DropdownMenuItem>
                           <DropdownMenuItem className="text-destructive gap-2"><Trash2 className="w-4 h-4" /> Delete</DropdownMenuItem>
                         </DropdownMenuContent>

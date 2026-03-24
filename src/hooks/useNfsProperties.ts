@@ -28,36 +28,39 @@ export function useNfsProperties() {
   });
 }
 
-/** Fetch single property by ID — checks Supabase first, falls back to mock */
-export function useNfsProperty(id: string | undefined) {
+/** Fetch single property by slug or ID — checks Supabase first, falls back to mock */
+export function useNfsProperty(idOrSlug: string | undefined) {
   return useQuery({
-    queryKey: ["nfs-property", id],
+    queryKey: ["nfs-property", idOrSlug],
     queryFn: async (): Promise<MockProperty | null> => {
-      if (!id) return null;
+      if (!idOrSlug) return null;
 
-      // If ID is a mock ID (prop-001 etc), use mock data directly
-      if (id.startsWith("prop-")) {
-        return mockProperties.find(p => p.id === id) ?? null;
+      // If ID is a mock ID (prop-001 etc) or mock slug, use mock data directly
+      if (idOrSlug.startsWith("prop-")) {
+        return mockProperties.find(p => p.id === idOrSlug || p.slug === idOrSlug) ?? null;
       }
 
       if (!SUPABASE_CONFIGURED) {
-        return mockProperties.find(p => p.id === id) ?? null;
+        return mockProperties.find(p => p.id === idOrSlug || p.slug === idOrSlug) ?? null;
       }
+
+      // Try matching by slug first, then by id (UUIDs contain hyphens too, but slugs are lowercase words)
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(idOrSlug);
 
       const { data, error } = await supabase
         .from("nfs_properties")
         .select("*")
-        .eq("id", id)
+        .or(isUuid ? `id.eq.${idOrSlug},slug.eq.${idOrSlug}` : `slug.eq.${idOrSlug},id.eq.${idOrSlug}`)
         .maybeSingle();
 
       if (error || !data) {
         // Fall back to mock
-        return mockProperties.find(p => p.id === id) ?? null;
+        return mockProperties.find(p => p.id === idOrSlug || p.slug === idOrSlug) ?? null;
       }
 
       return data as unknown as MockProperty;
     },
-    enabled: !!id,
+    enabled: !!idOrSlug,
   });
 }
 
