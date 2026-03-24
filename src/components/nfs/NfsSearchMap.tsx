@@ -104,7 +104,7 @@ export function NfsSearchMap({ properties, hoveredId }: NfsSearchMapProps) {
   }, []);
 
   // Navigation callback
-  const onNav = useCallback((id: string) => navigate(`/property/${id}`), [navigate]);
+  const onNav = useCallback((slug: string) => navigate(`/property/${slug}`), [navigate]);
 
   // Helper: create a marker for a property at a given position
   const createMarker = useCallback((p: MockProperty, pos: { lat: number; lng: number }) => {
@@ -140,7 +140,7 @@ export function NfsSearchMap({ properties, hoveredId }: NfsSearchMapProps) {
       infoRef.current.open(map, marker);
     });
 
-    marker.addListener("dblclick", () => onNav(p.id));
+    marker.addListener("dblclick", () => onNav((p as any).slug || p.id));
     existing.set(p.id, marker);
   }, [onNav]);
 

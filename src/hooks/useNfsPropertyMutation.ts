@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "./useAuth";
+import { generateSlug } from "@/lib/utils";
 
 export interface PropertyFields {
   public_title: string;
@@ -45,7 +46,12 @@ export function useNfsPropertyCreate() {
     mutationFn: async (fields: PropertyFields) => {
       if (!operatorId) throw new Error("Operator not found. Please complete operator onboarding first.");
 
+      const propertyId = crypto.randomUUID();
+      const slug = generateSlug(fields.public_title, propertyId);
+
       const row = {
+        id: propertyId,
+        slug,
         operator_id: operatorId,
         public_title: fields.public_title,
         property_type: fields.property_type,
@@ -98,6 +104,11 @@ export function useNfsPropertyUpdate() {
         ...fields,
         updated_at: new Date().toISOString(),
       };
+
+      // Regenerate slug when title changes
+      if (fields.public_title) {
+        updates.slug = generateSlug(fields.public_title, id);
+      }
 
       const { data, error } = await (supabase.from("nfs_properties") as any)
         .update(updates)
