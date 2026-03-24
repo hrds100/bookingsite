@@ -48,7 +48,7 @@ export default function OperatorAnalytics() {
   ];
 
   return (
-    <div className="p-6 max-w-7xl space-y-6">
+    <div data-feature="NFSTAY__OP_ANALYTICS" className="p-6 max-w-7xl space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Analytics</h1>
         <p className="text-sm text-muted-foreground">Track views, bookings, and revenue performance.</p>
@@ -71,7 +71,7 @@ export default function OperatorAnalytics() {
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="bg-card border border-border rounded-2xl p-5">
+        <div data-feature="NFSTAY__OP_ANALYTICS_REVENUE" className="bg-card border border-border rounded-2xl p-5">
           <h2 className="text-sm font-semibold mb-4">Monthly Revenue</h2>
           <ResponsiveContainer width="100%" height={260}>
             <AreaChart data={revenueData ?? []}>
@@ -102,7 +102,7 @@ export default function OperatorAnalytics() {
       </div>
 
       {/* Bookings by month */}
-      <div className="bg-card border border-border rounded-2xl p-5">
+      <div data-feature="NFSTAY__OP_ANALYTICS_BOOKINGS" className="bg-card border border-border rounded-2xl p-5">
         <h2 className="text-sm font-semibold mb-4">Bookings per Month</h2>
         <ResponsiveContainer width="100%" height={220}>
           <BarChart data={revenueData ?? []}>

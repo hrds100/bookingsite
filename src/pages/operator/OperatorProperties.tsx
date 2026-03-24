@@ -28,23 +28,23 @@ export default function OperatorProperties() {
   );
 
   return (
-    <div className="p-6 max-w-7xl space-y-6">
+    <div data-feature="NFSTAY__OP_PROPERTIES" className="p-6 max-w-7xl space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Properties</h1>
           <p className="text-sm text-muted-foreground">{operatorProps.length} properties managed</p>
         </div>
-        <Button asChild className="rounded-lg gap-2">
+        <Button data-feature="NFSTAY__OP_PROPERTIES_ADD" asChild className="rounded-lg gap-2">
           <Link to="/nfstay/properties/new"><Plus className="w-4 h-4" /> Add Property</Link>
         </Button>
       </div>
 
       <div className="flex items-center gap-3">
-        <div className="relative flex-1 max-w-sm">
+        <div data-feature="NFSTAY__OP_PROPERTIES_SEARCH" className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input placeholder="Search properties..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 rounded-lg" />
         </div>
-        <div className="flex border border-border rounded-lg overflow-hidden">
+        <div data-feature="NFSTAY__OP_PROPERTIES_FILTER" className="flex border border-border rounded-lg overflow-hidden">
           <button onClick={() => setView("table")} className={`p-2 ${view === "table" ? "bg-secondary" : "hover:bg-secondary/50"}`}><List className="w-4 h-4" /></button>
           <button onClick={() => setView("grid")} className={`p-2 ${view === "grid" ? "bg-secondary" : "hover:bg-secondary/50"}`}><LayoutGrid className="w-4 h-4" /></button>
         </div>
@@ -63,7 +63,7 @@ export default function OperatorProperties() {
           onAction={search ? undefined : () => window.location.href = "/nfstay/properties/new"}
         />
       ) : view === "table" ? (
-        <div className="bg-card border border-border rounded-2xl overflow-hidden">
+        <div data-feature="NFSTAY__OP_PROPERTIES_LIST" className="bg-card border border-border rounded-2xl overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>

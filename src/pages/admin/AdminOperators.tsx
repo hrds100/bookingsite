@@ -108,7 +108,7 @@ export default function AdminOperators() {
   }
 
   return (
-    <div className="p-6 max-w-7xl space-y-6">
+    <div data-feature="NFSTAY__ADMIN_OPERATORS" className="p-6 max-w-7xl space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Operator Management</h1>
         <p className="text-sm text-muted-foreground">
@@ -116,7 +116,7 @@ export default function AdminOperators() {
         </p>
       </div>
 
-      <div className="relative max-w-sm">
+      <div data-feature="NFSTAY__ADMIN_OPERATORS_FILTER" className="relative max-w-sm">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
         <Input
           placeholder="Search operators..."

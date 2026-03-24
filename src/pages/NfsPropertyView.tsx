@@ -72,7 +72,7 @@ export default function NfsPropertyView() {
   };
 
   return (
-    <div>
+    <div data-feature="NFSTAY__PROPERTY">
       {/* Top nav */}
       <div className="sticky top-0 z-40 bg-background/80 backdrop-blur border-b border-border">
         <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
@@ -88,7 +88,7 @@ export default function NfsPropertyView() {
       </div>
 
       {/* Photo Gallery */}
-      <div className="max-w-7xl mx-auto px-4 mt-4">
+      <div data-feature="NFSTAY__PROPERTY_PHOTOS" className="max-w-7xl mx-auto px-4 mt-4">
         <div className="hidden md:grid grid-cols-4 grid-rows-2 gap-4 h-[400px] md:h-[480px] lg:h-[500px] rounded-2xl overflow-hidden mb-10">
           <div className="col-span-2 row-span-2 cursor-pointer" onClick={() => { setLightboxIndex(0); setLightboxOpen(true); }}>
             <img src={sortedImages[0]?.url} alt={sortedImages[0]?.caption} className="w-full h-full object-cover" />
@@ -140,7 +140,7 @@ export default function NfsPropertyView() {
       <div className="w-full px-4 sm:px-6 lg:px-8 py-8 lg:py-12 flex flex-col xl:flex-row gap-8 xl:gap-12 max-w-7xl mx-auto">
         <main className="flex-1 xl:max-w-4xl space-y-8">
           <div>
-            <h1 className="text-2xl md:text-3xl lg:text-4xl font-semibold leading-tight mb-4">{property.public_title}</h1>
+            <h1 data-feature="NFSTAY__PROPERTY_TITLE" className="text-2xl md:text-3xl lg:text-4xl font-semibold leading-tight mb-4">{property.public_title}</h1>
             <div className="flex flex-wrap items-center gap-2 text-gray-600 text-sm md:text-base">
               <MapPin className="w-4 h-4" />
               <span>{property.city}, {property.country}</span>
@@ -167,7 +167,7 @@ export default function NfsPropertyView() {
             )}
           </div>
           <hr className="border-border" />
-          <div>
+          <div data-feature="NFSTAY__PROPERTY_AMENITIES">
             <h2 className="text-lg font-semibold mb-3">What this place offers</h2>
             <div className="grid grid-cols-2 gap-3">
               {amenityList.slice(0, showAllAmenities ? undefined : 10).map(a => (
@@ -181,7 +181,7 @@ export default function NfsPropertyView() {
             )}
           </div>
           <hr className="border-border" />
-          <div>
+          <div data-feature="NFSTAY__PROPERTY_RULES">
             <h2 className="text-lg font-semibold mb-3">House rules</h2>
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div className="flex items-center gap-2"><Clock className="w-4 h-4 text-muted-foreground" />Check-in after {property.check_in_time}</div>
@@ -192,7 +192,7 @@ export default function NfsPropertyView() {
             {property.rules && <p className="text-sm text-muted-foreground mt-3">{property.rules}</p>}
           </div>
           <hr className="border-border" />
-          <div>
+          <div data-feature="NFSTAY__PROPERTY_PRICE">
             <h2 className="text-lg font-semibold mb-2">Cancellation policy</h2>
             {policy && (
               <div className="flex items-start gap-3">
@@ -205,7 +205,7 @@ export default function NfsPropertyView() {
             )}
           </div>
           <hr className="border-border" />
-          <div>
+          <div data-feature="NFSTAY__PROPERTY_MAP">
             <h2 className="text-lg font-semibold mb-2">Where you'll be</h2>
             <p className="text-sm text-muted-foreground mb-3">{property.city}, {property.state}, {property.country}</p>
             {import.meta.env.VITE_GOOGLE_MAPS_API_KEY ? (
@@ -231,7 +231,7 @@ export default function NfsPropertyView() {
           </div>
         </main>
         <aside className="xl:w-96 xl:sticky xl:top-24 z-40 xl:self-start">
-          <NfsBookingWidget property={property} />
+          <NfsBookingWidget data-feature="NFSTAY__PROPERTY_BOOKING" property={property} />
         </aside>
       </div>
     </div>

@@ -23,7 +23,7 @@ export default function OperatorCreateReservation() {
   };
 
   return (
-    <div className="p-6 max-w-2xl">
+    <div data-feature="NFSTAY__OP_CREATE_RESERVATION" className="p-6 max-w-2xl">
       <button onClick={() => navigate('/nfstay/reservations')} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-6">
         <ArrowLeft className="w-4 h-4" /> Back to reservations
       </button>
@@ -32,7 +32,7 @@ export default function OperatorCreateReservation() {
       <p className="text-sm text-muted-foreground mb-6">Manually add a reservation for a guest.</p>
 
       <form onSubmit={handleSubmit} className="bg-card border border-border rounded-2xl p-6 space-y-5">
-        <div>
+        <div data-feature="NFSTAY__OP_CREATE_PROPERTY">
           <Label>Property</Label>
           <Select>
             <SelectTrigger className="mt-1.5"><SelectValue placeholder="Select property" /></SelectTrigger>
@@ -44,7 +44,7 @@ export default function OperatorCreateReservation() {
           </Select>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div data-feature="NFSTAY__OP_CREATE_GUEST" className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div><Label>Guest First Name</Label><Input placeholder="John" className="mt-1.5" required /></div>
           <div><Label>Guest Last Name</Label><Input placeholder="Doe" className="mt-1.5" required /></div>
           <div><Label>Guest Email</Label><Input type="email" placeholder="john@example.com" className="mt-1.5" required /></div>
@@ -57,7 +57,7 @@ export default function OperatorCreateReservation() {
 
         <div className="flex justify-end gap-3 pt-2">
           <Button type="button" variant="outline" className="rounded-lg" onClick={() => navigate('/nfstay/reservations')}>Cancel</Button>
-          <Button type="submit" className="rounded-lg" disabled={loading}>{loading ? 'Creating...' : 'Create Reservation'}</Button>
+          <Button data-feature="NFSTAY__OP_CREATE_SUBMIT" type="submit" className="rounded-lg" disabled={loading}>{loading ? 'Creating...' : 'Create Reservation'}</Button>
         </div>
       </form>
     </div>

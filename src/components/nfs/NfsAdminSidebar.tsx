@@ -34,7 +34,7 @@ export function NfsAdminSidebar() {
   }, [location.pathname, isMobile, setOpenMobile]);
 
   return (
-    <Sidebar collapsible="icon" className="border-r border-sidebar-border">
+    <Sidebar collapsible="icon" className="border-r border-sidebar-border" data-feature="NFSTAY__ADMIN_SIDEBAR">
       <SidebarHeader className="p-4">
         {collapsed ? (
           <div className="flex justify-center">
@@ -61,6 +61,7 @@ export function NfsAdminSidebar() {
                       end={item.url === "/admin/nfstay"}
                       className="hover:bg-sidebar-accent"
                       activeClassName="bg-sidebar-accent text-primary font-medium"
+                      data-feature={`NFSTAY__ADMIN_SIDEBAR_${item.title.toUpperCase()}`}
                     >
                       <item.icon className="mr-2 h-4 w-4" />
                       {!collapsed && <span>{item.title}</span>}

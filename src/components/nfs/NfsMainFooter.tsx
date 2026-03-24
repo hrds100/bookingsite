@@ -18,11 +18,11 @@ export function NfsMainFooter() {
     : [];
 
   return (
-    <footer className={isWhiteLabel ? "bg-gray-900 text-gray-300" : "bg-[#f0f3f7] mt-8"}>
+    <footer data-feature="NFSTAY__FOOTER" className={isWhiteLabel ? "bg-gray-900 text-gray-300" : "bg-[#f0f3f7] mt-8"}>
       <div className="max-w-7xl mx-auto px-4 py-12">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
           {/* About */}
-          <div>
+          <div data-feature="NFSTAY__FOOTER_ABOUT">
             {isWhiteLabel && operator ? (
               <Link to="/" className="flex items-center gap-2 text-lg font-bold text-foreground mb-3">
                 {operator.logo_url ? (
@@ -41,7 +41,7 @@ export function NfsMainFooter() {
             </p>
             {/* Social links — main site */}
             {!isWhiteLabel && (
-              <div className="flex gap-3">
+              <div data-feature="NFSTAY__FOOTER_SOCIAL" className="flex gap-3">
                 {['Instagram', 'Twitter', 'Facebook', 'TikTok'].map((s) => (
                   <a key={s} href="#" target="_blank" rel="noopener noreferrer" className="text-xs text-muted-foreground hover:text-[#1E9A80] transition-colors">{s}</a>
                 ))}
@@ -49,7 +49,7 @@ export function NfsMainFooter() {
             )}
             {/* Social links — white-label operator */}
             {isWhiteLabel && socialLinks.length > 0 && (
-              <div className="flex gap-3 mt-2">
+              <div data-feature="NFSTAY__FOOTER_SOCIAL" className="flex gap-3 mt-2">
                 {socialLinks.map((s) => (
                   <a key={s.label} href={s.url} target="_blank" rel="noopener noreferrer" className="text-xs text-muted-foreground hover:text-[#1E9A80] transition-colors">{s.label}</a>
                 ))}
@@ -57,9 +57,9 @@ export function NfsMainFooter() {
             )}
           </div>
 
-          {/* For Operators — main site only */}
+          {/* For Operators -- main site only */}
           {!isWhiteLabel && (
-            <div>
+            <div data-feature="NFSTAY__FOOTER_OPERATORS">
               <h4 className="text-sm font-semibold text-foreground mb-3">For Operators</h4>
               <ul className="space-y-2">
                 <li><Link to="/signup" className="text-sm text-muted-foreground hover:text-[#1E9A80] transition-colors">List your property</Link></li>
@@ -104,7 +104,7 @@ export function NfsMainFooter() {
           )}
 
           {/* For Travelers / Quick Links */}
-          <div>
+          <div data-feature="NFSTAY__FOOTER_TRAVELERS">
             <h4 className="text-sm font-semibold text-foreground mb-3">
               {isWhiteLabel ? "Quick Links" : "For Travelers"}
             </h4>
@@ -119,7 +119,7 @@ export function NfsMainFooter() {
           </div>
 
           {/* Legal */}
-          <div>
+          <div data-feature="NFSTAY__FOOTER_LEGAL">
             <h4 className="text-sm font-semibold text-foreground mb-3">Legal</h4>
             <ul className="space-y-2">
               <li><a href="#" className="text-sm text-muted-foreground hover:text-[#1E9A80] transition-colors">Privacy policy</a></li>

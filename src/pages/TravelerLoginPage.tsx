@@ -25,7 +25,7 @@ export default function TravelerLoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4">
+    <div data-feature="NFSTAY__TRAVELER_LOGIN" className="min-h-screen flex items-center justify-center px-4">
       <div className="w-full max-w-sm space-y-6 text-center">
         <NfsLogo className="justify-center text-2xl mb-4" />
         <h1 className="text-2xl font-bold">Sign in as Guest</h1>

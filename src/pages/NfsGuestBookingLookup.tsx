@@ -53,7 +53,7 @@ export default function NfsGuestBookingLookup() {
   const hasSearched = searchEmail !== undefined;
 
   return (
-    <div className="max-w-lg mx-auto px-4 pt-16 pb-20">
+    <div data-feature="NFSTAY__LOOKUP" className="max-w-lg mx-auto px-4 pt-16 pb-20">
       <div className="text-center mb-8">
         <h1 className="text-2xl font-bold tracking-tight">Find your booking</h1>
         <p className="text-sm text-muted-foreground mt-1">
@@ -63,6 +63,7 @@ export default function NfsGuestBookingLookup() {
 
       <div className="flex gap-2 mb-8">
         <Input
+          data-feature="NFSTAY__LOOKUP_EMAIL"
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
@@ -71,6 +72,7 @@ export default function NfsGuestBookingLookup() {
           onKeyDown={(e) => e.key === "Enter" && handleSearch()}
         />
         <Button
+          data-feature="NFSTAY__LOOKUP_SUBMIT"
           onClick={handleSearch}
           disabled={!email || isLoading}
           className="rounded-xl h-11 px-6"
@@ -105,7 +107,7 @@ export default function NfsGuestBookingLookup() {
       )}
 
       {!isLoading && !error && hasSearched && results && results.length > 0 && (
-        <div className="space-y-3">
+        <div data-feature="NFSTAY__LOOKUP_RESULT" className="space-y-3">
           {results.map((r) => {
             const prop = getPropertyDisplay(r);
             return (

@@ -35,8 +35,11 @@ import SignInPage from "./pages/SignInPage";
 import SignUpPage from "./pages/SignUpPage";
 import TravelerLoginPage from "./pages/TravelerLoginPage";
 import VerifyEmailPage from "./pages/VerifyEmailPage";
+import VerifyOtpPage from "./pages/VerifyOtpPage";
 import OAuthCallbackPage from "./pages/OAuthCallbackPage";
 import AuthCallbackPage from "./pages/AuthCallbackPage";
+import WalletProvisioner from "./components/WalletProvisioner";
+import FeatureInspector from "./components/dev/FeatureInspector";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -48,6 +51,8 @@ const App = () => (
         <TooltipProvider>
           <Toaster />
           <Sonner />
+          <FeatureInspector />
+          <WalletProvisioner />
           <BrowserRouter>
           <Routes>
             {/* Traveler / Public */}
@@ -93,6 +98,7 @@ const App = () => (
             <Route path="/signup" element={<SignUpPage />} />
             <Route path="/traveler/login" element={<TravelerLoginPage />} />
             <Route path="/verify-email" element={<VerifyEmailPage />} />
+            <Route path="/verify-otp" element={<VerifyOtpPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
           </BrowserRouter>

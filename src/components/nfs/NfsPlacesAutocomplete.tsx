@@ -107,6 +107,7 @@ export default function NfsPlacesAutocomplete({
   if (!API_KEY) {
     return (
       <Input
+        data-feature="NFSTAY__PLACES_INPUT"
         placeholder="Enter full address"
         value={value}
         onChange={(e) => setValue(e.target.value)}
@@ -117,6 +118,7 @@ export default function NfsPlacesAutocomplete({
 
   return (
     <Input
+      data-feature="NFSTAY__PLACES_INPUT"
       ref={inputRef}
       placeholder={loaded ? "Start typing an address..." : "Loading address search..."}
       value={value}

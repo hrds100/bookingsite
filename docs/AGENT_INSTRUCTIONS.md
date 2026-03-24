@@ -95,7 +95,7 @@ The site is partially wired to real backend services. Data hooks fall back to mo
 | Landing page | Live — legacy VPS layout (no hero image, centered text + search bar) |
 | Search + filters | Live — real data, beds/bathrooms/bedrooms/type/price filters, 3-col grid on xl |
 | Property detail | Live — real data, taller images (500px), larger title, smooth map fly-to |
-| Auth (sign in/up) | Real — Supabase Auth (same accounts as hub.nfstay.com), branded [nf]stay logo |
+| Auth (sign in/up) | Real — Supabase Auth + WhatsApp OTP + Particle wallet (matches hub.nfstay.com) |
 | Navbar | Legacy design — grid-cols-3, animated gradient toggle pill, gradient Sign In, mobile bottom nav |
 | Checkout / booking | Real — Stripe Checkout via Edge Function |
 | Currency switching | Real — localStorage persistence |
@@ -122,6 +122,11 @@ The site is partially wired to real backend services. Data hooks fall back to mo
 | Verify email resend | UI exists, not wired |
 | OAuth callback | TODO — for Stripe Connect/Hospitable (social login works separately) |
 | Avg Rating | Placeholder — no reviews table yet |
+| WhatsApp OTP on email sign-up | Real — n8n send-otp/verify-otp, matches marketplace10 |
+| Wallet creation on email sign-up | Real — particle-generate-jwt + WalletProvisioner |
+| WalletProvisioner component | Real — silent wallet creation on authenticated page load |
+| CountryCodeSelect component | Real — 42 countries, searchable dropdown |
+| VerifyOtp page (/verify-otp) | Real — 4-digit OTP, auto-verify, 5-min timer, resend |
 
 ### All PRs shipped (2026-03-23 session)
 
@@ -139,6 +144,74 @@ The site is partially wired to real backend services. Data hooks fall back to mo
 | #29 | Purple → green brand gradient |
 | #30 | White booking widget, smooth map fly-to, "Explore" text |
 | #31 | New logo on sign in/up pages |
+| #33 | Fix search page mobile overflow (375px) + og:title branding + e2e test fixes |
+
+### Full Playwright audit (2026-03-23)
+
+152 e2e tests passed against live site covering every route, auth flow, data rendering, mobile responsiveness, and performance. Known unbuilt features: Hospitable sync, Stripe Connect payouts, verify email resend, reviews system, traveler settings page, user profile photo.
+
+---
+
+## 7b. CROSS-APP AUTH ARCHITECTURE (CRITICAL - DO NOT BREAK)
+
+nfstay has TWO apps sharing the SAME Supabase project and the SAME Particle Network config:
+
+| App | URL | Repo |
+|-----|-----|------|
+| Hub (marketplace) | hub.nfstay.com | marketplace10 |
+| Booking site | nfstay.app | bookingsite |
+
+### Shared infrastructure
+- **Supabase project:** `asazddtvjvmckouxcmmo` (same auth.users, same profiles table)
+- **Particle Legacy config:** projectId `4f8aca10-0c7e-4617-bfff-7ccb5269f365` (social login - Google/Apple/X/Facebook)
+- **Particle Hub config:** projectId `470629ca-91af-45fa-a52b-62ed2adf9ef0` (JWT auth - email/password wallet creation)
+- **Password seed:** `_NFsTay2!` (used in `derivedPassword()` - NEVER rename)
+- **n8n instance:** https://n8n.srv886554.hstgr.cloud (shared webhooks)
+
+### Auth flows (must be identical on both apps)
+
+**Social login (Google/Apple/X/Facebook):**
+1. Particle `thirdpartyAuth()` opens OAuth popup/redirect
+2. Callback page completes `connect()`, gets uuid + email
+3. `derivedPassword(uuid)` generates deterministic password
+4. Sign in or sign up to Supabase with derived password
+5. Update profile with `wallet_auth_method` and `wallet_address`
+
+**Email sign-up (target flow - must match marketplace10):**
+1. User fills: name, email, password, WhatsApp number (with country code)
+2. `supabase.auth.signUp()` creates Supabase account
+3. `sendOtp()` sends 4-digit code via WhatsApp (n8n webhook: `/webhook/send-otp`)
+4. Redirect to `/verify-otp` page
+5. User enters OTP, verified via n8n webhook (`/webhook/verify-otp`)
+6. After OTP verified: generate JWT via `particle-generate-jwt` Edge Function
+7. `WalletProvisioner` creates Particle wallet silently in background
+8. Wallet address saved to `profiles.wallet_address`
+
+**Email sign-in:**
+1. `supabase.auth.signInWithPassword()` directly
+2. `WalletProvisioner` runs silently on dashboard load - creates wallet if missing
+
+### NEVER DO THESE (breaks cross-app auth)
+- NEVER rename the password seed `_NFsTay2!` - it locks out ALL social login users across BOTH apps
+- NEVER change `PARTICLE_LEGACY_CONFIG` credentials - breaks social login wallet recovery
+- NEVER create a separate Supabase project for bookingsite - accounts must be shared
+- NEVER skip the WhatsApp OTP step on email sign-up - both apps must verify WhatsApp
+- NEVER skip wallet creation on email sign-up - both apps must provision wallets
+- NEVER install `@particle-network/auth-core` as a static dependency - use dynamic `import()` to keep bundle size small and avoid vite.config.ts conflicts
+
+### n8n webhooks (shared, already live)
+| Webhook | Path | Status |
+|---------|------|--------|
+| Send OTP | `/webhook/send-otp` | Active (200) |
+| Verify OTP | `/webhook/verify-otp` | Active (200) |
+| Wallet Created | `/webhook/wallet-created` | Not active (notification only) |
+| Booking Confirmed | `/webhook/nfstay-booking-confirmed` | Active |
+
+### Supabase Edge Functions (shared, already deployed)
+| Function | Purpose |
+|----------|---------|
+| `particle-generate-jwt` | Generates signed JWT for Particle wallet creation |
+| `nfs-create-checkout` | Creates Stripe Checkout session + pending reservation |
 
 ---
 

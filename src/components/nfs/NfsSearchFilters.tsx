@@ -65,14 +65,14 @@ export function NfsSearchFilters({
   onClearFilters,
 }: NfsSearchFiltersProps) {
   return (
-    <div className="space-y-3">
+    <div data-feature="NFSTAY__FILTERS" className="space-y-3">
       {/* Results bar */}
       <div className="flex items-center justify-between gap-2 min-w-0">
-        <p className="text-sm text-foreground font-semibold shrink-0">
+        <p data-feature="NFSTAY__FILTER_COUNT" className="text-sm text-foreground font-semibold shrink-0">
           {resultCount}+ results
         </p>
         <div className="flex items-center gap-2 min-w-0 overflow-x-auto">
-          <div className="flex items-center border border-border rounded-lg overflow-hidden">
+          <div data-feature="NFSTAY__FILTER_SORT" className="flex items-center border border-border rounded-lg overflow-hidden">
             <span className="text-xs text-muted-foreground px-3">Sort by:</span>
             <Select value={sortBy} onValueChange={onSortChange}>
               <SelectTrigger className="h-9 w-24 sm:w-[120px] text-xs border-0 border-l border-border rounded-none shadow-none focus:ring-0">
@@ -115,7 +115,7 @@ export function NfsSearchFilters({
       {/* Expanded filters panel */}
       {showFilters && (
         <div className="bg-card border border-border rounded-xl p-4 flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3 sm:gap-4 overflow-x-hidden">
-          <div className="flex items-center gap-2">
+          <div data-feature="NFSTAY__FILTER_TYPE" className="flex items-center gap-2">
             <span className="text-xs font-medium text-muted-foreground">Type:</span>
             <Select value={activeType} onValueChange={onTypeChange}>
               <SelectTrigger className="h-8 w-28 sm:w-[140px] text-xs">
@@ -128,7 +128,7 @@ export function NfsSearchFilters({
               </SelectContent>
             </Select>
           </div>
-          <div className="flex items-center gap-2">
+          <div data-feature="NFSTAY__FILTER_PRICE" className="flex items-center gap-2">
             <span className="text-xs font-medium text-muted-foreground">Price / night:</span>
             <div className="flex items-center gap-1">
               <input
@@ -148,7 +148,7 @@ export function NfsSearchFilters({
               />
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div data-feature="NFSTAY__FILTER_BEDROOMS" className="flex items-center gap-2">
             <span className="text-xs font-medium text-muted-foreground">Bedrooms:</span>
             <div className="flex gap-1">
               {[0, 1, 2, 3, 4, 5].map((n) => (

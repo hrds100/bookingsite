@@ -43,9 +43,9 @@ export default function NfsPaymentSuccess() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background flex items-start justify-center pt-16 px-4">
+    <div data-feature="NFSTAY__SUCCESS" className="min-h-screen bg-background flex items-start justify-center pt-16 px-4">
       <div className="max-w-md w-full space-y-6">
-        <div className="text-center">
+        <div data-feature="NFSTAY__SUCCESS_MESSAGE" className="text-center">
           <div className="w-16 h-16 bg-accent-light rounded-full flex items-center justify-center mx-auto mb-4">
             <CheckCircle className="w-8 h-8 text-primary" />
           </div>
@@ -58,7 +58,7 @@ export default function NfsPaymentSuccess() {
         </div>
 
         {reservation && (
-          <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
+          <div data-feature="NFSTAY__SUCCESS_SUMMARY" className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
             <img src={reservation.propertyImage} alt={reservation.propertyTitle} className="h-40 w-full object-cover" />
             <div className="p-5 space-y-3">
               <div>
@@ -89,7 +89,7 @@ export default function NfsPaymentSuccess() {
           <Button variant="outline" className="w-full rounded-xl" onClick={() => navigate('/booking')}>
             View Booking Details
           </Button>
-          <Button className="w-full rounded-xl" onClick={() => navigate('/search')}>
+          <Button data-feature="NFSTAY__SUCCESS_BROWSE" className="w-full rounded-xl" onClick={() => navigate('/search')}>
             Browse More Properties
           </Button>
         </div>

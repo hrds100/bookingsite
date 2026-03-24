@@ -71,7 +71,7 @@ export default function NfsMainLanding() {
   }
 
   return (
-    <div>
+    <div data-feature="NFSTAY__LANDING">
       {/* Hero — legacy style: no background image, centered text + search */}
       <NfsHeroSearch
         heading={heroHeading}
@@ -82,7 +82,7 @@ export default function NfsMainLanding() {
 
       {/* Recently Viewed */}
       {recentProperties.length > 0 && (
-        <section className="max-w-7xl mx-auto px-4 py-12">
+        <section data-feature="NFSTAY__LANDING_RECENTLY_VIEWED" className="max-w-7xl mx-auto px-4 py-12">
           <h2 className="text-2xl font-bold tracking-tight mb-6">Recently Viewed</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {recentProperties.slice(0, 4).map((p) => (
@@ -94,7 +94,7 @@ export default function NfsMainLanding() {
 
       {/* Popular Destinations — main site only */}
       {!isWhiteLabel && (
-        <section className="max-w-7xl mx-auto px-4 py-16">
+        <section data-feature="NFSTAY__LANDING_DESTINATIONS" className="max-w-7xl mx-auto px-4 py-16">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold tracking-tight">Popular Destinations</h2>
             <div className="flex gap-2">
@@ -129,7 +129,7 @@ export default function NfsMainLanding() {
       )}
 
       {/* Featured Properties */}
-      <section className="max-w-7xl mx-auto px-4 py-8">
+      <section data-feature="NFSTAY__LANDING_FEATURED" className="max-w-7xl mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold tracking-tight">{isWhiteLabel ? "Our Properties" : "Featured Properties"}</h2>
           <Button variant="link" onClick={() => navigate('/search')} className="text-primary">
@@ -138,13 +138,13 @@ export default function NfsMainLanding() {
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 gap-6">
           {featuredProperties.map((p) => (
-            <NfsPropertyCard key={p.id} property={p} />
+            <NfsPropertyCard key={p.id} property={p} data-feature="NFSTAY__LANDING_CARD" />
           ))}
         </div>
       </section>
 
       {/* How It Works */}
-      <section id="how-it-works" className="max-w-7xl mx-auto px-4 py-16">
+      <section data-feature="NFSTAY__LANDING_HOW_IT_WORKS" id="how-it-works" className="max-w-7xl mx-auto px-4 py-16">
         <h2 className="text-2xl font-bold tracking-tight text-center mb-10">Simple, transparent, direct</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {[
@@ -204,7 +204,7 @@ export default function NfsMainLanding() {
 
       {/* Testimonials — main site only */}
       {!isWhiteLabel && (
-        <section className="max-w-7xl mx-auto px-4 py-16">
+        <section data-feature="NFSTAY__LANDING_TESTIMONIALS" className="max-w-7xl mx-auto px-4 py-16">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold tracking-tight">What our guests say</h2>
             <div className="flex gap-2">
@@ -237,7 +237,7 @@ export default function NfsMainLanding() {
       )}
 
       {/* FAQs */}
-      <section className="max-w-3xl mx-auto px-4 py-16">
+      <section data-feature="NFSTAY__LANDING_FAQ" className="max-w-3xl mx-auto px-4 py-16">
         <h2 className="text-2xl font-bold tracking-tight text-center mb-8">Frequently Asked Questions</h2>
         <Accordion type="single" collapsible className="space-y-2">
           {displayFaqs.map((faq, i) => (
@@ -251,7 +251,7 @@ export default function NfsMainLanding() {
 
       {/* CTA */}
       {isWhiteLabel ? (
-        <section className="max-w-7xl mx-auto px-4 py-16">
+        <section data-feature="NFSTAY__LANDING_CTA" className="max-w-7xl mx-auto px-4 py-16">
           <div className="bg-primary rounded-3xl p-10 md:p-16 text-center">
             <h2 className="text-3xl font-bold text-primary-foreground mb-3">Ready to book your stay?</h2>
             <p className="text-primary-foreground/80 mb-6 max-w-md mx-auto">
@@ -263,7 +263,7 @@ export default function NfsMainLanding() {
           </div>
         </section>
       ) : (
-        <section className="max-w-7xl mx-auto px-4 py-16">
+        <section data-feature="NFSTAY__LANDING_CTA" className="max-w-7xl mx-auto px-4 py-16">
           <div className="bg-primary rounded-3xl p-10 md:p-16 text-center">
             <h2 className="text-3xl font-bold text-primary-foreground mb-3">Ready to list your property?</h2>
             <p className="text-primary-foreground/80 mb-6 max-w-md mx-auto">Join hundreds of operators already using nfstay to accept direct bookings.</p>

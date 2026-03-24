@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 
 export function NfsLogo({ className = '' }: { className?: string }) {
   return (
-    <Link to="/" className={`flex items-center gap-[3px] no-underline ${className}`}>
+    <Link to="/" data-feature="NFSTAY__LOGO" className={`flex items-center gap-[3px] no-underline ${className}`}>
       <span
         className="flex items-center justify-center font-bold leading-none"
         style={{

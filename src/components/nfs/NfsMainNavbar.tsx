@@ -61,12 +61,12 @@ export function NfsMainNavbar() {
   return (
     <>
       {/* Main navbar */}
-      <nav className="sticky top-0 left-0 right-0 w-full h-16 sm:h-20 bg-white z-50">
+      <nav data-feature="NFSTAY__NAVBAR" className="sticky top-0 left-0 right-0 w-full h-16 sm:h-20 bg-white z-50">
         <div className="max-w-full mx-auto xl:px-10 md:px-10 sm:px-4 px-3 h-full">
           <div className={`${isSearchPage ? "flex justify-between items-center" : "grid grid-cols-3"} h-full gap-2 sm:gap-3 md:gap-0`}>
 
             {/* LEFT: Logo */}
-            <div className={`flex items-center gap-2 sm:gap-4 ${isSearchPage ? "hidden lg:flex" : "flex"}`}>
+            <div data-feature="NFSTAY__NAVBAR_LOGO" className={`flex items-center gap-2 sm:gap-4 ${isSearchPage ? "hidden lg:flex" : "flex"}`}>
               {isWhiteLabel && wlOperator ? (
                 <Link to="/" className="flex items-center gap-2 pt-1.5">
                   {wlOperator.logo_url ? (
@@ -125,7 +125,7 @@ export function NfsMainNavbar() {
             {/* CENTER: Search bar (search page only) */}
             {isSearchPage && (
               <div className="flex flex-1 justify-center w-full max-w-[800px] px-2 sm:px-4">
-                <div className="flex items-center border border-gray-200 rounded-full bg-white px-2 py-1.5 shadow-sm w-full">
+                <div data-feature="NFSTAY__NAVBAR_SEARCH" className="flex items-center border border-gray-200 rounded-full bg-white px-2 py-1.5 shadow-sm w-full">
                   <div className="flex items-center gap-2 flex-1 px-3">
                     <Search className="w-4 h-4 text-gray-400 shrink-0" />
                     <input
@@ -200,6 +200,7 @@ export function NfsMainNavbar() {
 
               {/* Hamburger */}
               <button
+                data-feature="NFSTAY__NAVBAR_MENU"
                 onClick={() => setSidebarOpen(!sidebarOpen)}
                 className="p-1.5 sm:p-2 hover:bg-gray-100 rounded-lg transition-colors"
               >
@@ -221,18 +222,18 @@ export function NfsMainNavbar() {
         </div>
         <div className="border-t border-gray-200" />
         <div className="p-4 space-y-2">
-          <Link to="/search" onClick={() => setSidebarOpen(false)} className="block p-2 rounded-lg hover:bg-[#f0f0ed] transition-colors">
+          <Link data-feature="NFSTAY__NAVBAR_LINK" to="/search" onClick={() => setSidebarOpen(false)} className="block p-2 rounded-lg hover:bg-[#f0f0ed] transition-colors">
             <h3 className="font-semibold text-base">Traveler</h3>
             <p className="text-[#737373] font-medium text-sm">Find Stays and manage bookings</p>
           </Link>
           {!isWhiteLabel && (
-            <Link to="/nfstay" onClick={() => setSidebarOpen(false)} className="block p-2 rounded-lg hover:bg-[#f0f0ed] transition-colors">
+            <Link data-feature="NFSTAY__NAVBAR_LINK" to="/nfstay" onClick={() => setSidebarOpen(false)} className="block p-2 rounded-lg hover:bg-[#f0f0ed] transition-colors">
               <h3 className="font-semibold text-base">Operators</h3>
               <p className="text-[#737373] font-medium text-sm">Grow your vacation rental business</p>
             </Link>
           )}
           {!isWhiteLabel && (
-            <Link to="/admin/nfstay" onClick={() => setSidebarOpen(false)} className="block p-2 rounded-lg hover:bg-[#f0f0ed] transition-colors">
+            <Link data-feature="NFSTAY__NAVBAR_LINK" to="/admin/nfstay" onClick={() => setSidebarOpen(false)} className="block p-2 rounded-lg hover:bg-[#f0f0ed] transition-colors">
               <h3 className="font-semibold text-base">Admin</h3>
               <p className="text-[#737373] font-medium text-sm">Platform management</p>
             </Link>
