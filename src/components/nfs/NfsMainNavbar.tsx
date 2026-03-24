@@ -173,11 +173,10 @@ export function NfsMainNavbar() {
               {user ? (
                 <button
                   onClick={() => setDrawerOpen(!drawerOpen)}
-                  className="hidden sm:flex items-center px-2 sm:px-3 lg:px-4 py-1.5 lg:py-2 rounded-full text-xs sm:text-sm border shadow-sm hover:bg-gray-100 max-w-[120px] sm:max-w-[160px] lg:max-w-none"
+                  className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-full text-sm border shadow-sm hover:bg-gray-100"
                 >
-                  <User className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 flex-shrink-0" />
-                  <span className="truncate">{user.email}</span>
-                  <ChevronDown className="w-4 h-4 ml-2 flex-shrink-0" />
+                  <User className="w-5 h-5" />
+                  <ChevronDown className="w-3 h-3" />
                 </button>
               ) : (
                 <Link
