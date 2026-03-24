@@ -89,21 +89,39 @@ export default function NfsPropertyView() {
 
       {/* Photo Gallery */}
       <div data-feature="NFSTAY__PROPERTY_PHOTOS" className="max-w-7xl mx-auto px-4 mt-4">
-        <div className="hidden md:grid grid-cols-4 grid-rows-2 gap-4 h-[400px] md:h-[480px] lg:h-[500px] rounded-2xl overflow-hidden mb-10">
-          <div className="col-span-2 row-span-2 cursor-pointer" onClick={() => { setLightboxIndex(0); setLightboxOpen(true); }}>
-            <img src={sortedImages[0]?.url} alt={sortedImages[0]?.caption} className="w-full h-full object-cover" />
-          </div>
-          {sortedImages.slice(1, 5).map((img, i) => (
-            <div key={i} className="relative cursor-pointer" onClick={() => { setLightboxIndex(i + 1); setLightboxOpen(true); }}>
-              <img src={img.url} alt={img.caption} className="w-full h-full object-cover" />
-              {i === 3 && sortedImages.length > 5 && (
-                <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                  <span className="text-white font-semibold">+{sortedImages.length - 5} more</span>
-                </div>
-              )}
+        {sortedImages.length <= 3 ? (
+          <div className="hidden md:grid gap-2 h-[400px] md:h-[480px] lg:h-[500px] rounded-2xl overflow-hidden mb-10" style={{ gridTemplateColumns: '2fr 1fr', gridTemplateRows: '1fr 1fr' }}>
+            <div className="row-span-2 cursor-pointer" onClick={() => { setLightboxIndex(0); setLightboxOpen(true); }}>
+              <img src={sortedImages[0]?.url} alt={sortedImages[0]?.caption} className="w-full h-full object-cover" />
             </div>
-          ))}
-        </div>
+            {sortedImages.slice(1, 3).map((img, i) => (
+              <div key={i} className="cursor-pointer" onClick={() => { setLightboxIndex(i + 1); setLightboxOpen(true); }}>
+                <img src={img.url} alt={img.caption} className="w-full h-full object-cover" />
+              </div>
+            ))}
+            {sortedImages.length === 2 && (
+              <div className="bg-muted flex items-center justify-center cursor-pointer" onClick={() => { setLightboxIndex(0); setLightboxOpen(true); }}>
+                <span className="text-muted-foreground text-sm">View photos</span>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="hidden md:grid grid-cols-4 grid-rows-2 gap-2 h-[400px] md:h-[480px] lg:h-[500px] rounded-2xl overflow-hidden mb-10">
+            <div className="col-span-2 row-span-2 cursor-pointer" onClick={() => { setLightboxIndex(0); setLightboxOpen(true); }}>
+              <img src={sortedImages[0]?.url} alt={sortedImages[0]?.caption} className="w-full h-full object-cover" />
+            </div>
+            {sortedImages.slice(1, 5).map((img, i) => (
+              <div key={i} className="relative cursor-pointer" onClick={() => { setLightboxIndex(i + 1); setLightboxOpen(true); }}>
+                <img src={img.url} alt={img.caption} className="w-full h-full object-cover" />
+                {i === 3 && sortedImages.length > 5 && (
+                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                    <span className="text-white font-semibold">+{sortedImages.length - 5} more</span>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
         <div className="md:hidden rounded-2xl overflow-hidden aspect-video cursor-pointer" onClick={() => { setLightboxIndex(0); setLightboxOpen(true); }}>
           <img src={sortedImages[0]?.url} alt={sortedImages[0]?.caption} className="w-full h-full object-cover" />
         </div>

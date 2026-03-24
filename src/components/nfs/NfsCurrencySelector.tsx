@@ -8,7 +8,7 @@ export function NfsCurrencySelector() {
   return (
     <Select value={currency.code} onValueChange={setCurrencyCode}>
       <SelectTrigger data-feature="NFSTAY__CURRENCY" className="w-auto h-8 gap-1 border-none bg-transparent text-sm font-medium px-2 focus:ring-0">
-        <SelectValue />
+        <span>{currency.code}</span>
       </SelectTrigger>
       <SelectContent>
         {CURRENCIES.map(c => (
