@@ -55,6 +55,33 @@ export async function checkSupabase(): Promise<HealthCheckResult> {
   }
 }
 
+/* ── execution data cache ────────────────────────────── */
+
+let lastExecutionData: Record<string, ExecutionEntry[]> = {};
+
+export function getExecutionData(): Record<string, ExecutionEntry[]> {
+  return lastExecutionData;
+}
+
+export function getLatestExecution(workflowName: string): ExecutionEntry | null {
+  for (const entries of Object.values(lastExecutionData)) {
+    const match = entries.find(e => e.workflowName === workflowName);
+    if (match) return match;
+  }
+  return null;
+}
+
+export function getAllExecutionsForFlow(flow: FlowDef): ExecutionEntry[] {
+  const names = new Set(flow.steps.map(s => s.workflowName).filter(Boolean));
+  const all: ExecutionEntry[] = [];
+  for (const entries of Object.values(lastExecutionData)) {
+    for (const entry of entries) {
+      if (names.has(entry.workflowName)) all.push(entry);
+    }
+  }
+  return all.sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime());
+}
+
 export async function checkN8n(): Promise<HealthCheckResult> {
   const name = 'n8n';
   const label = 'Automations';
@@ -68,6 +95,11 @@ export async function checkN8n(): Promise<HealthCheckResult> {
     clear();
     if (!res.ok) return downResult(name, label, 'Automation health proxy returned an error');
     const json = await res.json();
+
+    // Store execution data if present
+    const executions: Record<string, ExecutionEntry[]> = json?.executions ?? {};
+    lastExecutionData = executions;
+
     const allWorkflows: { name: string; active: boolean }[] = json?.workflows ?? [];
     const prodWorkflows = allWorkflows.filter((w) =>
       /^(NFsTay|marketplace10|nfs-)/i.test(w.name)
@@ -135,9 +167,18 @@ export const BOOKING_SERVICES: ServiceDef[] = [
 
 /* ── flow definitions ────────────────────────────────── */
 
+export interface ExecutionEntry {
+  startedAt: string;
+  finishedAt: string | null;
+  status: 'success' | 'error' | 'running' | 'waiting' | 'crashed';
+  workflowName: string;
+  duration: number | null;
+}
+
 export interface FlowStep {
   label: string;
   dependsOn: string;
+  workflowName?: string; // n8n workflow name for execution data
 }
 
 export interface FlowDef {
@@ -152,7 +193,7 @@ export const BOOKING_FLOWS: FlowDef[] = [
       { label: 'Property Selected', dependsOn: 'supabase' },
       { label: 'Stripe Checkout', dependsOn: 'stripe' },
       { label: 'Booking Confirmed', dependsOn: 'supabase' },
-      { label: 'Host Notified', dependsOn: 'n8n' },
+      { label: 'Host Notified', dependsOn: 'n8n', workflowName: 'nfs-hospitable-listing-sync' },
     ],
   },
 ];
