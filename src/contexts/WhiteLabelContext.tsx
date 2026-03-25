@@ -84,20 +84,39 @@ export function WhiteLabelProvider({ children }: { children: ReactNode }) {
   });
   const originalPrimaryRef = useRef<string | null>(null);
 
-  // Apply operator accent color as CSS --primary variable
+  // Apply operator accent color to ALL theme CSS variables
   useEffect(() => {
+    const root = document.documentElement;
     if (state.isWhiteLabel && state.operator) {
-      // Save original primary color on first white-label load
+      // Save originals on first white-label load
       if (!originalPrimaryRef.current) {
-        originalPrimaryRef.current = getComputedStyle(document.documentElement)
+        originalPrimaryRef.current = getComputedStyle(root)
           .getPropertyValue('--primary').trim();
       }
       // Default to black (#000000) if operator has no accent color
       const color = state.operator.accent_color || '#000000';
-      document.documentElement.style.setProperty('--primary', hexToHsl(color));
+      const hsl = hexToHsl(color);
+      // Parse hue and saturation for lighter/darker variants
+      const parts = hsl.split(' ');
+      const hue = parts[0];
+      const sat = parts[1];
+      const lightAccentLight = `${hue} ${sat.replace('%', '') ? sat : '50%'} 96%`;
+      const darkAccentForeground = `${hue} ${sat} 20%`;
+
+      root.style.setProperty('--primary', hsl);
+      root.style.setProperty('--accent', hsl);
+      root.style.setProperty('--ring', hsl);
+      root.style.setProperty('--accent-light', lightAccentLight);
+      root.style.setProperty('--accent-foreground', darkAccentForeground);
+      root.style.setProperty('--sidebar-ring', hsl);
     } else if (originalPrimaryRef.current) {
-      // Reset to original teal when leaving white-label
-      document.documentElement.style.setProperty('--primary', originalPrimaryRef.current);
+      // Reset all to original values when leaving white-label
+      root.style.removeProperty('--primary');
+      root.style.removeProperty('--accent');
+      root.style.removeProperty('--ring');
+      root.style.removeProperty('--accent-light');
+      root.style.removeProperty('--accent-foreground');
+      root.style.removeProperty('--sidebar-ring');
     }
   }, [state.isWhiteLabel, state.operator]);
 
