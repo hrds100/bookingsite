@@ -7,6 +7,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/lib/supabase";
 
+interface BookingAddon {
+  id: string;
+  label: string;
+  description: string;
+  price: number;
+}
+
 interface BookingIntent {
   propertyId: string;
   propertyTitle: string;
@@ -18,11 +25,17 @@ interface BookingIntent {
   nights: number;
   adults: number;
   children: number;
+  baseRate?: number;
   subtotal: number;
   cleaningFee: number;
   discount: number;
   promoDiscount: number;
   promoCode: string;
+  promoLabel?: string;
+  serviceFee?: number;
+  taxes?: number;
+  addons?: BookingAddon[];
+  addonsTotal?: number;
   total: number;
   currency: string;
   currencySymbol: string;
@@ -80,6 +93,12 @@ export default function NfsCheckoutPage() {
   const minutes = Math.floor(timeLeft / 60000);
   const seconds = Math.floor((timeLeft % 60000) / 1000);
   const isValid = firstName && lastName && email && phone && agreed;
+  const sym = intent.currencySymbol;
+  const perNight = intent.baseRate ?? (intent.nights > 0 ? Math.round(intent.subtotal / intent.nights) : 0);
+  const serviceFee = intent.serviceFee ?? 0;
+  const taxes = intent.taxes ?? 0;
+  const addons = intent.addons ?? [];
+  const addonsTotal = intent.addonsTotal ?? 0;
 
   const handleComplete = async () => {
     setLoading(true);
@@ -223,7 +242,7 @@ export default function NfsCheckoutPage() {
               <div className="flex items-center gap-2 text-muted-foreground">
                 <Calendar className="w-4 h-4" />
                 <span>{intent.checkIn} → {intent.checkOut}</span>
-                <span className="text-xs">({intent.nights} nights)</span>
+                <span className="text-xs">({intent.nights} night{intent.nights !== 1 ? 's' : ''})</span>
               </div>
               <div className="flex items-center gap-2 text-muted-foreground">
                 <Users className="w-4 h-4" />
@@ -234,32 +253,55 @@ export default function NfsCheckoutPage() {
             <hr className="border-border" />
 
             <div className="space-y-2 text-sm">
+              {/* Per-night breakdown */}
               <div className="flex justify-between">
-                <span className="text-muted-foreground">{intent.currencySymbol}{Math.round(intent.subtotal / intent.nights)} × {intent.nights} nights</span>
-                <span>{intent.currencySymbol}{intent.subtotal}</span>
+                <span className="text-muted-foreground">{sym}{perNight} × {intent.nights} night{intent.nights !== 1 ? 's' : ''}</span>
+                <span>{sym}{intent.subtotal}</span>
               </div>
               {intent.cleaningFee > 0 && (
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Cleaning fee</span>
-                  <span>{intent.currencySymbol}{intent.cleaningFee}</span>
+                  <span>{sym}{intent.cleaningFee}</span>
                 </div>
+              )}
+              {serviceFee > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Service fee</span>
+                  <span>{sym}{serviceFee}</span>
+                </div>
+              )}
+              {taxes > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Taxes</span>
+                  <span>{sym}{taxes}</span>
+                </div>
+              )}
+              {addons.length > 0 && (
+                <>
+                  {addons.map(addon => (
+                    <div key={addon.id} className="flex justify-between">
+                      <span className="text-muted-foreground">{addon.label}</span>
+                      <span>{sym}{addon.price}</span>
+                    </div>
+                  ))}
+                </>
               )}
               {intent.discount > 0 && (
                 <div className="flex justify-between text-primary">
                   <span>Discount</span>
-                  <span>-{intent.currencySymbol}{intent.discount}</span>
+                  <span>-{sym}{intent.discount}</span>
                 </div>
               )}
               {intent.promoDiscount > 0 && (
                 <div className="flex justify-between text-primary">
-                  <span>{intent.promoCode}</span>
-                  <span>-{intent.currencySymbol}{intent.promoDiscount}</span>
+                  <span>{intent.promoCode}{intent.promoLabel ? ` (${intent.promoLabel})` : ''}</span>
+                  <span>-{sym}{intent.promoDiscount}</span>
                 </div>
               )}
               <hr className="border-border" />
               <div className="flex justify-between font-bold text-lg">
                 <span>Total</span>
-                <span>{intent.currencySymbol}{intent.total}</span>
+                <span>{sym}{intent.total}</span>
               </div>
             </div>
 

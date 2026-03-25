@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Heart, ChevronLeft, ChevronRight, MapPin, Users, BedDouble, Bath, Star } from "lucide-react";
 import type { MockProperty } from "@/data/mock-properties";
 import { CURRENCIES } from "@/lib/constants";
+import { getPropertyRating } from "@/data/mock-reviews";
 
 interface NfsPropertyCardProps {
   property: MockProperty;

@@ -44,14 +44,16 @@ export function useNfsProperty(idOrSlug: string | undefined) {
         return mockProperties.find(p => p.id === idOrSlug || p.slug === idOrSlug) ?? null;
       }
 
-      // Try matching by slug first, then by id (UUIDs contain hyphens too, but slugs are lowercase words)
+      // UUID → match by id or slug; non-UUID → match by slug only (avoids Postgres uuid cast error)
       const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(idOrSlug);
 
-      const { data, error } = await supabase
-        .from("nfs_properties")
-        .select("*")
-        .or(isUuid ? `id.eq.${idOrSlug},slug.eq.${idOrSlug}` : `slug.eq.${idOrSlug},id.eq.${idOrSlug}`)
-        .maybeSingle();
+      let query = supabase.from("nfs_properties").select("*");
+      if (isUuid) {
+        query = query.or(`id.eq.${idOrSlug},slug.eq.${idOrSlug}`);
+      } else {
+        query = query.eq("slug", idOrSlug);
+      }
+      const { data, error } = await query.maybeSingle();
 
       if (error || !data) {
         // Fall back to mock

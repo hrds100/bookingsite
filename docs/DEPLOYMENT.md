@@ -51,12 +51,16 @@ Set via Supabase Management API.
 | `STRIPE_SECRET_KEY` | Stripe secret key (sk_live_...) | Set |
 | `STRIPE_WEBHOOK_SECRET` | Stripe webhook signature secret | Set |
 | `STRIPE_CONNECT_CLIENT_ID` | Stripe Connect OAuth client ID | Set |
+| `VERCEL_TOKEN` | Vercel API token (operator subdomain auto-provision) | Set in Supabase for `nfs-provision-nfstay-subdomain` |
+| `VERCEL_TEAM_ID` | Team id, e.g. `team_...` | Set |
+| `VERCEL_BOOKINGSITE_PROJECT_ID` | bookingsite project id, e.g. `prj_...` | Set |
 
 ## Edge Functions
 
 | Function | Endpoint | Status |
 |----------|----------|--------|
 | `nfs-create-checkout` | `POST /functions/v1/nfs-create-checkout` | Deployed + active |
+| `nfs-provision-nfstay-subdomain` | `POST /functions/v1/nfs-provision-nfstay-subdomain` | Deploy from `marketplace10/supabase/functions`; registers `{subdomain}.nfstay.app` on Vercel when an operator saves their slug |
 
 Deploy edge functions:
 ```bash

@@ -30,6 +30,17 @@ export function getReservationProperty(r: MockReservation) {
   };
 }
 
+/** Update a mock reservation's status in-memory (for demo / mock mode) */
+export function updateMockReservationStatus(id: string, status: string) {
+  const idx = mockReservations.findIndex(r => r.id === id);
+  if (idx !== -1) {
+    mockReservations[idx] = { ...mockReservations[idx], status };
+    if (status === "cancelled") {
+      mockReservations[idx].payment_status = "refunded";
+    }
+  }
+}
+
 export const mockReservations: MockReservation[] = [
   {
     id: 'res-001',

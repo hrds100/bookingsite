@@ -1,6 +1,6 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import { mockReservations, type MockReservation } from "@/data/mock-reservations";
+import { mockReservations, type MockReservation, updateMockReservationStatus } from "@/data/mock-reservations";
 
 const SUPABASE_CONFIGURED = !!import.meta.env.VITE_SUPABASE_URL && !!import.meta.env.VITE_SUPABASE_ANON_KEY;
 
@@ -86,5 +86,38 @@ export function useNfsReservation(id: string | undefined) {
       return data as unknown as MockReservation;
     },
     enabled: !!id,
+  });
+}
+
+/** Update reservation status (confirm / cancel) */
+export function useNfsUpdateReservation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      // Mock reservation — update in-memory
+      if (id.startsWith("res-")) {
+        updateMockReservationStatus(id, status);
+        return { id, status };
+      }
+
+      if (!SUPABASE_CONFIGURED) {
+        updateMockReservationStatus(id, status);
+        return { id, status };
+      }
+
+      const { error } = await supabase
+        .from("nfs_reservations")
+        .update({ status })
+        .eq("id", id);
+
+      if (error) throw new Error(error.message);
+      return { id, status };
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["nfs-reservation", variables.id] });
+      queryClient.invalidateQueries({ queryKey: ["nfs-operator-reservations"] });
+      queryClient.invalidateQueries({ queryKey: ["nfs-reservations"] });
+    },
   });
 }

@@ -1,12 +1,15 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { format, differenceInDays } from "date-fns";
-import { CalendarDays, Users, Minus, Plus, Lock } from "lucide-react";
+import { CalendarDays, Users, Minus, Plus, Lock, Clock, Car, Gift } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { CURRENCIES } from "@/lib/constants";
+import { validatePromoCode, calculatePromoDiscount } from "@/data/mock-promo-codes";
+import { mockAddons } from "@/data/mock-addons";
+import type { MockPromoCode } from "@/data/mock-promo-codes";
 import type { MockProperty } from "@/data/mock-properties";
 import type { DateRange } from "react-day-picker";
 
@@ -20,10 +23,13 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
   const [adults, setAdults] = useState(1);
   const [children, setChildren] = useState(0);
   const [promoCode, setPromoCode] = useState('');
-  const [promoApplied, setPromoApplied] = useState(false);
+  const [promoApplied, setPromoApplied] = useState<MockPromoCode | null>(null);
+  const [promoError, setPromoError] = useState('');
   const [guestsOpen, setGuestsOpen] = useState(false);
+  const [selectedAddons, setSelectedAddons] = useState<string[]>([]);
 
   const currency = CURRENCIES.find(c => c.code === property.base_rate_currency);
+  const sym = currency?.symbol || '£';
   const nights = dateRange?.from && dateRange?.to ? differenceInDays(dateRange.to, dateRange.from) : 0;
   const subtotal = property.base_rate_amount * nights;
   const cleaningFee = property.cleaning_fee.enabled ? property.cleaning_fee.amount : 0;
@@ -34,8 +40,38 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
     ? Math.round(subtotal * property.monthly_discount.percentage / 100)
     : 0;
   const discount = monthlyDiscount || weeklyDiscount;
-  const promoDiscount = promoApplied ? 25 : 0;
-  const total = subtotal + cleaningFee - discount - promoDiscount;
+  const promoDiscount = promoApplied ? calculatePromoDiscount(promoApplied, subtotal) : 0;
+  const serviceFee = Math.round((subtotal - discount) * 0.05);
+  const taxes = 0; // placeholder
+  const addonsTotal = mockAddons
+    .filter(a => selectedAddons.includes(a.id))
+    .reduce((sum, a) => sum + a.price, 0);
+  const total = subtotal + cleaningFee + serviceFee + taxes + addonsTotal - discount - promoDiscount;
+
+  const handleApplyPromo = () => {
+    setPromoError('');
+    if (!promoCode.trim()) return;
+    const found = validatePromoCode(promoCode);
+    if (found) {
+      setPromoApplied(found);
+      setPromoError('');
+    } else {
+      setPromoApplied(null);
+      setPromoError('Invalid promo code');
+    }
+  };
+
+  const handleClearPromo = () => {
+    setPromoApplied(null);
+    setPromoCode('');
+    setPromoError('');
+  };
+
+  const toggleAddon = (id: string) => {
+    setSelectedAddons(prev =>
+      prev.includes(id) ? prev.filter(a => a !== id) : [...prev, id]
+    );
+  };
 
   const handleReserve = () => {
     const intent = {
@@ -49,14 +85,20 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
       nights,
       adults,
       children,
+      baseRate: property.base_rate_amount,
       subtotal,
       cleaningFee,
       discount,
       promoDiscount,
-      promoCode: promoApplied ? promoCode : '',
+      promoCode: promoApplied ? promoApplied.code : '',
+      promoLabel: promoApplied ? promoApplied.label : '',
+      serviceFee,
+      taxes,
+      addons: mockAddons.filter(a => selectedAddons.includes(a.id)),
+      addonsTotal,
       total,
       currency: property.base_rate_currency,
-      currencySymbol: currency?.symbol || '£',
+      currencySymbol: sym,
       expiresAt: Date.now() + 30 * 60 * 1000,
     };
     sessionStorage.setItem('nfs_booking_intent', JSON.stringify(intent));
@@ -82,10 +124,18 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
     </div>
   );
 
+  const addonIcon = (iconName: string) => {
+    switch (iconName) {
+      case 'car': return <Car className="w-4 h-4" />;
+      case 'gift': return <Gift className="w-4 h-4" />;
+      default: return <Clock className="w-4 h-4" />;
+    }
+  };
+
   return (
     <div data-feature="NFSTAY__BOOKING_WIDGET" className="bg-white border border-gray-200 rounded-2xl p-4 sm:p-6 shadow-card">
       <div data-feature="NFSTAY__WIDGET_PRICE" className="mb-4">
-        <span className="text-xl sm:text-2xl font-bold text-[#1E9A80]">{currency?.symbol}{property.base_rate_amount}</span>
+        <span className="text-xl sm:text-2xl font-bold text-[#1E9A80]">{sym}{property.base_rate_amount}</span>
         <span className="text-base font-normal text-gray-900 ml-1">/ night</span>
       </div>
 
@@ -138,52 +188,107 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
         </PopoverContent>
       </Popover>
 
+      {/* Add-ons */}
+      {nights > 0 && (
+        <div data-feature="NFSTAY__WIDGET_ADDONS" className="mb-4 space-y-2">
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Enhance your stay</p>
+          <div className="grid grid-cols-2 gap-2">
+            {mockAddons.map(addon => {
+              const selected = selectedAddons.includes(addon.id);
+              return (
+                <button
+                  key={addon.id}
+                  onClick={() => toggleAddon(addon.id)}
+                  className={cn(
+                    "flex flex-col items-start gap-1 p-3 rounded-xl border text-left transition-all text-sm",
+                    selected
+                      ? "border-primary bg-[hsl(164_73%_34%/0.06)]"
+                      : "border-border hover:border-muted-foreground/40"
+                  )}
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span className={cn("text-muted-foreground", selected && "text-primary")}>
+                      {addonIcon(addon.id === 'airport-transfer' ? 'car' : addon.id === 'welcome-basket' ? 'gift' : 'clock')}
+                    </span>
+                    <span className={cn("font-medium text-xs", selected && "text-primary")}>{addon.label}</span>
+                  </div>
+                  <span className="text-[11px] text-muted-foreground">{addon.description}</span>
+                  <span className={cn("text-xs font-semibold", selected ? "text-primary" : "text-foreground")}>{sym}{addon.price}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Pricing breakdown */}
       {nights > 0 && (
-        <div className="space-y-2 mb-4 text-sm">
+        <div data-feature="NFSTAY__WIDGET_BREAKDOWN" className="space-y-2 mb-4 text-sm">
           <div className="flex justify-between">
-            <span className="text-muted-foreground">{currency?.symbol}{property.base_rate_amount} × {nights} nights</span>
-            <span>{currency?.symbol}{subtotal}</span>
+            <span className="text-muted-foreground">{sym}{property.base_rate_amount} × {nights} night{nights !== 1 ? 's' : ''}</span>
+            <span>{sym}{subtotal}</span>
           </div>
           {cleaningFee > 0 && (
             <div className="flex justify-between">
               <span className="text-muted-foreground">Cleaning fee</span>
-              <span>{currency?.symbol}{cleaningFee}</span>
+              <span>{sym}{cleaningFee}</span>
+            </div>
+          )}
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Service fee</span>
+            <span>{sym}{serviceFee}</span>
+          </div>
+          {taxes > 0 && (
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Taxes</span>
+              <span>{sym}{taxes}</span>
+            </div>
+          )}
+          {addonsTotal > 0 && (
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Add-ons</span>
+              <span>{sym}{addonsTotal}</span>
             </div>
           )}
           {discount > 0 && (
             <div className="flex justify-between text-primary">
               <span>{nights >= 28 ? 'Monthly' : 'Weekly'} discount</span>
-              <span>-{currency?.symbol}{discount}</span>
+              <span>-{sym}{discount}</span>
             </div>
           )}
 
           {/* Promo */}
           {!promoApplied ? (
-            <div className="flex gap-2 pt-1">
-              <input
-                type="text"
-                value={promoCode}
-                onChange={(e) => setPromoCode(e.target.value)}
-                placeholder="Promo code"
-                className="flex-1 h-8 px-3 text-xs border border-input rounded-md bg-card outline-none focus:border-primary"
-              />
-              <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => promoCode && setPromoApplied(true)}>Apply</Button>
+            <div className="pt-1">
+              <div className="flex gap-2">
+                <input
+                  data-testid="promo-input"
+                  type="text"
+                  value={promoCode}
+                  onChange={(e) => { setPromoCode(e.target.value); setPromoError(''); }}
+                  placeholder="Promo code"
+                  className="flex-1 h-8 px-3 text-xs border border-input rounded-md bg-card outline-none focus:border-primary"
+                />
+                <Button data-testid="promo-apply" size="sm" variant="outline" className="h-8 text-xs" onClick={handleApplyPromo}>Apply</Button>
+              </div>
+              {promoError && (
+                <p data-testid="promo-error" className="text-xs text-destructive mt-1">{promoError}</p>
+              )}
             </div>
           ) : (
             <div className="flex justify-between text-primary">
               <span className="flex items-center gap-1">
-                {promoCode}
-                <button onClick={() => { setPromoApplied(false); setPromoCode(''); }} className="text-destructive ml-1">×</button>
+                {promoApplied.code} ({promoApplied.label})
+                <button onClick={handleClearPromo} className="text-destructive ml-1">×</button>
               </span>
-              <span>-{currency?.symbol}{promoDiscount}</span>
+              <span>-{sym}{promoDiscount}</span>
             </div>
           )}
 
           <hr className="border-border" />
           <div className="flex justify-between font-bold text-lg">
             <span>Total</span>
-            <span>{currency?.symbol}{total}</span>
+            <span>{sym}{total}</span>
           </div>
         </div>
       )}

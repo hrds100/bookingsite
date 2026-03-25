@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
+import { provisionOperatorNfstaySubdomain } from "@/lib/provision-nfstay-subdomain";
 import { useAuth } from "./useAuth";
 
 const SUPABASE_CONFIGURED = !!import.meta.env.VITE_SUPABASE_URL && !!import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -100,6 +101,7 @@ export function useNfsOperatorCreate() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["nfs-operator"] });
+      void provisionOperatorNfstaySubdomain();
     },
   });
 }
@@ -123,8 +125,12 @@ export function useNfsOperatorUpdate() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["nfs-operator"] });
+      const sub = variables.subdomain;
+      if (typeof sub === "string" && sub.length >= 3) {
+        void provisionOperatorNfstaySubdomain();
+      }
     },
   });
 }
