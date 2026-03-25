@@ -7,7 +7,7 @@ export default defineConfig({
   fullyParallel: false,
   retries: 1,
   workers: 1,
-  reporter: [['list']],
+  reporter: [['list'], ['./helpers/reporter.ts']],
   use: {
     baseURL: process.env.TEST_BASE_URL || 'https://nfstay.app',
     trace: 'on-first-retry',
