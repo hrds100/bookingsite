@@ -120,6 +120,26 @@ export function WhiteLabelProvider({ children }: { children: ReactNode }) {
     }
   }, [state.isWhiteLabel, state.operator]);
 
+  // Update page title and OG tags for white-label operators
+  useEffect(() => {
+    if (state.isWhiteLabel && state.operator) {
+      const brand = state.operator.brand_name || '';
+      const title = brand ? `${brand} - Find Stays, Book Directly` : 'Find Stays, Book Directly';
+      document.title = title;
+      const ogTitle = document.querySelector('meta[property="og:title"]');
+      if (ogTitle) ogTitle.setAttribute('content', title);
+      const twTitle = document.querySelector('meta[name="twitter:title"]');
+      if (twTitle) twTitle.setAttribute('content', title);
+      const ogDesc = document.querySelector('meta[property="og:description"]');
+      const desc = `Book unique stays directly with ${brand || 'us'}. No middleman fees.`;
+      if (ogDesc) ogDesc.setAttribute('content', desc);
+      const twDesc = document.querySelector('meta[name="twitter:description"]');
+      if (twDesc) twDesc.setAttribute('content', desc);
+    } else {
+      document.title = 'Find Stays, Book Directly';
+    }
+  }, [state.isWhiteLabel, state.operator]);
+
   useEffect(() => {
     const hostname = window.location.hostname;
 
