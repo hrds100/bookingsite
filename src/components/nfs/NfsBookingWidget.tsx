@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { CURRENCIES } from "@/lib/constants";
+import { useCurrency } from "@/contexts/CurrencyContext";
 import { validatePromoCode, calculatePromoDiscount } from "@/data/mock-promo-codes";
 import { mockAddons } from "@/data/mock-addons";
 import type { MockPromoCode } from "@/data/mock-promo-codes";
@@ -28,11 +28,14 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
   const [guestsOpen, setGuestsOpen] = useState(false);
   const [selectedAddons, setSelectedAddons] = useState<string[]>([]);
 
-  const currency = CURRENCIES.find(c => c.code === property.base_rate_currency);
-  const sym = currency?.symbol || '£';
+  const { currency, convert, formatPrice } = useCurrency();
+  const fromCur = property.base_rate_currency;
+  const sym = currency.symbol;
+  // Convert all prices from property's native currency to user's selected currency
+  const rate = convert(property.base_rate_amount, fromCur);
   const nights = dateRange?.from && dateRange?.to ? differenceInDays(dateRange.to, dateRange.from) : 0;
-  const subtotal = property.base_rate_amount * nights;
-  const cleaningFee = property.cleaning_fee.enabled ? property.cleaning_fee.amount : 0;
+  const subtotal = rate * nights;
+  const cleaningFee = property.cleaning_fee.enabled ? convert(property.cleaning_fee.amount, fromCur) : 0;
   const weeklyDiscount = property.weekly_discount.enabled && nights >= 7
     ? Math.round(subtotal * property.weekly_discount.percentage / 100)
     : 0;
@@ -45,7 +48,7 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
   const taxes = 0; // placeholder
   const addonsTotal = mockAddons
     .filter(a => selectedAddons.includes(a.id))
-    .reduce((sum, a) => sum + a.price, 0);
+    .reduce((sum, a) => sum + convert(a.price), 0);
   const total = subtotal + cleaningFee + serviceFee + taxes + addonsTotal - discount - promoDiscount;
 
   const handleApplyPromo = () => {
@@ -135,7 +138,7 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
   return (
     <div data-feature="NFSTAY__BOOKING_WIDGET" className="bg-white border border-gray-200 rounded-2xl p-4 sm:p-6 shadow-card">
       <div data-feature="NFSTAY__WIDGET_PRICE" className="mb-4">
-        <span className="text-xl sm:text-2xl font-bold text-primary">{sym}{property.base_rate_amount}</span>
+        <span className="text-xl sm:text-2xl font-bold text-primary">{sym}{rate}</span>
         <span className="text-base font-normal text-gray-900 ml-1">/ night</span>
       </div>
 
@@ -213,7 +216,7 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
                     <span className={cn("font-medium text-xs", selected && "text-primary")}>{addon.label}</span>
                   </div>
                   <span className="text-[11px] text-muted-foreground">{addon.description}</span>
-                  <span className={cn("text-xs font-semibold", selected ? "text-primary" : "text-foreground")}>{sym}{addon.price}</span>
+                  <span className={cn("text-xs font-semibold", selected ? "text-primary" : "text-foreground")}>{sym}{convert(addon.price)}</span>
                 </button>
               );
             })}
@@ -225,7 +228,7 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
       {nights > 0 && (
         <div data-feature="NFSTAY__WIDGET_BREAKDOWN" className="space-y-2 mb-4 text-sm">
           <div className="flex justify-between">
-            <span className="text-muted-foreground">{sym}{property.base_rate_amount} × {nights} night{nights !== 1 ? 's' : ''}</span>
+            <span className="text-muted-foreground">{sym}{rate} × {nights} night{nights !== 1 ? 's' : ''}</span>
             <span>{sym}{subtotal}</span>
           </div>
           {cleaningFee > 0 && (

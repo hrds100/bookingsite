@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Heart, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
-import { CURRENCIES } from "@/lib/constants";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 const STORAGE_KEY = "nfs_favourites";
 const SUPABASE_CONFIGURED =
@@ -35,6 +35,7 @@ export function NfsFavouritesDropdown() {
   const [loading, setLoading] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+  const { formatPrice } = useCurrency();
 
   // Sync with localStorage changes (from other components toggling favourites)
   useEffect(() => {
@@ -180,9 +181,7 @@ export function NfsFavouritesDropdown() {
                   p.images?.find((img) => img.is_cover)?.url ??
                   p.images?.[0]?.url ??
                   "";
-                const currency = CURRENCIES.find(
-                  (c) => c.code === p.base_rate_currency
-                );
+                const priceStr = formatPrice(p.base_rate_amount, p.base_rate_currency);
                 return (
                   <div
                     key={p.id}
@@ -212,8 +211,7 @@ export function NfsFavouritesDropdown() {
                     </div>
                     <div className="text-right flex-shrink-0 mr-1">
                       <p className="text-[12px] font-medium text-foreground">
-                        {currency?.symbol}
-                        {p.base_rate_amount}
+                        {priceStr}
                         <span className="text-muted-foreground font-normal">
                           /night
                         </span>

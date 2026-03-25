@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Heart, ChevronLeft, ChevronRight, MapPin, Users, BedDouble, Bath, Star } from "lucide-react";
 import type { MockProperty } from "@/data/mock-properties";
-import { CURRENCIES } from "@/lib/constants";
+import { useCurrency } from "@/contexts/CurrencyContext";
 import { getPropertyRating } from "@/data/mock-reviews";
 
 interface NfsPropertyCardProps {
@@ -23,7 +23,7 @@ export function NfsPropertyCard({ property, onHover }: NfsPropertyCardProps) {
   });
 
   const isNew = Date.now() - new Date(property.created_at).getTime() < 7 * 24 * 60 * 60 * 1000;
-  const currency = CURRENCIES.find(c => c.code === property.base_rate_currency);
+  const { formatPrice } = useCurrency();
 
   useEffect(() => {
     const favs: string[] = JSON.parse(localStorage.getItem('nfs_favourites') || '[]');
@@ -139,7 +139,7 @@ export function NfsPropertyCard({ property, onHover }: NfsPropertyCardProps) {
             </span>
           </div>
           <div className="text-right">
-            <span className="text-sm font-bold text-foreground">{currency?.symbol}{property.base_rate_amount}</span>
+            <span className="text-sm font-bold text-foreground">{formatPrice(property.base_rate_amount, property.base_rate_currency)}</span>
             <span className="text-[11px] text-muted-foreground block leading-tight">avg per night</span>
           </div>
         </div>

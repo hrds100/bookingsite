@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { MapPin } from "lucide-react";
 import type { MockProperty } from "@/data/mock-properties";
-import { CURRENCIES } from "@/lib/constants";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 interface NfsSearchMapProps {
   properties: MockProperty[];
@@ -39,19 +39,18 @@ function loadGoogleMaps(): Promise<void> {
 }
 
 // ── Placeholder fallback (shown when API key is missing) ───────────
-function MapPlaceholder({ properties }: { properties: MockProperty[] }) {
+function MapPlaceholder({ properties, formatPrice }: { properties: MockProperty[]; formatPrice: (amount: number, from?: string) => string }) {
   return (
     <div className="relative w-full h-full bg-muted overflow-hidden" style={{ borderRadius: 16 }}>
       <div className="absolute inset-0 bg-gradient-to-br from-muted to-secondary opacity-60" />
       <div className="absolute inset-0">
         {properties.slice(0, 12).map((p, i) => {
-          const currency = CURRENCIES.find(c => c.code === p.base_rate_currency);
           const top = 12 + ((i * 37 + 13) % 72);
           const left = 8 + ((i * 53 + 7) % 78);
           return (
             <div key={p.id} className="absolute group cursor-pointer" style={{ top: `${top}%`, left: `${left}%` }}>
               <div className="bg-card text-foreground text-xs font-semibold px-2.5 py-1.5 rounded-full border border-border shadow-sm hover:bg-foreground hover:text-background transition whitespace-nowrap">
-                {currency?.symbol}{p.base_rate_amount}
+                {formatPrice(p.base_rate_amount, p.base_rate_currency)}
               </div>
             </div>
           );
@@ -68,6 +67,7 @@ function MapPlaceholder({ properties }: { properties: MockProperty[] }) {
 // ── Real Google Map (marketplace10 DealsMap style) ──────────────────
 export function NfsSearchMap({ properties, hoveredId }: NfsSearchMapProps) {
   const navigate = useNavigate();
+  const { formatPrice } = useCurrency();
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
   const markersRef = useRef<Map<string, google.maps.Marker>>(new Map());
@@ -123,7 +123,6 @@ export function NfsSearchMap({ properties, hoveredId }: NfsSearchMapProps) {
 
     if (existing.has(p.id)) return; // already created
 
-    const currency = CURRENCIES.find(c => c.code === p.base_rate_currency);
     const icon: google.maps.Symbol = {
       path: g.SymbolPath.CIRCLE,
       scale: 7,
@@ -142,7 +141,7 @@ export function NfsSearchMap({ properties, hoveredId }: NfsSearchMapProps) {
         (coverImg ? `<img src="${coverImg}" style="width:100%;height:120px;object-fit:cover;border-radius:8px;margin-bottom:8px" />` : "") +
         `<p style="font-weight:600;font-size:13px;margin:0 0 2px">${p.public_title}</p>` +
         `<p style="color:#737373;font-size:11px;margin:0 0 6px">${p.city}, ${p.country}</p>` +
-        `<p style="font-weight:700;font-size:14px;margin:0">${currency?.symbol ?? "£"}${p.base_rate_amount}<span style="font-weight:400;font-size:11px;color:#737373"> / night</span></p>` +
+        `<p style="font-weight:700;font-size:14px;margin:0">${formatPrice(p.base_rate_amount, p.base_rate_currency)}<span style="font-weight:400;font-size:11px;color:#737373"> / night</span></p>` +
         `</div>`
       );
       infoRef.current.open(map, marker);
@@ -150,7 +149,7 @@ export function NfsSearchMap({ properties, hoveredId }: NfsSearchMapProps) {
 
     marker.addListener("dblclick", () => onNav((p as any).slug || p.id));
     existing.set(p.id, marker);
-  }, [onNav]);
+  }, [onNav, formatPrice]);
 
   // Helper: fit map bounds to all current markers
   const fitBoundsToMarkers = useCallback(() => {
@@ -316,7 +315,7 @@ export function NfsSearchMap({ properties, hoveredId }: NfsSearchMapProps) {
 
   // Fallback
   if (failed || !import.meta.env.VITE_GOOGLE_MAPS_API_KEY) {
-    return <MapPlaceholder properties={properties} />;
+    return <MapPlaceholder properties={properties} formatPrice={formatPrice} />;
   }
 
   return (
