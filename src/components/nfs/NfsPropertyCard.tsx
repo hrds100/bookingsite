@@ -56,6 +56,7 @@ export function NfsPropertyCard({ property, onHover }: NfsPropertyCardProps) {
 
         {/* Favourite */}
         <button
+          data-feature="NFSTAY__CARD_FAVOURITE"
           onClick={toggleFavourite}
           className="absolute top-3 right-3 z-10 p-1.5 rounded-full bg-card/80 backdrop-blur-sm hover:bg-card transition"
         >

@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate, useSearchParams } from "react-router-do
 import { Menu, X, Search, Clock, Users, User, ChevronDown, LogOut, MessageCircle, Mail, Phone } from "lucide-react";
 import { NfsLogo } from "./NfsLogo";
 import { NfsCurrencySelector } from "./NfsCurrencySelector";
+import { NfsFavouritesDropdown } from "./NfsFavouritesDropdown";
 import { useAuth } from "@/hooks/useAuth";
 import { useWhiteLabel } from "@/contexts/WhiteLabelContext";
 
@@ -157,9 +158,10 @@ export function NfsMainNavbar() {
 
             {/* RIGHT: Actions */}
             <div className={`items-center gap-1 sm:gap-2 md:gap-3 lg:gap-4 ${isSearchPage ? "hidden lg:flex" : "flex ml-auto"}`}>
-              {/* Currency + Contact (lg+) */}
+              {/* Currency + Favourites + Contact (lg+) */}
               <div className="hidden lg:flex items-center gap-2 lg:gap-3">
                 <NfsCurrencySelector />
+                <NfsFavouritesDropdown />
                 <div className="relative">
                   <button
                     onClick={() => setContactOpen(!contactOpen)}
