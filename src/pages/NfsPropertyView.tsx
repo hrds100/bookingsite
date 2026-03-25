@@ -22,6 +22,7 @@ export default function NfsPropertyView() {
   const [showAllReviews, setShowAllReviews] = useState(false);
 
   const { addViewed } = useRecentlyViewed();
+  const { reviews, averageRating, totalCount } = useNfsReviews(property?.id);
 
   useEffect(() => {
     const favs: string[] = JSON.parse(localStorage.getItem('nfs_favourites') || '[]');
@@ -44,8 +45,6 @@ export default function NfsPropertyView() {
       </div>
     );
   }
-
-  const { reviews, averageRating, totalCount } = useNfsReviews(property?.id);
 
   const rawImages = Array.isArray(property.images) ? property.images : [];
   const sortedImages = [...rawImages].sort((a: any, b: any) => {
