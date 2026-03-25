@@ -78,15 +78,22 @@ export function NfsSearchMap({ properties, hoveredId }: NfsSearchMapProps) {
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
 
-  // Load script + init map
+  // Load script + init map — center on first property with coords if available
   useEffect(() => {
     let cancelled = false;
     loadGoogleMaps()
       .then(() => {
         if (cancelled || !containerRef.current || !window.google?.maps) return;
+        // Find the first property with coordinates for initial center
+        const firstWithCoords = properties.find(
+          (p) => typeof p.lat === "number" && typeof p.lng === "number" && !isNaN(p.lat) && !isNaN(p.lng)
+        );
+        const initialCenter = firstWithCoords
+          ? { lat: firstWithCoords.lat, lng: firstWithCoords.lng }
+          : { lat: 40, lng: -40 }; // Atlantic fallback, not Mediterranean
         const map = new window.google.maps.Map(containerRef.current, {
-          center: { lat: 40, lng: 10 },
-          zoom: 3,
+          center: initialCenter,
+          zoom: firstWithCoords ? 10 : 3,
           disableDefaultUI: true,
           zoomControl: true,
           gestureHandling: "greedy",
@@ -101,6 +108,7 @@ export function NfsSearchMap({ properties, hoveredId }: NfsSearchMapProps) {
       })
       .catch(() => { if (!cancelled) setFailed(true); });
     return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Navigation callback
@@ -144,12 +152,40 @@ export function NfsSearchMap({ properties, hoveredId }: NfsSearchMapProps) {
     existing.set(p.id, marker);
   }, [onNav]);
 
+  // Helper: fit map bounds to all current markers
+  const fitBoundsToMarkers = useCallback(() => {
+    if (!mapRef.current || !window.google?.maps) return;
+    const map = mapRef.current;
+    const g = window.google.maps;
+    const existing = markersRef.current;
+
+    if (existing.size === 0) return;
+
+    if (existing.size === 1) {
+      const marker = existing.values().next().value;
+      const pos = marker?.getPosition();
+      if (pos) {
+        map.setCenter(pos);
+        map.setZoom(13);
+      }
+    } else {
+      const bounds = new g.LatLngBounds();
+      existing.forEach((m) => {
+        const pos = m.getPosition();
+        if (pos) bounds.extend(pos);
+      });
+      map.fitBounds(bounds, 40);
+    }
+  }, []);
+
   // Sync markers when properties change
   useEffect(() => {
     if (!ready || !mapRef.current || !window.google?.maps) return;
-    const map = mapRef.current;
-    const existing = markersRef.current;
     const g = window.google.maps;
+    const existing = markersRef.current;
+
+    // Reset bounds flag so we refit when properties change
+    initialBoundsSetRef.current = false;
 
     // Split properties into those with coords and those needing geocoding
     const withCoords = properties.filter(p => typeof p.lat === "number" && typeof p.lng === "number" && !isNaN(p.lat) && !isNaN(p.lng));
@@ -170,6 +206,9 @@ export function NfsSearchMap({ properties, hoveredId }: NfsSearchMapProps) {
       }
     });
 
+    // Track pending geocodes to fit bounds after all resolve
+    let pendingGeocodes = 0;
+
     // Geocode properties without coordinates
     if (needsGeocode.length > 0) {
       const geocoder = new g.Geocoder();
@@ -183,46 +222,33 @@ export function NfsSearchMap({ properties, hoveredId }: NfsSearchMapProps) {
           return;
         }
 
+        pendingGeocodes++;
         geocoder.geocode({ address: `${p.city}, ${p.country}` }, (results, status) => {
+          pendingGeocodes--;
           if (status === "OK" && results?.[0]) {
             const loc = results[0].geometry.location;
             const pos = { lat: loc.lat(), lng: loc.lng() };
             geocodeCacheRef.current.set(cacheKey, pos);
             createMarker(p, pos);
+          }
 
-            // Fit bounds after geocoding if initial bounds not yet set
-            if (!initialBoundsSetRef.current) {
-              const bounds = new g.LatLngBounds();
-              existing.forEach((m) => {
-                const mPos = m.getPosition();
-                if (mPos) bounds.extend(mPos);
-              });
-              if (existing.size === 1) {
-                map.setCenter(pos);
-                map.setZoom(13);
-              } else if (existing.size > 1) {
-                map.fitBounds(bounds, 40);
-              }
-              initialBoundsSetRef.current = true;
-            }
+          // When all geocodes are done, fit bounds to all markers
+          if (pendingGeocodes === 0 && !initialBoundsSetRef.current) {
+            fitBoundsToMarkers();
+            initialBoundsSetRef.current = true;
           }
         });
       });
     }
 
-    // Fit bounds only on first load (for properties that already have coords)
-    if (withCoords.length > 0 && !initialBoundsSetRef.current) {
-      const bounds = new g.LatLngBounds();
-      withCoords.forEach(p => bounds.extend({ lat: p.lat, lng: p.lng }));
-      if (withCoords.length === 1 && needsGeocode.length === 0) {
-        map.setCenter({ lat: withCoords[0].lat, lng: withCoords[0].lng });
-        map.setZoom(13);
-      } else {
-        map.fitBounds(bounds, 40);
+    // If no geocoding needed, fit bounds immediately
+    if (needsGeocode.length === 0 || pendingGeocodes === 0) {
+      if (existing.size > 0 && !initialBoundsSetRef.current) {
+        fitBoundsToMarkers();
+        initialBoundsSetRef.current = true;
       }
-      initialBoundsSetRef.current = true;
     }
-  }, [properties, ready, createMarker]);
+  }, [properties, ready, createMarker, fitBoundsToMarkers]);
 
   // Hover — smooth pan + zoom to property, stay when mouse leaves
   useEffect(() => {
