@@ -31,6 +31,7 @@ import AdminUsers from "./pages/admin/AdminUsers";
 import AdminOperators from "./pages/admin/AdminOperators";
 import AdminAnalytics from "./pages/admin/AdminAnalytics";
 import AdminSettings from "./pages/admin/AdminSettings";
+import AdminSystemHealth from "./pages/admin/AdminSystemHealth";
 import SignInPage from "./pages/SignInPage";
 import SignUpPage from "./pages/SignUpPage";
 import TermsPage from "./pages/TermsPage";
@@ -90,6 +91,7 @@ const App = () => (
               <Route path="/admin/nfstay/operators" element={<AdminOperators />} />
               <Route path="/admin/nfstay/analytics" element={<AdminAnalytics />} />
               <Route path="/admin/nfstay/settings" element={<AdminSettings />} />
+              <Route path="/admin/system-health" element={<AdminSystemHealth />} />
             </Route>
 
             {/* Standalone pages */}
