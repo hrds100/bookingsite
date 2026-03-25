@@ -44,12 +44,14 @@ test.describe("Favourites Dropdown — Navbar", () => {
     const cardHeart = page.locator("[data-feature='NFSTAY__CARD_FAVOURITE']").first();
     if (await cardHeart.isVisible()) {
       await cardHeart.click();
-      await page.waitForTimeout(500);
+      // Wait for localStorage sync interval (polls every 2s)
+      await page.waitForTimeout(3000);
 
       // Now open the favourites dropdown
       const navHeart = page.locator("nav [data-feature='NFSTAY__FAVOURITES'] button").first();
       await navHeart.click();
-      await page.waitForTimeout(500);
+      // Wait for Supabase fetch
+      await page.waitForTimeout(2000);
 
       const dropdown = page.locator("[data-feature='NFSTAY__FAVOURITES_PANEL']");
       await expect(dropdown).toBeVisible();
