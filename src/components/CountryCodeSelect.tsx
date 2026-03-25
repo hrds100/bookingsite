@@ -95,7 +95,7 @@ export default function CountryCodeSelect({ value, onChange }: CountryCodeSelect
                 placeholder="Search country..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full text-sm px-2 py-1.5 rounded bg-white border border-[#e5e5e5] outline-none focus:border-[#1e9a80]"
+                className="w-full text-sm px-2 py-1.5 rounded bg-white border border-[#e5e5e5] outline-none focus:border-primary"
                 autoFocus
               />
             </div>

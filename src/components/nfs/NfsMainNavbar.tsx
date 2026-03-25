@@ -103,7 +103,7 @@ export function NfsMainNavbar() {
                   <button
                     onClick={() => handleNavToggle("traveler")}
                     className={`relative z-10 px-4 xl:px-6 py-2.5 rounded-full text-sm font-medium transition-all duration-300 min-w-[120px] xl:min-w-[140px] transform hover:scale-105 ${
-                      navMode === "traveler" || isSearchPage ? "text-white" : "text-gray-600 hover:text-[#1E9A80]"
+                      navMode === "traveler" || isSearchPage ? "text-white" : "text-gray-600 hover:text-primary"
                     }`}
                   >
                     <span className="hidden xl:inline">Search Properties</span>
@@ -112,7 +112,7 @@ export function NfsMainNavbar() {
                   <button
                     onClick={() => handleNavToggle("reservations")}
                     className={`relative z-10 px-4 xl:px-6 py-2.5 rounded-full text-sm font-medium transition-all duration-300 min-w-[120px] xl:min-w-[140px] transform hover:scale-105 ${
-                      navMode === "reservations" ? "text-white" : "text-gray-600 hover:text-[#1E9A80]"
+                      navMode === "reservations" ? "text-white" : "text-gray-600 hover:text-primary"
                     }`}
                   >
                     <span className="hidden xl:inline">My Reservations</span>
@@ -256,13 +256,13 @@ export function NfsMainNavbar() {
           </div>
           <div className="flex flex-col items-center space-y-6 p-6 text-sm text-gray-800">
             {isOperator && !isWhiteLabel && (
-              <Link to="/nfstay" onClick={() => setDrawerOpen(false)} className="flex items-center gap-3 hover:text-[#1E9A80] font-semibold transition-colors">
+              <Link to="/nfstay" onClick={() => setDrawerOpen(false)} className="flex items-center gap-3 hover:text-primary font-semibold transition-colors">
                 Dashboard
               </Link>
             )}
             <button
               onClick={() => { signOut(); setDrawerOpen(false); }}
-              className="flex items-center gap-3 cursor-pointer hover:text-[#1E9A80] font-semibold transition-colors"
+              className="flex items-center gap-3 cursor-pointer hover:text-primary font-semibold transition-colors"
             >
               <LogOut className="w-4 h-4" />
               Log Out
@@ -287,7 +287,7 @@ export function NfsMainNavbar() {
                   key={link.label}
                   to={link.href}
                   onClick={() => setDrawerOpen(false)}
-                  className="flex items-center py-3 px-6 text-sm font-medium text-gray-700 hover:bg-emerald-50 hover:text-[#1E9A80] transition-colors duration-200 border-l-2 border-transparent hover:border-[#1E9A80]"
+                  className="flex items-center py-3 px-6 text-sm font-medium text-gray-700 hover:bg-accent-light hover:text-primary transition-colors duration-200 border-l-2 border-transparent hover:border-primary"
                 >
                   {link.label}
                 </Link>
@@ -332,7 +332,7 @@ export function NfsMainNavbar() {
               className={`flex-1 px-4 py-2.5 rounded-full text-sm font-medium transition-all duration-300 ${
                 navMode === "traveler" || isSearchPage
                   ? "bg-primary-gradient text-white shadow-sm"
-                  : "text-gray-600 hover:text-[#1E9A80]"
+                  : "text-gray-600 hover:text-primary"
               }`}
             >
               Search
@@ -342,7 +342,7 @@ export function NfsMainNavbar() {
               className={`flex-1 px-4 py-2.5 rounded-full text-sm font-medium transition-all duration-300 ${
                 navMode === "reservations"
                   ? "bg-primary-gradient text-white shadow-sm"
-                  : "text-gray-600 hover:text-[#1E9A80]"
+                  : "text-gray-600 hover:text-primary"
               }`}
             >
               Bookings

@@ -176,7 +176,7 @@ export default function SignInPage() {
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#737373] pointer-events-none" />
                     <input data-feature="NFSTAY__SIGNIN_EMAIL" type="email" placeholder="Enter your email" value={email} onChange={e => setEmail(e.target.value)} required
-                      className="w-full h-[41px] bg-white text-[#0a0a0a] border border-[#e5e5e5] rounded-[10px] text-sm outline-none transition-all duration-150 shadow-[0_4px_8px_-1px_rgba(0,0,0,0.05)] focus:border-[#1e9a80] focus:shadow-[0_0_0_3px_rgba(30,154,128,0.15)]"
+                      className="w-full h-[41px] bg-white text-[#0a0a0a] border border-[#e5e5e5] rounded-[10px] text-sm outline-none transition-all duration-150 shadow-[0_4px_8px_-1px_rgba(0,0,0,0.05)] focus:border-primary focus:shadow-[0_0_0_3px_hsl(var(--primary)/0.15)]"
                       style={{ padding: "4px 12px 4px 40px" }} />
                   </div>
                 </div>
@@ -185,7 +185,7 @@ export default function SignInPage() {
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#737373] pointer-events-none" />
                     <input data-feature="NFSTAY__SIGNIN_PASSWORD" type={showPassword ? "text" : "password"} placeholder="Enter your password" value={password} onChange={e => setPassword(e.target.value)} required
-                      className="w-full h-[41px] bg-white text-[#0a0a0a] border border-[#e5e5e5] rounded-[10px] text-sm outline-none transition-all duration-150 shadow-[0_4px_8px_-1px_rgba(0,0,0,0.05)] focus:border-[#1e9a80] focus:shadow-[0_0_0_3px_rgba(30,154,128,0.15)]"
+                      className="w-full h-[41px] bg-white text-[#0a0a0a] border border-[#e5e5e5] rounded-[10px] text-sm outline-none transition-all duration-150 shadow-[0_4px_8px_-1px_rgba(0,0,0,0.05)] focus:border-primary focus:shadow-[0_0_0_3px_hsl(var(--primary)/0.15)]"
                       style={{ padding: "4px 40px 4px 40px" }} />
                     <button type="button" onClick={() => setShowPassword(!showPassword)} tabIndex={-1}
                       className="absolute right-2.5 top-1/2 -translate-y-1/2 bg-transparent border-none cursor-pointer p-0.5 text-[#737373] hover:text-[#0a0a0a] flex items-center">
@@ -198,21 +198,21 @@ export default function SignInPage() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <input type="checkbox" checked={rememberMe} onChange={e => setRememberMe(e.target.checked)} id="remember"
-                      className="appearance-none w-5 h-5 border border-[#e5e5e5] rounded cursor-pointer transition-all duration-150 checked:bg-[#1e9a80] checked:border-[#1e9a80] bg-white"
+                      className="appearance-none w-5 h-5 border border-[#e5e5e5] rounded cursor-pointer transition-all duration-150 checked:bg-primary checked:border-primary bg-white"
                       style={{
                         backgroundImage: rememberMe ? "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'%3E%3C/polyline%3E%3C/svg%3E\")" : "none",
                         backgroundRepeat: "no-repeat", backgroundPosition: "center", backgroundSize: "12px",
                       }} />
                     <label htmlFor="remember" className="text-sm text-[#1b1b1b] cursor-pointer select-none">Remember me</label>
                   </div>
-                  <Link data-feature="NFSTAY__SIGNIN_FORGOT" to="#" className="bg-transparent border-none text-[#1e9a80] text-sm font-medium cursor-pointer p-0 hover:underline no-underline">Forgot Password?</Link>
+                  <Link data-feature="NFSTAY__SIGNIN_FORGOT" to="#" className="bg-transparent border-none text-primary text-sm font-medium cursor-pointer p-0 hover:underline no-underline">Forgot Password?</Link>
                 </div>
 
                 {error && <p className="text-sm text-red-500">{error}</p>}
 
                 <button data-feature="NFSTAY__SIGNIN_SUBMIT" type="submit" disabled={loading || !email.trim() || !password.trim()}
                   className="w-full rounded-lg font-medium text-white cursor-pointer transition-all duration-150 hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
-                  style={{ height: 37, backgroundColor: "#1e9a80", fontSize: 16, padding: "8px 16px", border: "none", boxShadow: "0 4px 8px -1px rgba(0,0,0,0.05)" }}>
+                  style={{ height: 37, backgroundColor: "hsl(var(--primary))", fontSize: 16, padding: "8px 16px", border: "none", boxShadow: "0 4px 8px -1px rgba(0,0,0,0.05)" }}>
                   {loading && <Loader2 className="w-4 h-4 animate-spin" />}
                   Sign In
                 </button>
@@ -220,7 +220,7 @@ export default function SignInPage() {
 
               <p className="text-sm text-[#737373] text-center mt-2">
                 Don&apos;t have an account?{" "}
-                <Link data-feature="NFSTAY__SIGNIN_SIGNUP_LINK" to="/signup" className="text-[#1e9a80] font-semibold no-underline">Sign up</Link>
+                <Link data-feature="NFSTAY__SIGNIN_SIGNUP_LINK" to="/signup" className="text-primary font-semibold no-underline">Sign up</Link>
               </p>
 
               <p data-feature="AUTH__TERMS_NOTICE" className="text-[11px] text-muted-foreground text-center mt-4">

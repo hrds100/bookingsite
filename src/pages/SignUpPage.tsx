@@ -199,7 +199,7 @@ export default function SignUpPage() {
 
           <p className="text-sm text-[#737373] text-center mt-2">
             Already have an account?{" "}
-            <Link to="/signin" className="text-[#1e9a80] font-semibold no-underline">Sign in</Link>
+            <Link to="/signin" className="text-primary font-semibold no-underline">Sign in</Link>
           </p>
 
           <p data-feature="AUTH__TERMS_NOTICE" className="text-[11px] text-muted-foreground text-center mt-4">
@@ -230,7 +230,7 @@ export default function SignUpPage() {
             <div className="relative">
               <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#737373] pointer-events-none" />
               <input data-feature="NFSTAY__SIGNUP_NAME" type="text" placeholder="Enter full name" value={name} onChange={e => setName(e.target.value)} required
-                className="w-full h-[41px] bg-white text-[#0a0a0a] border border-[#e5e5e5] rounded-[10px] text-sm outline-none transition-all duration-150 shadow-[0_4px_8px_-1px_rgba(0,0,0,0.05)] focus:border-[#1e9a80] focus:shadow-[0_0_0_3px_rgba(30,154,128,0.15)]"
+                className="w-full h-[41px] bg-white text-[#0a0a0a] border border-[#e5e5e5] rounded-[10px] text-sm outline-none transition-all duration-150 shadow-[0_4px_8px_-1px_rgba(0,0,0,0.05)] focus:border-primary focus:shadow-[0_0_0_3px_hsl(var(--primary)/0.15)]"
                 style={{ padding: "4px 12px 4px 40px" }} />
             </div>
           </div>
@@ -241,7 +241,7 @@ export default function SignUpPage() {
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#737373] pointer-events-none" />
               <input data-feature="NFSTAY__SIGNUP_EMAIL" type="email" placeholder="Enter your email" value={email} onChange={e => setEmail(e.target.value)} required
-                className="w-full h-[41px] bg-white text-[#0a0a0a] border border-[#e5e5e5] rounded-[10px] text-sm outline-none transition-all duration-150 shadow-[0_4px_8px_-1px_rgba(0,0,0,0.05)] focus:border-[#1e9a80] focus:shadow-[0_0_0_3px_rgba(30,154,128,0.15)]"
+                className="w-full h-[41px] bg-white text-[#0a0a0a] border border-[#e5e5e5] rounded-[10px] text-sm outline-none transition-all duration-150 shadow-[0_4px_8px_-1px_rgba(0,0,0,0.05)] focus:border-primary focus:shadow-[0_0_0_3px_hsl(var(--primary)/0.15)]"
                 style={{ padding: "4px 12px 4px 40px" }} />
             </div>
           </div>
@@ -252,7 +252,7 @@ export default function SignUpPage() {
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#737373] pointer-events-none" />
               <input data-feature="NFSTAY__SIGNUP_PASSWORD" type={showPassword ? "text" : "password"} placeholder="Min 6 characters" value={password} onChange={e => setPassword(e.target.value)} required
-                className="w-full h-[41px] bg-white text-[#0a0a0a] border border-[#e5e5e5] rounded-[10px] text-sm outline-none transition-all duration-150 shadow-[0_4px_8px_-1px_rgba(0,0,0,0.05)] focus:border-[#1e9a80] focus:shadow-[0_0_0_3px_rgba(30,154,128,0.15)]"
+                className="w-full h-[41px] bg-white text-[#0a0a0a] border border-[#e5e5e5] rounded-[10px] text-sm outline-none transition-all duration-150 shadow-[0_4px_8px_-1px_rgba(0,0,0,0.05)] focus:border-primary focus:shadow-[0_0_0_3px_hsl(var(--primary)/0.15)]"
                 style={{ padding: "4px 40px 4px 40px" }} />
               <button type="button" onClick={() => setShowPassword(!showPassword)} tabIndex={-1}
                 className="absolute right-2.5 top-1/2 -translate-y-1/2 bg-transparent border-none cursor-pointer p-0.5 text-[#737373] hover:text-[#0a0a0a] flex items-center">
@@ -267,7 +267,7 @@ export default function SignUpPage() {
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#737373] pointer-events-none" />
               <input type={showConfirm ? "text" : "password"} placeholder="Re-enter password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required
-                className="w-full h-[41px] bg-white text-[#0a0a0a] border border-[#e5e5e5] rounded-[10px] text-sm outline-none transition-all duration-150 shadow-[0_4px_8px_-1px_rgba(0,0,0,0.05)] focus:border-[#1e9a80] focus:shadow-[0_0_0_3px_rgba(30,154,128,0.15)]"
+                className="w-full h-[41px] bg-white text-[#0a0a0a] border border-[#e5e5e5] rounded-[10px] text-sm outline-none transition-all duration-150 shadow-[0_4px_8px_-1px_rgba(0,0,0,0.05)] focus:border-primary focus:shadow-[0_0_0_3px_hsl(var(--primary)/0.15)]"
                 style={{ padding: "4px 40px 4px 40px" }} />
               <button type="button" onClick={() => setShowConfirm(!showConfirm)} tabIndex={-1}
                 className="absolute right-2.5 top-1/2 -translate-y-1/2 bg-transparent border-none cursor-pointer p-0.5 text-[#737373] hover:text-[#0a0a0a] flex items-center">
@@ -284,7 +284,7 @@ export default function SignUpPage() {
               <div className="relative flex-1">
                 <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#737373] pointer-events-none" />
                 <input data-feature="NFSTAY__SIGNUP_PHONE" type="tel" placeholder="7863 992 555" value={phone} onChange={e => setPhone(e.target.value)}
-                  className="w-full h-[41px] bg-white text-[#0a0a0a] border border-[#e5e5e5] rounded-r-[10px] text-sm outline-none transition-all duration-150 shadow-[0_4px_8px_-1px_rgba(0,0,0,0.05)] focus:border-[#1e9a80] focus:shadow-[0_0_0_3px_rgba(30,154,128,0.15)]"
+                  className="w-full h-[41px] bg-white text-[#0a0a0a] border border-[#e5e5e5] rounded-r-[10px] text-sm outline-none transition-all duration-150 shadow-[0_4px_8px_-1px_rgba(0,0,0,0.05)] focus:border-primary focus:shadow-[0_0_0_3px_hsl(var(--primary)/0.15)]"
                   style={{ padding: "4px 12px 4px 40px" }} />
               </div>
             </div>
@@ -294,7 +294,7 @@ export default function SignUpPage() {
           {/* Submit */}
           <button data-feature="NFSTAY__SIGNUP_SUBMIT" type="submit" disabled={loading}
             className="w-full rounded-lg font-medium text-white cursor-pointer transition-all duration-150 hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
-            style={{ height: 37, backgroundColor: "#1e9a80", fontSize: 16, padding: "8px 16px", border: "none", boxShadow: "0 4px 8px -1px rgba(0,0,0,0.05)" }}>
+            style={{ height: 37, backgroundColor: "hsl(var(--primary))", fontSize: 16, padding: "8px 16px", border: "none", boxShadow: "0 4px 8px -1px rgba(0,0,0,0.05)" }}>
             {loading && <Loader2 className="w-4 h-4 animate-spin" />}
             {loading ? "Creating account..." : "Create account"}
           </button>
@@ -302,7 +302,7 @@ export default function SignUpPage() {
 
         <p className="text-sm text-[#737373] text-center mt-2">
           Already have an account?{" "}
-          <Link to="/signin" className="text-[#1e9a80] font-semibold no-underline">Sign in</Link>
+          <Link to="/signin" className="text-primary font-semibold no-underline">Sign in</Link>
         </p>
 
         <p data-feature="AUTH__TERMS_NOTICE" className="text-[11px] text-muted-foreground text-center mt-4">

@@ -108,7 +108,7 @@ export function NfsAuthSlidePanel() {
                 <ul className="flex flex-col gap-2 mt-1">
                   {slide.bullets.map((b, j) => (
                     <li key={j} className="text-base leading-relaxed tracking-wide text-[#e8ebe6] flex items-center gap-2">
-                      <svg className="w-4 h-4 text-[#1e9a80] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <svg className="w-4 h-4 text-primary shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                       </svg>
                       {b}

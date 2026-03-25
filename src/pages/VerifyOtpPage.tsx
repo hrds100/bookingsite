@@ -150,7 +150,7 @@ export default function VerifyOtpPage() {
           <p className="text-[#737373]">No phone number provided.</p>
           <Link
             to="/signup"
-            className="text-[#1e9a80] font-semibold mt-2 inline-block no-underline"
+            className="text-primary font-semibold mt-2 inline-block no-underline"
           >
             Go to signup
           </Link>
@@ -216,7 +216,7 @@ export default function VerifyOtpPage() {
               <div className="text-center py-8">
                 <CheckCircle2
                   className="w-16 h-16 mx-auto"
-                  style={{ color: "#1e9a80" }}
+                  style={{ color: "hsl(var(--primary))" }}
                 />
                 <h2
                   className="font-semibold text-[#0a0a0a] mt-4"
@@ -304,7 +304,7 @@ export default function VerifyOtpPage() {
                   className="w-full rounded-lg font-medium text-white cursor-pointer transition-all duration-150 hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
                   style={{
                     height: 37,
-                    backgroundColor: "#1e9a80",
+                    backgroundColor: "hsl(var(--primary))",
                     fontSize: 16,
                     padding: "8px 16px",
                     border: "none",

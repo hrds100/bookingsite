@@ -135,7 +135,7 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
   return (
     <div data-feature="NFSTAY__BOOKING_WIDGET" className="bg-white border border-gray-200 rounded-2xl p-4 sm:p-6 shadow-card">
       <div data-feature="NFSTAY__WIDGET_PRICE" className="mb-4">
-        <span className="text-xl sm:text-2xl font-bold text-[#1E9A80]">{sym}{property.base_rate_amount}</span>
+        <span className="text-xl sm:text-2xl font-bold text-primary">{sym}{property.base_rate_amount}</span>
         <span className="text-base font-normal text-gray-900 ml-1">/ night</span>
       </div>
 
