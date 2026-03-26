@@ -113,19 +113,19 @@ function GuestStepper({
         <button
           onClick={() => onChange(Math.max(min, value - 1))}
           disabled={value <= min}
-          className="w-7 h-7 rounded-full border border-border flex items-center justify-center disabled:opacity-30"
+          className="w-10 h-10 rounded-full border border-border flex items-center justify-center disabled:opacity-30"
           aria-label={`Decrease ${label}`}
         >
-          <Minus className="w-3 h-3" />
+          <Minus className="w-3.5 h-3.5" />
         </button>
         <span className="text-sm w-3 text-center">{value}</span>
         <button
           onClick={() => onChange(value + 1)}
           disabled={disableIncrement}
-          className="w-7 h-7 rounded-full border border-border flex items-center justify-center disabled:opacity-30"
+          className="w-10 h-10 rounded-full border border-border flex items-center justify-center disabled:opacity-30"
           aria-label={`Increase ${label}`}
         >
-          <Plus className="w-3 h-3" />
+          <Plus className="w-3.5 h-3.5" />
         </button>
       </div>
     </div>
@@ -464,7 +464,7 @@ export function NfsSearchFilters({
                 {AMENITY_OPTIONS.map((amenity) => (
                   <label
                     key={amenity}
-                    className="flex items-center gap-2 text-xs cursor-pointer select-none"
+                    className="flex items-center gap-2 text-xs cursor-pointer select-none min-h-[44px] py-1"
                   >
                     <Checkbox
                       checked={selectedAmenities.includes(amenity)}
