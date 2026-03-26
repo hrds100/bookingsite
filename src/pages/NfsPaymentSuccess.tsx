@@ -1,21 +1,86 @@
 import { useEffect, useState, useRef } from "react";
-import { useNavigate } from "react-router-dom";
-import { CheckCircle, MapPin, Calendar, Users } from "lucide-react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { CheckCircle, MapPin, Calendar, Users, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { notifyBookingConfirmed } from "@/lib/n8n";
+import { supabase } from "@/lib/supabase";
 
 export default function NfsPaymentSuccess() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [reservation, setReservation] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
   const notified = useRef(false);
 
   useEffect(() => {
-    const raw = sessionStorage.getItem('nfs_last_reservation');
-    if (raw) {
+    const sessionId = searchParams.get("session_id");
+
+    async function fetchFromStripeSession() {
+      if (!sessionId) return null;
+
+      try {
+        const { data, error } = await supabase
+          .from("nfs_reservations")
+          .select("*, nfs_properties!inner(public_title, city, country, images, base_rate_currency)")
+          .eq("stripe_session_id", sessionId)
+          .single();
+
+        if (error || !data) return null;
+
+        const nights = Math.ceil(
+          (new Date(data.check_out).getTime() - new Date(data.check_in).getTime()) /
+            (1000 * 60 * 60 * 24)
+        );
+
+        const currencySymbols: Record<string, string> = {
+          GBP: "\u00a3", USD: "$", EUR: "\u20ac", AED: "AED ", SGD: "S$",
+        };
+
+        return {
+          id: data.id,
+          guestFirstName: data.guest_first_name,
+          guestLastName: data.guest_last_name,
+          guestEmail: data.guest_email,
+          propertyTitle: data.nfs_properties?.public_title || "",
+          propertyCity: data.nfs_properties?.city || "",
+          propertyCountry: data.nfs_properties?.country || "",
+          propertyImage: data.nfs_properties?.images?.[0] || "",
+          checkIn: data.check_in,
+          checkOut: data.check_out,
+          nights,
+          adults: data.adults || 1,
+          children: data.children || 0,
+          total: data.total_amount || 0,
+          currency: data.nfs_properties?.base_rate_currency || "GBP",
+          currencySymbol: currencySymbols[data.nfs_properties?.base_rate_currency || "GBP"] || "\u00a3",
+        };
+      } catch {
+        return null;
+      }
+    }
+
+    function fetchFromSessionStorage() {
+      const raw = sessionStorage.getItem("nfs_last_reservation");
+      if (!raw) return null;
       try {
         const data = JSON.parse(raw);
+        sessionStorage.removeItem("nfs_last_reservation");
+        return data;
+      } catch {
+        sessionStorage.removeItem("nfs_last_reservation");
+        return null;
+      }
+    }
+
+    async function load() {
+      // Try Stripe session first, fall back to sessionStorage (mock flow)
+      let data = await fetchFromStripeSession();
+      if (!data) {
+        data = fetchFromSessionStorage();
+      }
+
+      if (data) {
         setReservation(data);
-        sessionStorage.removeItem('nfs_last_reservation');
 
         // Fire-and-forget n8n notification (once)
         if (!notified.current && data.guestEmail) {
@@ -36,11 +101,21 @@ export default function NfsPaymentSuccess() {
             currency: data.currency || "GBP",
           });
         }
-      } catch {
-        sessionStorage.removeItem('nfs_last_reservation');
       }
+
+      setLoading(false);
     }
-  }, []);
+
+    load();
+  }, [searchParams]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div data-feature="NFSTAY__SUCCESS" className="min-h-screen bg-background flex items-start justify-center pt-16 px-4">
@@ -55,11 +130,18 @@ export default function NfsPaymentSuccess() {
               Hi {reservation.guestFirstName}, your reservation is confirmed. A confirmation has been sent to {reservation.guestEmail}.
             </p>
           )}
+          {!reservation && (
+            <p className="text-sm text-muted-foreground mt-2">
+              Your payment was received. You will receive a confirmation email shortly.
+            </p>
+          )}
         </div>
 
         {reservation && (
           <div data-feature="NFSTAY__SUCCESS_SUMMARY" className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
-            <img src={reservation.propertyImage} alt={reservation.propertyTitle} className="h-40 w-full object-cover" />
+            {reservation.propertyImage && (
+              <img src={reservation.propertyImage} alt={reservation.propertyTitle} className="h-40 w-full object-cover" />
+            )}
             <div className="p-5 space-y-3">
               <div>
                 <h3 className="font-semibold">{reservation.propertyTitle}</h3>
