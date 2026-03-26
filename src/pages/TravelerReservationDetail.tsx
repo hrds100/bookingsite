@@ -1,12 +1,15 @@
+import { useState } from "react";
 import { useParams, useNavigate, Navigate } from "react-router-dom";
 import { format, parseISO, differenceInDays } from "date-fns";
 import { ArrowLeft, CalendarDays, MapPin, Users, CreditCard, AlertTriangle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NfsStatusBadge } from "@/components/nfs/NfsStatusBadge";
 import { NfsEmptyState } from "@/components/nfs/NfsEmptyState";
-import { useNfsReservationWithProperty } from "@/hooks/useNfsReservations";
+import { useNfsReservationWithProperty, useNfsUpdateReservation } from "@/hooks/useNfsReservations";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { useAuth } from "@/hooks/useAuth";
+import { notifyBookingCancelled } from "@/lib/n8n";
+import { toast } from "@/hooks/use-toast";
 
 export default function TravelerReservationDetail() {
   const { id } = useParams();
@@ -14,6 +17,38 @@ export default function TravelerReservationDetail() {
   const { formatPrice } = useCurrency();
   const { user, loading: authLoading } = useAuth();
   const { data: res, isLoading, error } = useNfsReservationWithProperty(id);
+  const updateReservation = useNfsUpdateReservation();
+  const [cancelling, setCancelling] = useState(false);
+
+  const handleCancel = async () => {
+    if (!res) return;
+    setCancelling(true);
+    try {
+      await updateReservation.mutateAsync({ id: res.id, status: "cancelled" });
+      toast({ title: "Reservation cancelled", description: "Your cancellation has been submitted." });
+      const propData = res.nfs_properties;
+      const nights = differenceInDays(parseISO(res.check_out), parseISO(res.check_in));
+      notifyBookingCancelled({
+        reservationId: res.id,
+        guestName: `${res.guest_first_name} ${res.guest_last_name}`,
+        guestEmail: res.guest_email,
+        propertyTitle: propData?.public_title ?? "",
+        propertyCity: propData?.city ?? "",
+        propertyCountry: propData?.country ?? "",
+        checkIn: res.check_in,
+        checkOut: res.check_out,
+        nights,
+        adults: res.adults,
+        children: res.children,
+        total: res.total_amount,
+        currency: res.payment_currency,
+      });
+    } catch {
+      toast({ title: "Error", description: "Could not cancel reservation. Try again.", variant: "destructive" });
+    } finally {
+      setCancelling(false);
+    }
+  };
 
   if (authLoading) {
     return (
@@ -137,8 +172,8 @@ export default function TravelerReservationDetail() {
                   <div>
                     <p className="text-sm font-semibold text-destructive">Cancel reservation</p>
                     <p className="text-xs text-muted-foreground mt-1">Please review the cancellation policy before proceeding. Refund eligibility depends on the property's policy.</p>
-                    <Button data-feature="NFSTAY__TRAVELER_DETAIL_CANCEL" variant="destructive" size="sm" className="mt-3 rounded-lg" onClick={() => alert('Cancellation request submitted (mock)')}>
-                      Request cancellation
+                    <Button data-feature="NFSTAY__TRAVELER_DETAIL_CANCEL" variant="destructive" size="sm" className="mt-3 rounded-lg" onClick={handleCancel} disabled={cancelling}>
+                      {cancelling ? "Cancelling..." : "Request cancellation"}
                     </Button>
                   </div>
                 </div>

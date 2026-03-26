@@ -9,7 +9,7 @@ import { NfsEmptyState } from "@/components/nfs/NfsEmptyState";
 import { useNfsReservation, useNfsUpdateReservation } from "@/hooks/useNfsReservations";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { toast } from "@/hooks/use-toast";
-import { notifyBookingConfirmed } from "@/lib/n8n";
+import { notifyBookingConfirmed, notifyBookingRejected } from "@/lib/n8n";
 
 export default function OperatorReservationDetail() {
   const { id } = useParams();
@@ -68,8 +68,8 @@ export default function OperatorReservationDetail() {
     try {
       await updateReservation.mutateAsync({ id: res.id, status: "rejected" });
       toast({ title: "Reservation rejected", description: rejectReason ? `Reason: ${rejectReason}` : "The guest has been notified." });
-      // Fire n8n notification with rejection status
-      notifyBookingConfirmed({
+      // Fire n8n notification with rejection status and reason
+      notifyBookingRejected({
         reservationId: res.id,
         guestName: `${res.guest_first_name} ${res.guest_last_name}`,
         guestEmail: res.guest_email,
@@ -83,6 +83,7 @@ export default function OperatorReservationDetail() {
         children: res.children,
         total: res.total_amount,
         currency: res.payment_currency,
+        reason: rejectReason || undefined,
       });
       setShowRejectForm(false);
     } catch {

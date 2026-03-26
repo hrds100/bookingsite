@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useNfsOperatorCreate, useNfsOperator } from "@/hooks/useNfsOperator";
+import { notifyNewOperator } from "@/lib/n8n";
 
 const ACCENT_COLORS = [
   { label: "Green", value: "#22c55e" },
@@ -77,7 +78,13 @@ export default function OperatorOnboarding() {
         contact_email: contactEmail || undefined,
         contact_phone: contactPhone || undefined,
       });
-      toast({ title: "Welcome aboard! 🎉", description: "Your operator account is ready." });
+      toast({ title: "Welcome aboard!", description: "Your operator account is ready." });
+      // Notify admin about new operator signup
+      notifyNewOperator({
+        operatorName: brandName.trim(),
+        operatorEmail: contactEmail || user.email || "",
+        subdomain: subdomainSlug,
+      });
       // Force page reload to re-check operator status in useAuth
       window.location.href = "/nfstay/settings";
     } catch (err: any) {

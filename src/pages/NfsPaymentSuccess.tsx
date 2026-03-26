@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { CheckCircle, MapPin, Calendar, Users, Loader2 } from "lucide-react";
+import { CheckCircle, Clock, MapPin, Calendar, Users, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { notifyBookingConfirmed } from "@/lib/n8n";
 import { supabase } from "@/lib/supabase";
@@ -38,6 +38,7 @@ export default function NfsPaymentSuccess() {
 
         return {
           id: data.id,
+          status: data.status as string,
           guestFirstName: data.guest_first_name,
           guestLastName: data.guest_last_name,
           guestEmail: data.guest_email,
@@ -121,19 +122,33 @@ export default function NfsPaymentSuccess() {
     <div data-feature="NFSTAY__SUCCESS" className="min-h-screen bg-background flex items-start justify-center pt-16 px-4">
       <div className="max-w-md w-full space-y-6">
         <div data-feature="NFSTAY__SUCCESS_MESSAGE" className="text-center">
-          <div className="w-16 h-16 bg-accent-light rounded-full flex items-center justify-center mx-auto mb-4">
-            <CheckCircle className="w-8 h-8 text-primary" />
-          </div>
-          <h1 className="text-2xl font-bold">Booking Confirmed!</h1>
-          {reservation && (
-            <p className="text-sm text-muted-foreground mt-2">
-              Hi {reservation.guestFirstName}, your reservation is confirmed. A confirmation has been sent to {reservation.guestEmail}.
-            </p>
-          )}
-          {!reservation && (
-            <p className="text-sm text-muted-foreground mt-2">
-              Your payment was received. You will receive a confirmation email shortly.
-            </p>
+          {reservation?.status === "pending_approval" ? (
+            <>
+              <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Clock className="w-8 h-8 text-orange-500" />
+              </div>
+              <h1 className="text-2xl font-bold">Request Sent!</h1>
+              <p className="text-sm text-muted-foreground mt-2">
+                Hi {reservation.guestFirstName}, your booking request has been sent to the host. They typically respond within 24 hours. We have sent a confirmation to {reservation.guestEmail}.
+              </p>
+            </>
+          ) : (
+            <>
+              <div className="w-16 h-16 bg-accent-light rounded-full flex items-center justify-center mx-auto mb-4">
+                <CheckCircle className="w-8 h-8 text-primary" />
+              </div>
+              <h1 className="text-2xl font-bold">Booking Confirmed!</h1>
+              {reservation && (
+                <p className="text-sm text-muted-foreground mt-2">
+                  Hi {reservation.guestFirstName}, your reservation is confirmed. A confirmation has been sent to {reservation.guestEmail}.
+                </p>
+              )}
+              {!reservation && (
+                <p className="text-sm text-muted-foreground mt-2">
+                  Your payment was received. You will receive a confirmation email shortly.
+                </p>
+              )}
+            </>
           )}
         </div>
 

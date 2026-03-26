@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/lib/supabase";
+import { notifyGuestSignup } from "@/lib/n8n";
 
 type Mode = "guest" | "operator";
 
@@ -43,6 +44,8 @@ export default function SignUpPage() {
       if (error) {
         toast.error(error.message);
       } else {
+        // Fire welcome email via n8n (fire-and-forget)
+        notifyGuestSignup({ guestName: name, guestEmail: email });
         toast.success("Account created! You can now sign in.");
         navigate("/signin");
       }

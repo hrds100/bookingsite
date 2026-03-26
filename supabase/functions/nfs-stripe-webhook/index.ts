@@ -52,11 +52,12 @@ serve(async (req) => {
     // Fire n8n notification webhook (fire and forget)
     const n8nBase = "https://n8n.srv886554.hstgr.cloud/webhook";
 
-    // Notify operator
+    // Notify operator - differentiate by booking mode
     fetch(`${n8nBase}/nfstay-booking-enquiry`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
+        emailType: newStatus === "confirmed" ? "booking_confirmed_operator" : "booking_request_operator",
         operatorEmail: operator?.contact_email,
         operatorName: operator?.brand_name,
         guestName: reservation.guest_name,
@@ -70,11 +71,12 @@ serve(async (req) => {
       }),
     }).catch(() => {});
 
-    // Notify guest
+    // Notify guest - differentiate by booking mode
     fetch(`${n8nBase}/nfstay-booking-confirmed`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
+        emailType: newStatus === "confirmed" ? "booking_confirmed" : "booking_request_sent",
         guestName: reservation.guest_name,
         guestEmail: reservation.guest_email,
         propertyName: reservation.nfs_properties?.name,
@@ -83,6 +85,7 @@ serve(async (req) => {
         totalAmount: reservation.total_amount,
         status: newStatus,
         operatorName: operator?.brand_name,
+        reservationId: reservation.id,
       }),
     }).catch(() => {});
 

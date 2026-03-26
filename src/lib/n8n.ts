@@ -146,3 +146,70 @@ export function notifyBookingEnquiry(data: Omit<BookingNotification, "reservatio
     ...data,
   });
 }
+
+/**
+ * Notify n8n that an operator rejected a booking.
+ * Triggers: guest rejection email with reason.
+ */
+export function notifyBookingRejected(data: BookingNotification & { reason?: string }): void {
+  postWebhook("nfstay-booking-confirmed", {
+    type: "booking_rejected",
+    timestamp: new Date().toISOString(),
+    ...data,
+  });
+}
+
+/**
+ * Notify admin (Hugo) that a new operator signed up.
+ */
+export function notifyNewOperator(data: {
+  operatorName: string;
+  operatorEmail: string;
+  subdomain: string;
+}): void {
+  postWebhook("nfstay-new-operator", {
+    type: "new_operator",
+    timestamp: new Date().toISOString(),
+    ...data,
+  });
+}
+
+/**
+ * Notify admin (Hugo) that an operator listed a new property.
+ */
+export function notifyNewProperty(data: {
+  propertyName: string;
+  operatorName: string;
+  city: string;
+}): void {
+  postWebhook("nfstay-new-property", {
+    type: "new_property",
+    timestamp: new Date().toISOString(),
+    ...data,
+  });
+}
+
+/**
+ * Notify n8n that a guest signed up - triggers welcome email.
+ */
+export function notifyGuestSignup(data: {
+  guestName: string;
+  guestEmail: string;
+}): void {
+  postWebhook("nfstay-guest-signup", {
+    type: "guest_signup",
+    timestamp: new Date().toISOString(),
+    ...data,
+  });
+}
+
+/**
+ * Notify operator that a guest cancelled a booking.
+ */
+export function notifyBookingCancelled(data: BookingNotification): void {
+  postWebhook("nfstay-booking-confirmed", {
+    type: "booking_cancelled",
+    timestamp: new Date().toISOString(),
+    ...data,
+  });
+}

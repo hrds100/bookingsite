@@ -15,6 +15,7 @@ import { useNfsPropertyCreate, useNfsPropertyUpdate, type PropertyFields } from 
 import { useNfsImageUpload } from "@/hooks/useNfsImageUpload";
 import NfsPlacesAutocomplete, { type PlaceResult } from "@/components/nfs/NfsPlacesAutocomplete";
 import { supabase } from "@/lib/supabase";
+import { notifyNewProperty } from "@/lib/n8n";
 import {
   useNfsHospitableConnection,
   useNfsHospitableSyncedProperties,
@@ -434,6 +435,12 @@ export default function OperatorPropertyForm() {
       } else {
         await createMutation.mutateAsync(fields);
         toast({ title: "Property created", description: "Your property has been created successfully." });
+        // Notify admin about new property listing
+        notifyNewProperty({
+          propertyName: publicTitle.trim(),
+          operatorName: operatorId || "",
+          city: city || "",
+        });
       }
 
       navigate("/nfstay/properties");
