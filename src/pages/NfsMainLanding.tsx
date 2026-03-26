@@ -80,18 +80,6 @@ export default function NfsMainLanding() {
         btnText="Explore"
       />
 
-      {/* Recently Viewed */}
-      {recentProperties.length > 0 && (
-        <section data-feature="NFSTAY__LANDING_RECENTLY_VIEWED" className="max-w-7xl mx-auto px-4 py-12">
-          <h2 className="text-2xl font-bold tracking-tight mb-6">Recently Viewed</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {recentProperties.slice(0, 4).map((p) => (
-              <NfsPropertyCard key={p!.id} property={p!} />
-            ))}
-          </div>
-        </section>
-      )}
-
       {/* Popular Destinations — main site only */}
       {!isWhiteLabel && (
         <section data-feature="NFSTAY__LANDING_DESTINATIONS" className="max-w-7xl mx-auto px-4 py-16">
@@ -142,6 +130,18 @@ export default function NfsMainLanding() {
           ))}
         </div>
       </section>
+
+      {/* Recently Viewed */}
+      {recentProperties.length > 0 && (
+        <section data-feature="NFSTAY__LANDING_RECENTLY_VIEWED" className="max-w-7xl mx-auto px-4 py-12">
+          <h2 className="text-2xl font-bold tracking-tight mb-6">Recently Viewed</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {recentProperties.slice(0, 4).map((p) => (
+              <NfsPropertyCard key={p!.id} property={p!} />
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* How It Works */}
       <section data-feature="NFSTAY__LANDING_HOW_IT_WORKS" id="how-it-works" className="max-w-7xl mx-auto px-4 py-16">
