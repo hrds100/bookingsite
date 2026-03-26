@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate, Navigate } from "react-router-dom";
-import { Building2, Palette, User, CheckCircle2, ArrowRight, ArrowLeft } from "lucide-react";
+import { Building2, Palette, User, CheckCircle2, ArrowRight, ArrowLeft, Globe } from "lucide-react";
+import { NfsLogo } from "@/components/nfs/NfsLogo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -77,7 +78,7 @@ export default function OperatorOnboarding() {
       });
       toast({ title: "Welcome aboard! 🎉", description: "Your operator account is ready." });
       // Force page reload to re-check operator status in useAuth
-      window.location.href = "/nfstay";
+      window.location.href = "/nfstay/settings";
     } catch (err: any) {
       const msg = err?.message || "Failed to create operator account";
       if (msg.includes("duplicate") || msg.includes("unique")) {
@@ -98,7 +99,7 @@ export default function OperatorOnboarding() {
       {/* Header */}
       <header className="border-b border-border bg-card">
         <div className="max-w-3xl mx-auto px-4 h-16 flex items-center justify-between">
-          <span className="text-lg font-bold">NF<span className="text-primary">Stay</span></span>
+          <NfsLogo />
           <span className="text-sm text-muted-foreground">Set up your operator account</span>
         </div>
       </header>
@@ -165,8 +166,9 @@ export default function OperatorOnboarding() {
         {step === 1 && (
           <div className="bg-card border border-border rounded-2xl p-6 space-y-5">
             <div>
-              <h2 className="text-xl font-bold">Choose your subdomain</h2>
+              <h2 className="text-xl font-bold">Please add a subdomain</h2>
               <p className="text-sm text-muted-foreground mt-1">Guests will visit this URL to see your properties and book directly.</p>
+              <p className="text-xs text-muted-foreground mt-1">You can add your own custom domain later in Settings.</p>
             </div>
             <div>
               <Label>Subdomain *</Label>
