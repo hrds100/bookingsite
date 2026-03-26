@@ -63,7 +63,7 @@ export function NfsMainNavbar() {
   return (
     <>
       {/* Main navbar */}
-      <nav data-feature="NFSTAY__NAVBAR" className="sticky top-0 left-0 right-0 w-full h-16 sm:h-20 bg-white z-50 overflow-x-hidden">
+      <nav data-feature="NFSTAY__NAVBAR" className="sticky top-0 left-0 right-0 w-full h-16 sm:h-20 bg-white z-50 overflow-visible">
         <div className="max-w-full mx-auto xl:px-10 md:px-10 sm:px-4 px-3 h-full">
           <div className={`${isSearchPage ? "flex justify-between items-center" : "grid grid-cols-3"} h-full gap-2 sm:gap-3 md:gap-0`}>
 
