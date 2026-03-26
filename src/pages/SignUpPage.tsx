@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Loader2, Eye, EyeOff, Mail, Lock, User, ArrowLeft, Phone } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { NfsAuthSlidePanel } from "@/components/nfs/NfsAuthSlidePanel";
+import { NfsLogo } from "@/components/nfs/NfsLogo";
 import { sendOtp } from "@/lib/n8n";
 import { toast } from "sonner";
 import CountryCodeSelect from "@/components/CountryCodeSelect";
@@ -58,10 +59,7 @@ function AuthShell({ children, showTabs, heading, subtitle }: { children: React.
       <div className="flex w-full h-screen overflow-hidden p-2 gap-2" style={{ backgroundColor: "#f3f3ee" }}>
         <div className="flex flex-col items-center justify-between flex-1 lg:w-1/2 w-full h-full overflow-y-auto bg-white rounded-3xl border" style={{ borderColor: "#e8e5df", padding: "clamp(24px, 3.5vh, 64px)" }}>
           <div className="flex items-center justify-center w-full">
-            <Link to="/" className="flex items-center gap-[3px] no-underline">
-              <span className="flex items-center justify-center font-bold leading-none" style={{ width: 28, height: 28, border: '2px solid #0a0a0a', borderRadius: 6, fontFamily: "'Sora', sans-serif", fontSize: 12, color: '#0a0a0a' }}>nf</span>
-              <span className="leading-none" style={{ fontFamily: "'Sora', sans-serif", fontWeight: 400, fontSize: 20, color: '#0a0a0a', letterSpacing: 1.5 }}>stay</span>
-            </Link>
+            <NfsLogo />
           </div>
 
           <div className="flex flex-col items-center justify-center w-full max-w-[480px] flex-1">

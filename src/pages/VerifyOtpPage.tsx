@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Loader2, ArrowLeft, CheckCircle2 } from "lucide-react";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { sendOtp, verifyOtp } from "@/lib/n8n";
+import { NfsLogo } from "@/components/nfs/NfsLogo";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { NfsAuthSlidePanel } from "@/components/nfs/NfsAuthSlidePanel";
@@ -178,37 +179,7 @@ export default function VerifyOtpPage() {
           }}
         >
           <div className="flex items-center justify-center w-full">
-            <Link
-              to="/"
-              className="flex items-center gap-[3px] no-underline"
-            >
-              <span
-                className="flex items-center justify-center font-bold leading-none"
-                style={{
-                  width: 28,
-                  height: 28,
-                  border: "2px solid #0a0a0a",
-                  borderRadius: 6,
-                  fontFamily: "'Sora', sans-serif",
-                  fontSize: 12,
-                  color: "#0a0a0a",
-                }}
-              >
-                nf
-              </span>
-              <span
-                className="leading-none"
-                style={{
-                  fontFamily: "'Sora', sans-serif",
-                  fontWeight: 400,
-                  fontSize: 20,
-                  color: "#0a0a0a",
-                  letterSpacing: 1.5,
-                }}
-              >
-                stay
-              </span>
-            </Link>
+            <NfsLogo />
           </div>
 
           <div className="flex flex-col items-center justify-center w-full max-w-[480px] flex-1">

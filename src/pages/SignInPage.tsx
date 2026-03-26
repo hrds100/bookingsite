@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Loader2, Eye, EyeOff, Mail, Lock } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { NfsAuthSlidePanel } from "@/components/nfs/NfsAuthSlidePanel";
+import { NfsLogo } from "@/components/nfs/NfsLogo";
 import type { SocialType } from "@/lib/particle";
 
 const PROVIDERS: { id: SocialType; label: string; icon: React.ReactNode }[] = [
@@ -120,10 +121,7 @@ export default function SignInPage() {
           style={{ borderColor: "#e8e5df", padding: "clamp(24px, 3.5vh, 64px)" }}
         >
           <div className="flex items-center justify-center w-full">
-            <Link to="/" className="flex items-center gap-[3px] no-underline">
-              <span className="flex items-center justify-center font-bold leading-none" style={{ width: 28, height: 28, border: '2px solid #0a0a0a', borderRadius: 6, fontFamily: "'Sora', sans-serif", fontSize: 12, color: '#0a0a0a' }}>nf</span>
-              <span className="leading-none" style={{ fontFamily: "'Sora', sans-serif", fontWeight: 400, fontSize: 20, color: '#0a0a0a', letterSpacing: 1.5 }}>stay</span>
-            </Link>
+            <NfsLogo />
           </div>
 
           <div className="flex flex-col items-center justify-center w-full max-w-[480px] flex-1">

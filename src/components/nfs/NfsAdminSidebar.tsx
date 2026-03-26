@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { LayoutDashboard, Users, ShieldCheck, BarChart3, Settings, LogOut } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { Link, useLocation } from "react-router-dom";
+import { NfsLogo } from "./NfsLogo";
 import {
   Sidebar,
   SidebarContent,
@@ -38,11 +39,11 @@ export function NfsAdminSidebar() {
       <SidebarHeader className="p-4">
         {collapsed ? (
           <div className="flex justify-center">
-            <span className="text-lg font-bold text-destructive">A</span>
+            <span className="flex items-center justify-center font-bold leading-none" style={{ width: 24, height: 24, border: '2px solid #0a0a0a', borderRadius: 5, fontFamily: "'Sora', sans-serif", fontSize: 10, color: '#0a0a0a' }}>nf</span>
           </div>
         ) : (
           <div className="flex items-center gap-2">
-            <span className="text-lg font-bold">NF<span className="text-primary">Stay</span></span>
+            <NfsLogo />
             <span className="text-[10px] font-semibold bg-destructive/10 text-destructive px-1.5 py-0.5 rounded">ADMIN</span>
           </div>
         )}
