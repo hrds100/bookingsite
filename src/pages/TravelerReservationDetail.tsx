@@ -1,10 +1,10 @@
-import { useParams, useNavigate, Navigate, Link } from "react-router-dom";
+import { useParams, useNavigate, Navigate } from "react-router-dom";
 import { format, parseISO, differenceInDays } from "date-fns";
-import { ArrowLeft, CalendarDays, MapPin, Users, CreditCard, AlertTriangle } from "lucide-react";
+import { ArrowLeft, CalendarDays, MapPin, Users, CreditCard, AlertTriangle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NfsStatusBadge } from "@/components/nfs/NfsStatusBadge";
 import { NfsEmptyState } from "@/components/nfs/NfsEmptyState";
-import { mockReservations, getReservationProperty } from "@/data/mock-reservations";
+import { useNfsReservationWithProperty } from "@/hooks/useNfsReservations";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -12,9 +12,10 @@ export default function TravelerReservationDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { formatPrice } = useCurrency();
-  const { user, loading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  const { data: res, isLoading, error } = useNfsReservationWithProperty(id);
 
-  if (loading) {
+  if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
@@ -26,9 +27,15 @@ export default function TravelerReservationDetail() {
     return <Navigate to="/signin" replace />;
   }
 
-  const res = mockReservations.find(r => r.id === id);
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
-  if (!res) {
+  if (error || !res) {
     return (
       <div className="max-w-3xl mx-auto px-4 py-16">
         <NfsEmptyState icon={CalendarDays} title="Reservation not found" description="This reservation doesn't exist." actionLabel="View reservations" onAction={() => navigate('/traveler/reservations')} />
@@ -36,7 +43,12 @@ export default function TravelerReservationDetail() {
     );
   }
 
-  const prop = getReservationProperty(res);
+  const propData = res.nfs_properties;
+  const propTitle = propData?.public_title ?? "Unknown Property";
+  const propImage = propData?.images?.[0]?.url ?? "";
+  const propCity = propData?.city ?? "";
+  const propCountry = propData?.country ?? "";
+
   const nights = differenceInDays(parseISO(res.check_out), parseISO(res.check_in));
   const canCancel = res.status === 'confirmed' || res.status === 'pending';
 
@@ -47,22 +59,36 @@ export default function TravelerReservationDetail() {
       </button>
 
       <div className="bg-card border border-border rounded-2xl overflow-hidden">
-        <div className="relative h-48">
-          <img src={prop.image} alt={prop.title} className="w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-          <div className="absolute bottom-4 left-4 right-4">
-            <h1 className="text-xl font-bold text-white">{prop.title}</h1>
-            <div className="flex items-center gap-1 text-white/80 text-sm mt-1">
-              <MapPin className="w-3 h-3" />{prop.city}, {prop.country}
+        {propImage && (
+          <div className="relative h-48">
+            <img src={propImage} alt={propTitle} className="w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+            <div className="absolute bottom-4 left-4 right-4">
+              <h1 className="text-xl font-bold text-white">{propTitle}</h1>
+              {(propCity || propCountry) && (
+                <div className="flex items-center gap-1 text-white/80 text-sm mt-1">
+                  <MapPin className="w-3 h-3" />{[propCity, propCountry].filter(Boolean).join(', ')}
+                </div>
+              )}
             </div>
           </div>
-        </div>
+        )}
+        {!propImage && (
+          <div className="p-6 pb-0">
+            <h1 className="text-xl font-bold">{propTitle}</h1>
+            {(propCity || propCountry) && (
+              <div className="flex items-center gap-1 text-muted-foreground text-sm mt-1">
+                <MapPin className="w-3 h-3" />{[propCity, propCountry].filter(Boolean).join(', ')}
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="p-6 space-y-6">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs text-muted-foreground">Reservation</p>
-              <p className="font-mono text-sm font-semibold">{res.id.toUpperCase()}</p>
+              <p className="font-mono text-sm font-semibold">{res.id.slice(0, 8).toUpperCase()}</p>
             </div>
             <NfsStatusBadge status={res.status} />
           </div>
@@ -123,8 +149,8 @@ export default function TravelerReservationDetail() {
       </div>
 
       <div className="mt-4 text-center">
-        <Button data-feature="NFSTAY__TRAVELER_DETAIL_PROPERTY" variant="outline" className="rounded-xl" asChild>
-          <Link to={`/property/${res.property_id}`}>View property</Link>
+        <Button data-feature="NFSTAY__TRAVELER_DETAIL_PROPERTY" variant="outline" className="rounded-xl" onClick={() => navigate(`/property/${res.property_id}`)}>
+          View property
         </Button>
       </div>
     </div>

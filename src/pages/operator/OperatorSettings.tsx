@@ -24,6 +24,7 @@ interface ProfileForm {
   first_name: string;
   last_name: string;
   persona_type: string;
+  booking_mode: string;
 }
 
 interface ContactForm {
@@ -76,6 +77,7 @@ const EMPTY_PROFILE: ProfileForm = {
   first_name: "",
   last_name: "",
   persona_type: "",
+  booking_mode: "instant",
 };
 
 const EMPTY_CONTACT: ContactForm = {
@@ -151,6 +153,7 @@ export default function OperatorSettings() {
         first_name: operator.first_name || "",
         last_name: operator.last_name || "",
         persona_type: operator.persona_type || "",
+        booking_mode: operator.booking_mode || "instant",
       });
       setContactForm({
         contact_email: operator.contact_email || "",
@@ -207,6 +210,7 @@ export default function OperatorSettings() {
       first_name: profileForm.first_name || null,
       last_name: profileForm.last_name || null,
       persona_type: profileForm.persona_type || null,
+      booking_mode: profileForm.booking_mode || "instant",
     });
 
   const handleSaveContact = () =>
@@ -363,6 +367,42 @@ export default function OperatorSettings() {
               </div>
             </div>
           </section>
+
+          <section className="bg-card border border-border rounded-2xl p-6 space-y-4">
+            <h2 className="text-lg font-semibold">Booking Acceptance</h2>
+            <p className="text-sm text-muted-foreground">Choose how new bookings are handled for your properties.</p>
+            <div className="space-y-3">
+              <label className={`flex items-start gap-3 p-3 border rounded-xl cursor-pointer transition-colors ${profileForm.booking_mode === 'instant' ? 'border-primary bg-primary/5' : 'border-border'}`}>
+                <input
+                  type="radio"
+                  name="booking_mode"
+                  value="instant"
+                  checked={profileForm.booking_mode === 'instant'}
+                  onChange={() => setProfileForm(p => ({ ...p, booking_mode: 'instant' }))}
+                  className="mt-1"
+                />
+                <div>
+                  <p className="text-sm font-medium">Instant booking</p>
+                  <p className="text-xs text-muted-foreground">Reservations are automatically confirmed after payment.</p>
+                </div>
+              </label>
+              <label className={`flex items-start gap-3 p-3 border rounded-xl cursor-pointer transition-colors ${profileForm.booking_mode === 'request' ? 'border-primary bg-primary/5' : 'border-border'}`}>
+                <input
+                  type="radio"
+                  name="booking_mode"
+                  value="request"
+                  checked={profileForm.booking_mode === 'request'}
+                  onChange={() => setProfileForm(p => ({ ...p, booking_mode: 'request' }))}
+                  className="mt-1"
+                />
+                <div>
+                  <p className="text-sm font-medium">Request to book</p>
+                  <p className="text-xs text-muted-foreground">You manually approve or reject each booking request.</p>
+                </div>
+              </label>
+            </div>
+          </section>
+
           <div className="flex justify-end">
             <Button data-feature="NFSTAY__OP_SETTINGS_SAVE" onClick={handleSaveProfile} className="rounded-lg" disabled={saving === "Profile"}>
               {saving === "Profile" ? "Saving..." : "Save Profile"}

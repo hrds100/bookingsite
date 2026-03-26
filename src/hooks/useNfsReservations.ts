@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import { mockReservations, type MockReservation, updateMockReservationStatus } from "@/data/mock-reservations";
+import { mockReservations, type MockReservation, updateMockReservationStatus, getReservationProperty } from "@/data/mock-reservations";
 
 const SUPABASE_CONFIGURED = !!import.meta.env.VITE_SUPABASE_URL && !!import.meta.env.VITE_SUPABASE_ANON_KEY;
 
@@ -84,6 +84,70 @@ export function useNfsReservation(id: string | undefined) {
       }
 
       return data as unknown as MockReservation;
+    },
+    enabled: !!id,
+  });
+}
+
+/** Fetch single reservation by ID with joined property data */
+export function useNfsReservationWithProperty(id: string | undefined) {
+  return useQuery({
+    queryKey: ["nfs-reservation-with-property", id],
+    queryFn: async (): Promise<ReservationWithProperty | null> => {
+      if (!id) return null;
+
+      if (id.startsWith("res-")) {
+        const mock = mockReservations.find(r => r.id === id);
+        if (!mock) return null;
+        const propInfo = getReservationProperty(mock);
+        return {
+          ...mock,
+          nfs_properties: {
+            public_title: propInfo.title,
+            images: propInfo.image ? [{ url: propInfo.image }] : null,
+            city: propInfo.city,
+            country: propInfo.country,
+          },
+        };
+      }
+
+      if (!SUPABASE_CONFIGURED) {
+        const mock = mockReservations.find(r => r.id === id);
+        if (!mock) return null;
+        const propInfo = getReservationProperty(mock);
+        return {
+          ...mock,
+          nfs_properties: {
+            public_title: propInfo.title,
+            images: propInfo.image ? [{ url: propInfo.image }] : null,
+            city: propInfo.city,
+            country: propInfo.country,
+          },
+        };
+      }
+
+      const { data, error } = await supabase
+        .from("nfs_reservations")
+        .select("*, nfs_properties(public_title, images, city, country)")
+        .eq("id", id)
+        .maybeSingle();
+
+      if (error || !data) {
+        const mock = mockReservations.find(r => r.id === id);
+        if (!mock) return null;
+        const propInfo = getReservationProperty(mock);
+        return {
+          ...mock,
+          nfs_properties: {
+            public_title: propInfo.title,
+            images: propInfo.image ? [{ url: propInfo.image }] : null,
+            city: propInfo.city,
+            country: propInfo.country,
+          },
+        };
+      }
+
+      return data as unknown as ReservationWithProperty;
     },
     enabled: !!id,
   });

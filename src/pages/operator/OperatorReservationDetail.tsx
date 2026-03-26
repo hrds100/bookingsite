@@ -1,19 +1,34 @@
+import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { format, parseISO, differenceInDays } from "date-fns";
-import { ArrowLeft, CalendarDays, Users, CreditCard } from "lucide-react";
+import { ArrowLeft, CalendarDays, Users, CreditCard, CheckCircle, XCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { NfsStatusBadge } from "@/components/nfs/NfsStatusBadge";
 import { NfsEmptyState } from "@/components/nfs/NfsEmptyState";
-import { mockReservations, getReservationProperty } from "@/data/mock-reservations";
+import { useNfsReservation, useNfsUpdateReservation } from "@/hooks/useNfsReservations";
 import { useCurrency } from "@/contexts/CurrencyContext";
+import { toast } from "@/hooks/use-toast";
+import { notifyBookingConfirmed } from "@/lib/n8n";
 
 export default function OperatorReservationDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { formatPrice } = useCurrency();
-  const res = mockReservations.find(r => r.id === id);
+  const { data: res, isLoading, error } = useNfsReservation(id);
+  const updateReservation = useNfsUpdateReservation();
+  const [rejectReason, setRejectReason] = useState("");
+  const [showRejectForm, setShowRejectForm] = useState(false);
 
-  if (!res) {
+  if (isLoading) {
+    return (
+      <div className="p-6 max-w-3xl mx-auto flex items-center justify-center min-h-[300px]">
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (error || !res) {
     return (
       <div className="p-6 max-w-3xl mx-auto">
         <NfsEmptyState icon={CalendarDays} title="Reservation not found" description="This reservation doesn't exist." actionLabel="View reservations" onAction={() => navigate('/nfstay/reservations')} />
@@ -21,8 +36,59 @@ export default function OperatorReservationDetail() {
     );
   }
 
-  const prop = getReservationProperty(res);
   const nights = differenceInDays(parseISO(res.check_out), parseISO(res.check_in));
+  const isPendingApproval = res.status === 'pending_approval' || res.status === 'pending';
+
+  const handleAccept = async () => {
+    try {
+      await updateReservation.mutateAsync({ id: res.id, status: "confirmed" });
+      toast({ title: "Reservation accepted", description: "The guest has been notified." });
+      // Fire n8n notification to guest
+      notifyBookingConfirmed({
+        reservationId: res.id,
+        guestName: `${res.guest_first_name} ${res.guest_last_name}`,
+        guestEmail: res.guest_email,
+        propertyTitle: res.property_id,
+        propertyCity: "",
+        propertyCountry: "",
+        checkIn: res.check_in,
+        checkOut: res.check_out,
+        nights,
+        adults: res.adults,
+        children: res.children,
+        total: res.total_amount,
+        currency: res.payment_currency,
+      });
+    } catch {
+      toast({ title: "Error", description: "Could not accept reservation. Try again.", variant: "destructive" });
+    }
+  };
+
+  const handleReject = async () => {
+    try {
+      await updateReservation.mutateAsync({ id: res.id, status: "rejected" });
+      toast({ title: "Reservation rejected", description: rejectReason ? `Reason: ${rejectReason}` : "The guest has been notified." });
+      // Fire n8n notification with rejection status
+      notifyBookingConfirmed({
+        reservationId: res.id,
+        guestName: `${res.guest_first_name} ${res.guest_last_name}`,
+        guestEmail: res.guest_email,
+        propertyTitle: res.property_id,
+        propertyCity: "",
+        propertyCountry: "",
+        checkIn: res.check_in,
+        checkOut: res.check_out,
+        nights,
+        adults: res.adults,
+        children: res.children,
+        total: res.total_amount,
+        currency: res.payment_currency,
+      });
+      setShowRejectForm(false);
+    } catch {
+      toast({ title: "Error", description: "Could not reject reservation. Try again.", variant: "destructive" });
+    }
+  };
 
   return (
     <div data-feature="NFSTAY__OP_RESERVATION_DETAIL" className="p-6 max-w-3xl">
@@ -34,17 +100,12 @@ export default function OperatorReservationDetail() {
         <div className="flex items-center justify-between">
           <div>
             <p className="text-xs text-muted-foreground">Reservation</p>
-            <p className="font-mono text-sm font-semibold">{res.id.toUpperCase()}</p>
+            <p className="font-mono text-sm font-semibold">{res.id.slice(0, 8).toUpperCase()}</p>
           </div>
           <NfsStatusBadge status={res.status} />
         </div>
 
         <hr className="border-border" />
-
-        <div>
-          <h2 className="text-lg font-semibold">{prop.title}</h2>
-          <p className="text-sm text-muted-foreground">{prop.city}, {prop.country}</p>
-        </div>
 
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div>
@@ -87,6 +148,71 @@ export default function OperatorReservationDetail() {
             <NfsStatusBadge status={res.payment_status} />
           </div>
         </div>
+
+        {/* Accept / Reject buttons — only for pending reservations */}
+        {isPendingApproval && (
+          <>
+            <hr className="border-border" />
+            <div data-feature="NFSTAY__OP_RESERVATION_ACTIONS" className="space-y-3">
+              <h3 className="text-sm font-semibold">Actions</h3>
+
+              {!showRejectForm ? (
+                <div className="flex gap-3">
+                  <Button
+                    onClick={handleAccept}
+                    disabled={updateReservation.isPending}
+                    className="rounded-lg flex items-center gap-2"
+                  >
+                    {updateReservation.isPending ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <CheckCircle className="w-4 h-4" />
+                    )}
+                    Accept
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={() => setShowRejectForm(true)}
+                    disabled={updateReservation.isPending}
+                    className="rounded-lg flex items-center gap-2"
+                  >
+                    <XCircle className="w-4 h-4" />
+                    Reject
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-3 bg-destructive/5 border border-destructive/20 rounded-xl p-4">
+                  <p className="text-sm font-medium text-destructive">Reject this reservation?</p>
+                  <Textarea
+                    placeholder="Reason for rejection (optional)"
+                    value={rejectReason}
+                    onChange={(e) => setRejectReason(e.target.value)}
+                    rows={2}
+                  />
+                  <div className="flex gap-3">
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={handleReject}
+                      disabled={updateReservation.isPending}
+                      className="rounded-lg"
+                    >
+                      {updateReservation.isPending ? "Rejecting..." : "Confirm Reject"}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowRejectForm(false)}
+                      className="rounded-lg"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
