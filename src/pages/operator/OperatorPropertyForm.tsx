@@ -201,6 +201,7 @@ export default function OperatorPropertyForm() {
   const [checkInTime, setCheckInTime] = useState("15:00");
   const [checkOutTime, setCheckOutTime] = useState("11:00");
   const [rules, setRules] = useState("");
+  const [propertyAddons, setPropertyAddons] = useState<{ id: string; name: string; price: number; description: string }[]>([]);
   const [loadingProperty, setLoadingProperty] = useState(false);
 
   const saving = createMutation.isPending || updateMutation.isPending;
@@ -262,6 +263,7 @@ export default function OperatorPropertyForm() {
         setCheckInTime(data.check_in_time || "15:00");
         setCheckOutTime(data.check_out_time || "11:00");
         setRules(data.rules || "");
+        setPropertyAddons(Array.isArray(data.addons) ? data.addons : []);
       } catch (err) {
         if (!cancelled) {
           toast({ title: "Error", description: "Failed to load property data.", variant: "destructive" });
@@ -397,7 +399,8 @@ export default function OperatorPropertyForm() {
     check_in_time: checkInTime,
     check_out_time: checkOutTime,
     rules,
-  });
+    addons: propertyAddons,
+  } as PropertyFields & { addons: typeof propertyAddons });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1030,6 +1033,96 @@ export default function OperatorPropertyForm() {
                 onChange={(e) => setCleaningFeeAmount(e.target.value ? parseFloat(e.target.value) : "")}
               />
             )}
+          </div>
+        </section>
+
+        {/* Guest Add-ons */}
+        <section className="bg-card border border-border rounded-2xl p-4 md:p-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold">Guest Add-ons</h2>
+              <p className="text-xs text-muted-foreground">Optional extras guests can add during booking</p>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="rounded-lg"
+              onClick={() =>
+                setPropertyAddons((prev) => [
+                  ...prev,
+                  { id: crypto.randomUUID(), name: "", price: 0, description: "" },
+                ])
+              }
+            >
+              <Plus className="w-4 h-4 mr-1" /> Add
+            </Button>
+          </div>
+
+          {propertyAddons.length === 0 && (
+            <p className="text-sm text-muted-foreground py-4 text-center">
+              No add-ons configured. Click "Add" to create one.
+            </p>
+          )}
+
+          <div className="space-y-3">
+            {propertyAddons.map((addon, idx) => (
+              <div key={addon.id} className="flex items-start gap-3 p-3 rounded-xl border border-border">
+                <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div>
+                    <Label>Name *</Label>
+                    <Input
+                      placeholder="e.g. Early check-in"
+                      className="mt-1"
+                      value={addon.name}
+                      onChange={(e) =>
+                        setPropertyAddons((prev) =>
+                          prev.map((a, i) => (i === idx ? { ...a, name: e.target.value } : a))
+                        )
+                      }
+                    />
+                  </div>
+                  <div>
+                    <Label>Price ({baseRateCurrency})</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      step={0.01}
+                      placeholder="0"
+                      className="mt-1"
+                      value={addon.price || ""}
+                      onChange={(e) =>
+                        setPropertyAddons((prev) =>
+                          prev.map((a, i) =>
+                            i === idx ? { ...a, price: e.target.value ? parseFloat(e.target.value) : 0 } : a
+                          )
+                        )
+                      }
+                    />
+                  </div>
+                  <div>
+                    <Label>Description</Label>
+                    <Input
+                      placeholder="e.g. Check in from 10 AM"
+                      className="mt-1"
+                      value={addon.description}
+                      onChange={(e) =>
+                        setPropertyAddons((prev) =>
+                          prev.map((a, i) => (i === idx ? { ...a, description: e.target.value } : a))
+                        )
+                      }
+                    />
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setPropertyAddons((prev) => prev.filter((_, i) => i !== idx))}
+                  className="mt-6 p-2 rounded-lg hover:bg-destructive/10 text-destructive"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
           </div>
         </section>
 

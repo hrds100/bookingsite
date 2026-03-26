@@ -115,6 +115,8 @@ export default function NfsCheckoutPage() {
           guestEmail: email,
           guestName: `${firstName} ${lastName}`.trim(),
           promoCode: intent.promoCode || undefined,
+          addons: intent.addons || [],
+          addonsTotal: intent.addonsTotal || 0,
         },
       });
 

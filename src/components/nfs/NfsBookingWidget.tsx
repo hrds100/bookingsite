@@ -1,17 +1,24 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { format, differenceInDays } from "date-fns";
-import { CalendarDays, Users, Minus, Plus, Lock, Clock, Car, Gift } from "lucide-react";
+import { CalendarDays, Users, Minus, Plus, Lock, Clock, Car, Gift, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { useCurrency } from "@/contexts/CurrencyContext";
-import { validatePromoCode, calculatePromoDiscount } from "@/data/mock-promo-codes";
+import { validatePromoCode as validatePromoCodeReal } from "@/lib/promo-codes";
 import { mockAddons } from "@/data/mock-addons";
-import type { MockPromoCode } from "@/data/mock-promo-codes";
 import type { MockProperty } from "@/data/mock-properties";
 import type { DateRange } from "react-day-picker";
+
+/** Canonical add-on shape used throughout the booking flow */
+export interface BookingAddon {
+  id: string;
+  name: string;
+  price: number;
+  description?: string;
+}
 
 interface NfsBookingWidgetProps {
   property: MockProperty;
@@ -23,14 +30,36 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
   const [adults, setAdults] = useState(1);
   const [children, setChildren] = useState(0);
   const [promoCode, setPromoCode] = useState('');
-  const [promoApplied, setPromoApplied] = useState<MockPromoCode | null>(null);
+  const [promoApplied, setPromoApplied] = useState<{ code: string; discount: number; label: string } | null>(null);
   const [promoError, setPromoError] = useState('');
+  const [promoLoading, setPromoLoading] = useState(false);
   const [guestsOpen, setGuestsOpen] = useState(false);
   const [selectedAddons, setSelectedAddons] = useState<string[]>([]);
 
-  const { currency, convert, formatPrice } = useCurrency();
+  const { currency, convert } = useCurrency();
   const fromCur = property.base_rate_currency;
   const sym = currency.symbol;
+
+  // Resolve add-ons: prefer property.addons (jsonb from DB), fall back to mock
+  const addons: BookingAddon[] = useMemo(() => {
+    const raw = (property as any).addons;
+    if (Array.isArray(raw) && raw.length > 0) {
+      return raw.map((a: any, i: number) => ({
+        id: a.id || `addon-${i}`,
+        name: a.name || a.label || 'Add-on',
+        price: typeof a.price === 'number' ? a.price : 0,
+        description: a.description || '',
+      }));
+    }
+    // Fall back to mock add-ons
+    return mockAddons.map(a => ({
+      id: a.id,
+      name: a.label,
+      price: a.price,
+      description: a.description,
+    }));
+  }, [(property as any).addons]);
+
   // Convert all prices from property's native currency to user's selected currency
   const rate = convert(property.base_rate_amount, fromCur);
   const nights = dateRange?.from && dateRange?.to ? differenceInDays(dateRange.to, dateRange.from) : 0;
@@ -43,24 +72,37 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
     ? Math.round(subtotal * property.monthly_discount.percentage / 100)
     : 0;
   const discount = monthlyDiscount || weeklyDiscount;
-  const promoDiscount = promoApplied ? calculatePromoDiscount(promoApplied, subtotal) : 0;
+  const promoDiscount = promoApplied ? Math.round(subtotal * promoApplied.discount / 100) : 0;
   const serviceFee = Math.round((subtotal - discount) * 0.05);
   const taxes = 0; // placeholder
-  const addonsTotal = mockAddons
+  const addonsTotal = addons
     .filter(a => selectedAddons.includes(a.id))
-    .reduce((sum, a) => sum + convert(a.price), 0);
+    .reduce((sum, a) => sum + convert(a.price, fromCur), 0);
   const total = subtotal + cleaningFee + serviceFee + taxes + addonsTotal - discount - promoDiscount;
 
-  const handleApplyPromo = () => {
+  const handleApplyPromo = async () => {
     setPromoError('');
     if (!promoCode.trim()) return;
-    const found = validatePromoCode(promoCode);
-    if (found) {
-      setPromoApplied(found);
-      setPromoError('');
-    } else {
+
+    setPromoLoading(true);
+    try {
+      const result = await validatePromoCodeReal(promoCode);
+      if (result.valid) {
+        setPromoApplied({
+          code: result.code || promoCode.toUpperCase().trim(),
+          discount: result.discount,
+          label: `${result.discount}% off`,
+        });
+        setPromoError('');
+      } else {
+        setPromoApplied(null);
+        setPromoError(result.message || 'Invalid promo code');
+      }
+    } catch {
       setPromoApplied(null);
-      setPromoError('Invalid promo code');
+      setPromoError('Could not validate code. Try again.');
+    } finally {
+      setPromoLoading(false);
     }
   };
 
@@ -77,6 +119,7 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
   };
 
   const handleReserve = () => {
+    const selectedAddonObjects = addons.filter(a => selectedAddons.includes(a.id));
     const intent = {
       propertyId: property.id,
       propertyTitle: property.public_title,
@@ -97,7 +140,12 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
       promoLabel: promoApplied ? promoApplied.label : '',
       serviceFee,
       taxes,
-      addons: mockAddons.filter(a => selectedAddons.includes(a.id)),
+      addons: selectedAddonObjects.map(a => ({
+        id: a.id,
+        label: a.name,
+        description: a.description || '',
+        price: convert(a.price, fromCur),
+      })),
       addonsTotal,
       total,
       currency: property.base_rate_currency,
@@ -127,12 +175,10 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
     </div>
   );
 
-  const addonIcon = (iconName: string) => {
-    switch (iconName) {
-      case 'car': return <Car className="w-4 h-4" />;
-      case 'gift': return <Gift className="w-4 h-4" />;
-      default: return <Clock className="w-4 h-4" />;
-    }
+  const addonIcon = (addonId: string) => {
+    if (addonId.includes('transfer') || addonId.includes('car') || addonId.includes('taxi')) return <Car className="w-4 h-4" />;
+    if (addonId.includes('basket') || addonId.includes('gift') || addonId.includes('welcome')) return <Gift className="w-4 h-4" />;
+    return <Clock className="w-4 h-4" />;
   };
 
   return (
@@ -192,11 +238,11 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
       </Popover>
 
       {/* Add-ons */}
-      {nights > 0 && (
+      {nights > 0 && addons.length > 0 && (
         <div data-feature="NFSTAY__WIDGET_ADDONS" className="mb-4 space-y-2">
           <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Enhance your stay</p>
           <div className="grid grid-cols-2 gap-2">
-            {mockAddons.map(addon => {
+            {addons.map(addon => {
               const selected = selectedAddons.includes(addon.id);
               return (
                 <button
@@ -211,12 +257,14 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
                 >
                   <div className="flex items-center gap-1.5">
                     <span className={cn("text-muted-foreground", selected && "text-primary")}>
-                      {addonIcon(addon.id === 'airport-transfer' ? 'car' : addon.id === 'welcome-basket' ? 'gift' : 'clock')}
+                      {addonIcon(addon.id)}
                     </span>
-                    <span className={cn("font-medium text-xs", selected && "text-primary")}>{addon.label}</span>
+                    <span className={cn("font-medium text-xs", selected && "text-primary")}>{addon.name}</span>
                   </div>
-                  <span className="text-xs text-muted-foreground">{addon.description}</span>
-                  <span className={cn("text-xs font-semibold", selected ? "text-primary" : "text-foreground")}>{sym}{convert(addon.price)}</span>
+                  {addon.description && (
+                    <span className="text-xs text-muted-foreground">{addon.description}</span>
+                  )}
+                  <span className={cn("text-xs font-semibold", selected ? "text-primary" : "text-foreground")}>{sym}{convert(addon.price, fromCur)}</span>
                 </button>
               );
             })}
@@ -271,8 +319,18 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
                   onChange={(e) => { setPromoCode(e.target.value); setPromoError(''); }}
                   placeholder="Promo code"
                   className="flex-1 h-8 px-3 text-xs border border-input rounded-md bg-card outline-none focus:border-primary"
+                  disabled={promoLoading}
                 />
-                <Button data-testid="promo-apply" size="sm" variant="outline" className="h-8 text-xs" onClick={handleApplyPromo}>Apply</Button>
+                <Button
+                  data-testid="promo-apply"
+                  size="sm"
+                  variant="outline"
+                  className="h-8 text-xs"
+                  onClick={handleApplyPromo}
+                  disabled={promoLoading}
+                >
+                  {promoLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Apply'}
+                </Button>
               </div>
               {promoError && (
                 <p data-testid="promo-error" className="text-xs text-destructive mt-1">{promoError}</p>
