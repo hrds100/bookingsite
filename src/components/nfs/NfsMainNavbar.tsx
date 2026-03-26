@@ -33,7 +33,7 @@ export function NfsMainNavbar() {
   const handleNavToggle = (mode: "traveler" | "reservations") => {
     if (mode === "reservations") {
       if (!user) {
-        navigate("/signin");
+        window.location.href = "https://hub.nfstay.com/signin";
         return;
       }
       navigate("/traveler/reservations");
@@ -228,12 +228,12 @@ export function NfsMainNavbar() {
                   <ChevronDown className="w-3 h-3" />
                 </button>
               ) : (
-                <Link
-                  to="/signin"
+                <a
+                  href="https://hub.nfstay.com/signin"
                   className="hidden sm:flex px-3 lg:px-4 py-1.5 lg:py-2 text-xs lg:text-sm font-medium bg-primary-gradient text-white rounded-full hover:opacity-90 transition-opacity"
                 >
                   Sign In
-                </Link>
+                </a>
               )}
 
               {/* Mobile user icon */}
@@ -326,30 +326,41 @@ export function NfsMainNavbar() {
                 <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide">Menu</h3>
               </div>
               {[
-                { label: "Find a stay", href: "/search" },
-                { label: "Reservations", href: "/traveler/reservations" },
-                { label: "Find your booking", href: "/booking" },
-                { label: "List your property", href: "/signup" },
-                { label: "FAQ", href: "#" },
+                { label: "Find a stay", href: "/search", external: false },
+                { label: "Reservations", href: "/traveler/reservations", external: false },
+                { label: "Find your booking", href: "/booking", external: false },
+                { label: "List your property", href: "https://hub.nfstay.com/signup", external: true },
+                { label: "FAQ", href: "#", external: false },
               ].map((link) => (
-                <Link
-                  key={link.label}
-                  to={link.href}
-                  onClick={() => setDrawerOpen(false)}
-                  className="flex items-center py-3 px-6 text-sm font-medium text-gray-700 hover:bg-accent-light hover:text-primary transition-colors duration-200 border-l-2 border-transparent hover:border-primary"
-                >
-                  {link.label}
-                </Link>
+                link.external ? (
+                  <a
+                    key={link.label}
+                    href={link.href}
+                    onClick={() => setDrawerOpen(false)}
+                    className="flex items-center py-3 px-6 text-sm font-medium text-gray-700 hover:bg-accent-light hover:text-primary transition-colors duration-200 border-l-2 border-transparent hover:border-primary"
+                  >
+                    {link.label}
+                  </a>
+                ) : (
+                  <Link
+                    key={link.label}
+                    to={link.href}
+                    onClick={() => setDrawerOpen(false)}
+                    className="flex items-center py-3 px-6 text-sm font-medium text-gray-700 hover:bg-accent-light hover:text-primary transition-colors duration-200 border-l-2 border-transparent hover:border-primary"
+                  >
+                    {link.label}
+                  </Link>
+                )
               ))}
             </div>
             <div className="border-t border-gray-100 bg-gradient-to-r from-emerald-50/50 to-emerald-50/30 py-6 px-6 space-y-4">
-              <Link
-                to="/signin"
+              <a
+                href="https://hub.nfstay.com/signin"
                 onClick={() => setDrawerOpen(false)}
                 className="block w-full px-4 py-3 font-medium bg-primary-gradient text-white rounded-xl hover:opacity-90 transition-opacity text-center shadow-lg shadow-emerald-500/25"
               >
                 Sign In
-              </Link>
+              </a>
               <div className="space-y-2">
                 <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Contact us</p>
                 {isWhiteLabel && wlOperator?.contact_whatsapp && (

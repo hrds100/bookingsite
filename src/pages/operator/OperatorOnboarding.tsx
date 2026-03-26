@@ -49,7 +49,8 @@ export default function OperatorOnboarding() {
   }
 
   if (!user) {
-    return <Navigate to="/signin" replace />;
+    window.location.href = "https://hub.nfstay.com/signin";
+    return null;
   }
 
   // Already an operator — go to dashboard
