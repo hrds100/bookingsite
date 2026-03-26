@@ -13,10 +13,7 @@ export default function AuthBridgePage() {
     const redirectTo = searchParams.get("redirect") || "/nfstay";
 
     if (!accessToken || !refreshToken) {
-      setStatus("Invalid link. Redirecting...");
-      setTimeout(() => {
-        window.location.href = "https://hub.nfstay.com/signin";
-      }, 2000);
+      window.location.href = "https://hub.nfstay.com/signin";
       return;
     }
 
