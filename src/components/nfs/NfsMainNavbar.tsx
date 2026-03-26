@@ -33,7 +33,7 @@ export function NfsMainNavbar() {
   const handleNavToggle = (mode: "traveler" | "reservations") => {
     if (mode === "reservations") {
       if (!user) {
-        window.location.href = "https://hub.nfstay.com/signin";
+        navigate("/signin");
         return;
       }
       navigate("/traveler/reservations");
@@ -228,12 +228,12 @@ export function NfsMainNavbar() {
                   <ChevronDown className="w-3 h-3" />
                 </button>
               ) : (
-                <a
-                  href="https://hub.nfstay.com/signin"
+                <Link
+                  to="/signin"
                   className="hidden sm:flex px-3 lg:px-4 py-1.5 lg:py-2 text-xs lg:text-sm font-medium bg-primary-gradient text-white rounded-full hover:opacity-90 transition-opacity"
                 >
                   Sign In
-                </a>
+                </Link>
               )}
 
               {/* Mobile user icon */}
@@ -354,13 +354,13 @@ export function NfsMainNavbar() {
               ))}
             </div>
             <div className="border-t border-gray-100 bg-gradient-to-r from-emerald-50/50 to-emerald-50/30 py-6 px-6 space-y-4">
-              <a
-                href="https://hub.nfstay.com/signin"
+              <Link
+                to="/signin"
                 onClick={() => setDrawerOpen(false)}
                 className="block w-full px-4 py-3 font-medium bg-primary-gradient text-white rounded-xl hover:opacity-90 transition-opacity text-center shadow-lg shadow-emerald-500/25"
               >
                 Sign In
-              </a>
+              </Link>
               <div className="space-y-2">
                 <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Contact us</p>
                 {isWhiteLabel && wlOperator?.contact_whatsapp && (
