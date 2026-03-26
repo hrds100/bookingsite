@@ -43,6 +43,7 @@ import OAuthCallbackPage from "./pages/OAuthCallbackPage";
 import AuthCallbackPage from "./pages/AuthCallbackPage";
 import WalletProvisioner from "./components/WalletProvisioner";
 import FeatureInspector from "./components/dev/FeatureInspector";
+import AuthBridgePage from "./pages/AuthBridgePage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -98,6 +99,7 @@ const App = () => (
             <Route path="/nfstay/onboarding" element={<OperatorOnboarding />} />
             <Route path="/nfstay/oauth-callback" element={<OAuthCallbackPage />} />
             <Route path="/auth/callback" element={<AuthCallbackPage />} />
+            <Route path="/auth/bridge" element={<AuthBridgePage />} />
             <Route path="/signin" element={<SignInPage />} />
             <Route path="/signup" element={<SignUpPage />} />
             <Route path="/terms" element={<TermsPage />} />

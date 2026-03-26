@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { LayoutDashboard, Building2, CalendarDays, BarChart3, Settings, Plus, LogOut } from "lucide-react";
+import { LayoutDashboard, Building2, CalendarDays, BarChart3, Settings, Plus, LogOut, ExternalLink } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { NfsLogo } from "./NfsLogo";
 import { useLocation } from "react-router-dom";
@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import { getBridgeUrl } from "@/lib/authBridge";
 
 const navItems = [
   { title: "Dashboard", url: "/nfstay", icon: LayoutDashboard },
@@ -86,6 +87,19 @@ export function NfsOperatorSidebar() {
 
       <SidebarFooter className="p-4">
         <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild>
+              <button
+                onClick={() => {
+                  window.open(getBridgeUrl("https://hub.nfstay.com", "/dashboard/deals"), "_blank");
+                }}
+                className="hover:bg-sidebar-accent text-muted-foreground w-full text-left flex items-center"
+              >
+                <ExternalLink className="mr-2 h-4 w-4" />
+                {!collapsed && <span>Open Hub Dashboard</span>}
+              </button>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
               <Link to="/" data-feature="NFSTAY__OP_LOGOUT" className="hover:bg-sidebar-accent text-muted-foreground">

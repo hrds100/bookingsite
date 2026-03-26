@@ -58,7 +58,7 @@ export function NfsPropertyCard({ property, onHover }: NfsPropertyCardProps) {
         <button
           data-feature="NFSTAY__CARD_FAVOURITE"
           onClick={toggleFavourite}
-          className="absolute top-3 right-3 z-10 p-1.5 rounded-full bg-card/80 backdrop-blur-sm hover:bg-card transition"
+          className="absolute top-3 right-3 z-10 p-2.5 rounded-full bg-card/80 backdrop-blur-sm hover:bg-card transition"
         >
           <Heart className={`w-4 h-4 ${isFavourite ? 'fill-destructive text-destructive' : 'text-foreground'}`} />
         </button>
@@ -76,7 +76,7 @@ export function NfsPropertyCard({ property, onHover }: NfsPropertyCardProps) {
             {currentImage > 0 && (
               <button
                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); setCurrentImage(currentImage - 1); }}
-                className="absolute left-2 top-1/2 -translate-y-1/2 z-10 p-1.5 rounded-full bg-card/80 backdrop-blur-sm hover:bg-card transition opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
+                className="absolute left-2 top-1/2 -translate-y-1/2 z-10 p-2.5 rounded-full bg-card/80 backdrop-blur-sm hover:bg-card transition opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
@@ -84,7 +84,7 @@ export function NfsPropertyCard({ property, onHover }: NfsPropertyCardProps) {
             {currentImage < sortedImages.length - 1 && (
               <button
                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); setCurrentImage(currentImage + 1); }}
-                className="absolute right-2 top-1/2 -translate-y-1/2 z-10 p-1.5 rounded-full bg-card/80 backdrop-blur-sm hover:bg-card transition opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
+                className="absolute right-2 top-1/2 -translate-y-1/2 z-10 p-2.5 rounded-full bg-card/80 backdrop-blur-sm hover:bg-card transition opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
               >
                 <ChevronRight className="w-4 h-4" />
               </button>
@@ -140,7 +140,7 @@ export function NfsPropertyCard({ property, onHover }: NfsPropertyCardProps) {
           </div>
           <div className="text-right">
             <span className="text-sm font-bold text-foreground">{formatPrice(property.base_rate_amount, property.base_rate_currency)}</span>
-            <span className="text-[11px] text-muted-foreground block leading-tight">avg per night</span>
+            <span className="text-xs text-muted-foreground block leading-tight">avg per night</span>
           </div>
         </div>
       </div>

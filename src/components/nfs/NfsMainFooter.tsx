@@ -62,8 +62,8 @@ export function NfsMainFooter() {
             <div data-feature="NFSTAY__FOOTER_OPERATORS">
               <h4 className="text-sm font-semibold text-foreground mb-3">For Operators</h4>
               <ul className="space-y-2">
-                <li><Link to="/signup" className="text-sm text-muted-foreground hover:text-primary transition-colors">List your property</Link></li>
-                <li><Link to="/signup" className="text-sm text-muted-foreground hover:text-primary transition-colors">Sign up</Link></li>
+                <li><a href="https://hub.nfstay.com/signup" className="text-sm text-muted-foreground hover:text-primary transition-colors">List your property</a></li>
+                <li><a href="https://hub.nfstay.com/signup" className="text-sm text-muted-foreground hover:text-primary transition-colors">Sign up</a></li>
                 <li><a href="#how-it-works" className="text-sm text-muted-foreground hover:text-primary transition-colors">How it works</a></li>
                 <li><a href="#" className="text-sm text-muted-foreground hover:text-primary transition-colors">Pricing</a></li>
               </ul>

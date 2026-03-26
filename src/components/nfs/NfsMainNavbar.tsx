@@ -33,7 +33,7 @@ export function NfsMainNavbar() {
   const handleNavToggle = (mode: "traveler" | "reservations") => {
     if (mode === "reservations") {
       if (!user) {
-        navigate("/signin");
+        window.location.href = "https://hub.nfstay.com/signin";
         return;
       }
       navigate("/traveler/reservations");
@@ -63,7 +63,7 @@ export function NfsMainNavbar() {
   return (
     <>
       {/* Main navbar */}
-      <nav data-feature="NFSTAY__NAVBAR" className="sticky top-0 left-0 right-0 w-full h-16 sm:h-20 bg-white z-50">
+      <nav data-feature="NFSTAY__NAVBAR" className="sticky top-0 left-0 right-0 w-full h-16 sm:h-20 bg-white z-50 overflow-x-hidden">
         <div className="max-w-full mx-auto xl:px-10 md:px-10 sm:px-4 px-3 h-full">
           <div className={`${isSearchPage ? "flex justify-between items-center" : "grid grid-cols-3"} h-full gap-2 sm:gap-3 md:gap-0`}>
 
@@ -165,7 +165,7 @@ export function NfsMainNavbar() {
                 <div className="relative">
                   <button
                     onClick={() => setContactOpen(!contactOpen)}
-                    className="px-3 lg:px-4 py-1.5 lg:py-2 text-xs lg:text-sm font-medium border border-gray-200 rounded-full hover:bg-gray-50 transition-colors flex items-center gap-1"
+                    className="px-3 lg:px-4 py-2 lg:py-2 text-xs lg:text-sm font-medium border border-gray-200 rounded-full hover:bg-gray-50 transition-colors flex items-center gap-1"
                   >
                     Contact
                     <ChevronDown className={`w-3 h-3 transition-transform ${contactOpen ? 'rotate-180' : ''}`} />
@@ -228,12 +228,12 @@ export function NfsMainNavbar() {
                   <ChevronDown className="w-3 h-3" />
                 </button>
               ) : (
-                <Link
-                  to="/signin"
+                <a
+                  href="https://hub.nfstay.com/signin"
                   className="hidden sm:flex px-3 lg:px-4 py-1.5 lg:py-2 text-xs lg:text-sm font-medium bg-primary-gradient text-white rounded-full hover:opacity-90 transition-opacity"
                 >
                   Sign In
-                </Link>
+                </a>
               )}
 
               {/* Mobile user icon */}
@@ -250,7 +250,7 @@ export function NfsMainNavbar() {
               <button
                 data-feature="NFSTAY__NAVBAR_MENU"
                 onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="p-1.5 sm:p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                className="p-2.5 sm:p-2 hover:bg-gray-100 rounded-lg transition-colors"
               >
                 <Menu className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
@@ -263,7 +263,7 @@ export function NfsMainNavbar() {
       <div className={`fixed top-0 left-0 h-full w-[240px] sm:w-[300px] bg-white shadow-lg transform transition-transform duration-300 ease-in-out z-[60] ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
         <div className="p-4">
           <div className="flex justify-end">
-            <button onClick={() => setSidebarOpen(false)} className="p-1 hover:bg-gray-100 rounded-md">
+            <button onClick={() => setSidebarOpen(false)} className="p-2 hover:bg-gray-100 rounded-md">
               <X className="w-5 h-5" />
             </button>
           </div>
@@ -293,7 +293,7 @@ export function NfsMainNavbar() {
       {user ? (
         <div className={`fixed top-0 right-0 z-[60] h-full w-72 bg-white shadow-lg transform transition-transform duration-300 ${drawerOpen ? "translate-x-0" : "translate-x-full"}`}>
           <div className="flex justify-end p-4">
-            <button onClick={() => setDrawerOpen(false)} className="p-1 bg-gray-100 rounded-md">
+            <button onClick={() => setDrawerOpen(false)} className="p-2 bg-gray-100 rounded-md">
               <X className="w-5 h-5 text-gray-700" />
             </button>
           </div>
@@ -326,30 +326,41 @@ export function NfsMainNavbar() {
                 <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide">Menu</h3>
               </div>
               {[
-                { label: "Find a stay", href: "/search" },
-                { label: "Reservations", href: "/traveler/reservations" },
-                { label: "Find your booking", href: "/booking" },
-                { label: "List your property", href: "/signup" },
-                { label: "FAQ", href: "#" },
+                { label: "Find a stay", href: "/search", external: false },
+                { label: "Reservations", href: "/traveler/reservations", external: false },
+                { label: "Find your booking", href: "/booking", external: false },
+                { label: "List your property", href: "https://hub.nfstay.com/signup", external: true },
+                { label: "FAQ", href: "#", external: false },
               ].map((link) => (
-                <Link
-                  key={link.label}
-                  to={link.href}
-                  onClick={() => setDrawerOpen(false)}
-                  className="flex items-center py-3 px-6 text-sm font-medium text-gray-700 hover:bg-accent-light hover:text-primary transition-colors duration-200 border-l-2 border-transparent hover:border-primary"
-                >
-                  {link.label}
-                </Link>
+                link.external ? (
+                  <a
+                    key={link.label}
+                    href={link.href}
+                    onClick={() => setDrawerOpen(false)}
+                    className="flex items-center py-3 px-6 text-sm font-medium text-gray-700 hover:bg-accent-light hover:text-primary transition-colors duration-200 border-l-2 border-transparent hover:border-primary"
+                  >
+                    {link.label}
+                  </a>
+                ) : (
+                  <Link
+                    key={link.label}
+                    to={link.href}
+                    onClick={() => setDrawerOpen(false)}
+                    className="flex items-center py-3 px-6 text-sm font-medium text-gray-700 hover:bg-accent-light hover:text-primary transition-colors duration-200 border-l-2 border-transparent hover:border-primary"
+                  >
+                    {link.label}
+                  </Link>
+                )
               ))}
             </div>
             <div className="border-t border-gray-100 bg-gradient-to-r from-emerald-50/50 to-emerald-50/30 py-6 px-6 space-y-4">
-              <Link
-                to="/signin"
+              <a
+                href="https://hub.nfstay.com/signin"
                 onClick={() => setDrawerOpen(false)}
                 className="block w-full px-4 py-3 font-medium bg-primary-gradient text-white rounded-xl hover:opacity-90 transition-opacity text-center shadow-lg shadow-emerald-500/25"
               >
                 Sign In
-              </Link>
+              </a>
               <div className="space-y-2">
                 <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Contact us</p>
                 {isWhiteLabel && wlOperator?.contact_whatsapp && (

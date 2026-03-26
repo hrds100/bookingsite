@@ -120,9 +120,9 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
         <p className="text-xs text-muted-foreground">{sub}</p>
       </div>
       <div className="flex items-center gap-3">
-        <button onClick={() => onChange(Math.max(min, value - 1))} disabled={value <= min} className="w-7 h-7 rounded-full border border-border flex items-center justify-center disabled:opacity-30"><Minus className="w-3 h-3" /></button>
+        <button onClick={() => onChange(Math.max(min, value - 1))} disabled={value <= min} className="w-10 h-10 rounded-full border border-border flex items-center justify-center disabled:opacity-30"><Minus className="w-3.5 h-3.5" /></button>
         <span className="text-sm w-3 text-center">{value}</span>
-        <button onClick={() => onChange(value + 1)} disabled={disableIncrement} className="w-7 h-7 rounded-full border border-border flex items-center justify-center disabled:opacity-30"><Plus className="w-3 h-3" /></button>
+        <button onClick={() => onChange(value + 1)} disabled={disableIncrement} className="w-10 h-10 rounded-full border border-border flex items-center justify-center disabled:opacity-30"><Plus className="w-3.5 h-3.5" /></button>
       </div>
     </div>
   );
@@ -148,13 +148,13 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
           <button data-feature="NFSTAY__WIDGET_CHECKIN" className="w-full border border-border rounded-xl overflow-hidden mb-3">
             <div className="grid grid-cols-2 divide-x divide-border">
               <div className="p-3 text-left">
-                <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block">Check in</label>
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground block">Check in</label>
                 <span className={cn("text-sm", dateRange?.from ? "text-foreground" : "text-muted-foreground")}>
                   {dateRange?.from ? format(dateRange.from, 'MMM d, yyyy') : 'Add date'}
                 </span>
               </div>
               <div className="p-3 text-left">
-                <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block">Check out</label>
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground block">Check out</label>
                 <span className={cn("text-sm", dateRange?.to ? "text-foreground" : "text-muted-foreground")}>
                   {dateRange?.to ? format(dateRange.to, 'MMM d, yyyy') : 'Add date'}
                 </span>
@@ -178,7 +178,7 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
       <Popover open={guestsOpen} onOpenChange={setGuestsOpen}>
         <PopoverTrigger asChild>
           <button data-feature="NFSTAY__WIDGET_GUESTS" className="w-full border border-border rounded-xl p-3 text-left mb-4">
-            <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block">Guests (max {property.max_guests})</label>
+            <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground block">Guests (max {property.max_guests})</label>
             <div className="flex items-center gap-2 mt-0.5">
               <Users className="w-4 h-4 text-muted-foreground" />
               <span className="text-sm">{adults + children} guest{adults + children !== 1 ? 's' : ''}</span>
@@ -215,7 +215,7 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
                     </span>
                     <span className={cn("font-medium text-xs", selected && "text-primary")}>{addon.label}</span>
                   </div>
-                  <span className="text-[11px] text-muted-foreground">{addon.description}</span>
+                  <span className="text-xs text-muted-foreground">{addon.description}</span>
                   <span className={cn("text-xs font-semibold", selected ? "text-primary" : "text-foreground")}>{sym}{convert(addon.price)}</span>
                 </button>
               );
