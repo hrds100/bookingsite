@@ -89,6 +89,26 @@ serve(async (req) => {
       }),
     }).catch(() => {});
 
+    // Notify admin (Hugo) of every new booking
+    fetch(`${n8nBase}/nfstay-booking-enquiry`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        emailType: "admin_new_booking",
+        operatorEmail: "hugo@nfstay.com",
+        operatorName: "Admin",
+        guestName: reservation.guest_name,
+        guestEmail: reservation.guest_email,
+        propertyName: reservation.nfs_properties?.name,
+        checkIn: reservation.check_in,
+        checkOut: reservation.check_out,
+        totalAmount: reservation.total_amount,
+        status: newStatus,
+        reservationId: reservation.id,
+        operatorBrand: operator?.brand_name,
+      }),
+    }).catch(() => {});
+
     return new Response(JSON.stringify({ received: true, status: newStatus }), {
       status: 200,
       headers: { "Content-Type": "application/json" },
