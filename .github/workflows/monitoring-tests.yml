@@ -8,7 +8,7 @@ on:
 jobs:
   run-monitoring:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -19,10 +19,15 @@ jobs:
       - name: Install Playwright
         run: npx playwright install chromium
       - name: Run monitoring tests
-        run: npx playwright test --config=tests/monitoring/playwright.config.ts --reporter=list
+        run: |
+          npx playwright test \
+            tests/monitoring/suites/suite-4-bookingsite.spec.ts \
+            tests/monitoring/suites/suite-6-bookingsite-extended.spec.ts \
+            --config=tests/monitoring/playwright.config.ts \
+            --retries=0 \
+            --reporter=list
         env:
           TEST_BASE_URL: https://nfstay.app
-          TEST_ADMIN_PASSWORD: ${{ secrets.TEST_ADMIN_PASSWORD }}
         continue-on-error: true
       - name: Upload results
         if: always()

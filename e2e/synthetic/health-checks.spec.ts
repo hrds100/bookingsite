@@ -63,12 +63,16 @@ test.describe("Bookingsite Synthetic Health Checks", () => {
     const anonKey = process.env.SUPABASE_ANON_KEY;
     test.skip(!anonKey, "SUPABASE_ANON_KEY not set — skipping Supabase check");
 
-    const response = await request.get(`${SUPABASE_URL}/rest/v1/`, {
-      headers: {
-        apikey: anonKey!,
-        Authorization: `Bearer ${anonKey!}`,
-      },
-    });
+    // Query an actual table endpoint — the PostgREST root /rest/v1/ returns 401 by design
+    const response = await request.get(
+      `${SUPABASE_URL}/rest/v1/nfs_properties?select=id&limit=1`,
+      {
+        headers: {
+          apikey: anonKey!,
+          Authorization: `Bearer ${anonKey!}`,
+        },
+      }
+    );
     expect(response.status()).toBe(200);
   });
 });
