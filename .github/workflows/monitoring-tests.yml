@@ -24,8 +24,7 @@ jobs:
             tests/monitoring/suites/suite-4-bookingsite.spec.ts \
             tests/monitoring/suites/suite-6-bookingsite-extended.spec.ts \
             --config=tests/monitoring/playwright.config.ts \
-            --retries=0 \
-            --reporter=list
+            --retries=0
         env:
           TEST_BASE_URL: https://nfstay.app
         continue-on-error: true
