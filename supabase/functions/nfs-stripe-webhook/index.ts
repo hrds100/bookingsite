@@ -12,7 +12,60 @@ serve(async (req) => {
 
   try {
     const body = await req.text();
-    // For now, skip signature verification (add later with STRIPE_WEBHOOK_SECRET)
+
+    // Stripe signature verification (fail closed if secret is missing or signature is invalid)
+    const sigHeader = req.headers.get("stripe-signature");
+    if (!STRIPE_WEBHOOK_SECRET) {
+      console.error("STRIPE_WEBHOOK_SECRET is not set - rejecting webhook");
+      return new Response(JSON.stringify({ error: "Webhook secret not configured" }), { status: 500 });
+    }
+    if (!sigHeader) {
+      console.error("Missing stripe-signature header");
+      return new Response(JSON.stringify({ error: "Missing signature" }), { status: 400 });
+    }
+
+    // Parse Stripe-Signature header: t=timestamp,v1=signature
+    const parts = Object.fromEntries(
+      sigHeader.split(",").map((p) => {
+        const [key, ...val] = p.split("=");
+        return [key, val.join("=")];
+      })
+    );
+    const timestamp = parts["t"];
+    const expectedSig = parts["v1"];
+
+    if (!timestamp || !expectedSig) {
+      console.error("Malformed stripe-signature header");
+      return new Response(JSON.stringify({ error: "Malformed signature" }), { status: 400 });
+    }
+
+    // Verify HMAC-SHA256: signed_payload = timestamp + "." + body
+    const encoder = new TextEncoder();
+    const key = await crypto.subtle.importKey(
+      "raw",
+      encoder.encode(STRIPE_WEBHOOK_SECRET),
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["sign"]
+    );
+    const signedPayload = encoder.encode(`${timestamp}.${body}`);
+    const signatureBytes = await crypto.subtle.sign("HMAC", key, signedPayload);
+    const computedSig = Array.from(new Uint8Array(signatureBytes))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+
+    if (computedSig !== expectedSig) {
+      console.error("Stripe signature verification failed");
+      return new Response(JSON.stringify({ error: "Invalid signature" }), { status: 400 });
+    }
+
+    // Reject events older than 5 minutes (replay protection)
+    const eventAge = Math.abs(Date.now() / 1000 - Number(timestamp));
+    if (eventAge > 300) {
+      console.error("Stripe webhook timestamp too old:", eventAge, "seconds");
+      return new Response(JSON.stringify({ error: "Timestamp too old" }), { status: 400 });
+    }
+
     const event = JSON.parse(body);
 
     if (event.type !== "checkout.session.completed") {
