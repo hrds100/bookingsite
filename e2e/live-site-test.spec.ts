@@ -92,7 +92,7 @@ test.describe('/property/test-id', () => {
 
 // ─── 4. Signin /signin ──────────────────────────────────────────────────────
 test.describe('/signin', () => {
-  test('form renders with email, password, social buttons, submit', async ({ page }) => {
+  test('form renders with email, password, guest/operator toggle, submit', async ({ page }) => {
     await page.goto('/signin', { waitUntil: 'networkidle' });
     expect(page.url()).toContain('signin');
 
@@ -108,26 +108,36 @@ test.describe('/signin', () => {
     const submitBtn = page.locator('button[type="submit"], button').filter({ hasText: /sign in|log in|submit/i }).first();
     await expect(submitBtn).toBeVisible();
 
-    // Social login buttons (Google, Apple, etc.)
-    const socialButtons = page.locator('button, a').filter({ hasText: /google|apple|facebook|social/i });
-    const socialCount = await socialButtons.count();
-    expect(socialCount).toBeGreaterThanOrEqual(1);
+    // Guest/Operator toggle (current auth UI uses email/password with role toggle, not social buttons)
+    const guestToggle = page.locator('button').filter({ hasText: /guest/i }).first();
+    const operatorToggle = page.locator('button').filter({ hasText: /operator/i }).first();
+    const hasToggle = (await guestToggle.count()) > 0 && (await operatorToggle.count()) > 0;
+    expect(hasToggle).toBeTruthy();
   });
 });
 
 // ─── 5. Signup /signup ──────────────────────────────────────────────────────
 test.describe('/signup', () => {
-  test('renders with social buttons', async ({ page }) => {
+  test('renders with email/password form and guest/operator toggle', async ({ page }) => {
     await page.goto('/signup', { waitUntil: 'networkidle' });
     const body = page.locator('body');
     await expect(body).toBeVisible();
     const bodyText = await body.innerText();
     expect(bodyText.length).toBeGreaterThan(10);
 
-    // Social buttons
-    const socialButtons = page.locator('button, a').filter({ hasText: /google|apple|facebook|social|sign up/i });
-    const socialCount = await socialButtons.count();
-    expect(socialCount).toBeGreaterThanOrEqual(1);
+    // Email input
+    const emailInput = page.locator('input[type="email"], input[name="email"], input[placeholder*="mail"]').first();
+    await expect(emailInput).toBeVisible({ timeout: 10000 });
+
+    // Password input
+    const passwordInput = page.locator('input[type="password"], input[name="password"]').first();
+    await expect(passwordInput).toBeVisible();
+
+    // Guest/Operator toggle
+    const guestToggle = page.locator('button').filter({ hasText: /guest/i }).first();
+    const operatorToggle = page.locator('button').filter({ hasText: /operator/i }).first();
+    const hasToggle = (await guestToggle.count()) > 0 && (await operatorToggle.count()) > 0;
+    expect(hasToggle).toBeTruthy();
   });
 });
 
@@ -149,6 +159,16 @@ test.describe('/payment/success', () => {
     expect(response?.status()).not.toBe(500);
     const body = page.locator('body');
     await expect(body).toBeVisible();
+  });
+
+  test('does NOT show fake booking confirmation without verified reservation data', async ({ page }) => {
+    await page.goto('/payment/success', { waitUntil: 'networkidle' });
+    const bodyText = await page.locator('body').innerText();
+    // Without a valid session_id or verified reservation, should NOT show confirmed/request sent
+    expect(bodyText).not.toContain('Booking Confirmed');
+    expect(bodyText).not.toContain('Request Sent');
+    // Should show a non-success state instead
+    expect(bodyText.length).toBeGreaterThan(10);
   });
 });
 

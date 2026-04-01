@@ -52,6 +52,7 @@ export default function NfsCheckoutPage() {
   const [message, setMessage] = useState('');
   const [agreed, setAgreed] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [timeLeft, setTimeLeft] = useState(0);
 
   useEffect(() => {
@@ -102,6 +103,7 @@ export default function NfsCheckoutPage() {
 
   const handleComplete = async () => {
     setLoading(true);
+    setCheckoutError(null);
 
     try {
       // Call Stripe checkout edge function
@@ -121,17 +123,7 @@ export default function NfsCheckoutPage() {
       });
 
       if (error || !data?.url) {
-        // Fallback to mock flow if edge function fails
-        const reservation = {
-          id: `res-${Date.now()}`,
-          ...intent,
-          guestFirstName: firstName,
-          guestLastName: lastName,
-          guestEmail: email,
-        };
-        sessionStorage.setItem("nfs_last_reservation", JSON.stringify(reservation));
-        sessionStorage.removeItem("nfs_booking_intent");
-        navigate("/payment/success");
+        setCheckoutError("We couldn't start the payment process. Please try again.");
         return;
       }
 
@@ -139,17 +131,7 @@ export default function NfsCheckoutPage() {
       sessionStorage.removeItem("nfs_booking_intent");
       window.location.href = data.url;
     } catch {
-      // Fallback to mock flow on any error
-      const reservation = {
-        id: `res-${Date.now()}`,
-        ...intent,
-        guestFirstName: firstName,
-        guestLastName: lastName,
-        guestEmail: email,
-      };
-      sessionStorage.setItem("nfs_last_reservation", JSON.stringify(reservation));
-      sessionStorage.removeItem("nfs_booking_intent");
-      navigate("/payment/success");
+      setCheckoutError("Something went wrong. Please check your connection and try again.");
     } finally {
       setLoading(false);
     }
@@ -213,6 +195,13 @@ export default function NfsCheckoutPage() {
             </label>
           </div>
 
+          {checkoutError && (
+            <div data-testid="checkout-error" className="bg-destructive/10 border border-destructive/30 rounded-xl p-3 flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-destructive shrink-0" />
+              <span className="text-sm text-destructive">{checkoutError}</span>
+            </div>
+          )}
+
           <Button
             data-feature="NFSTAY__CHECKOUT_PAY"
             onClick={handleComplete}
@@ -220,7 +209,7 @@ export default function NfsCheckoutPage() {
             className="w-full rounded-xl py-3.5 text-base font-semibold"
             size="lg"
           >
-            {loading ? 'Processing...' : 'Complete booking'}
+            {loading ? 'Processing...' : checkoutError ? 'Try again' : 'Complete booking'}
           </Button>
         </div>
 

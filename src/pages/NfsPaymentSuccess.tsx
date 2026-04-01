@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { CheckCircle, Clock, MapPin, Calendar, Users, Loader2 } from "lucide-react";
+import { CheckCircle, Clock, MapPin, Calendar, Users, Loader2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { notifyBookingConfirmed } from "@/lib/n8n";
 import { supabase } from "@/lib/supabase";
@@ -60,25 +60,9 @@ export default function NfsPaymentSuccess() {
       }
     }
 
-    function fetchFromSessionStorage() {
-      const raw = sessionStorage.getItem("nfs_last_reservation");
-      if (!raw) return null;
-      try {
-        const data = JSON.parse(raw);
-        sessionStorage.removeItem("nfs_last_reservation");
-        return data;
-      } catch {
-        sessionStorage.removeItem("nfs_last_reservation");
-        return null;
-      }
-    }
-
     async function load() {
-      // Try Stripe session first, fall back to sessionStorage (mock flow)
-      let data = await fetchFromStripeSession();
-      if (!data) {
-        data = fetchFromSessionStorage();
-      }
+      // Only trust verified reservation data from Stripe session lookup
+      const data = await fetchFromStripeSession();
 
       if (data) {
         setReservation(data);
@@ -122,7 +106,17 @@ export default function NfsPaymentSuccess() {
     <div data-feature="NFSTAY__SUCCESS" className="min-h-screen bg-background flex items-start justify-center pt-16 px-4">
       <div className="max-w-md w-full space-y-6">
         <div data-feature="NFSTAY__SUCCESS_MESSAGE" className="text-center">
-          {reservation?.status === "pending_approval" ? (
+          {!reservation ? (
+            <>
+              <div className="w-16 h-16 bg-[hsl(38_92%_50%/0.1)] rounded-full flex items-center justify-center mx-auto mb-4">
+                <AlertTriangle className="w-8 h-8 text-warning" />
+              </div>
+              <h1 className="text-2xl font-bold">We could not verify your booking</h1>
+              <p className="text-sm text-muted-foreground mt-2">
+                If you completed payment, your booking is being processed. You will receive a confirmation email shortly. If you need help, please contact support.
+              </p>
+            </>
+          ) : reservation.status === "pending_approval" ? (
             <>
               <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Clock className="w-8 h-8 text-orange-500" />
@@ -138,16 +132,9 @@ export default function NfsPaymentSuccess() {
                 <CheckCircle className="w-8 h-8 text-primary" />
               </div>
               <h1 className="text-2xl font-bold">Booking Confirmed!</h1>
-              {reservation && (
-                <p className="text-sm text-muted-foreground mt-2">
-                  Hi {reservation.guestFirstName}, your reservation is confirmed. A confirmation has been sent to {reservation.guestEmail}.
-                </p>
-              )}
-              {!reservation && (
-                <p className="text-sm text-muted-foreground mt-2">
-                  Your payment was received. You will receive a confirmation email shortly.
-                </p>
-              )}
+              <p className="text-sm text-muted-foreground mt-2">
+                Hi {reservation.guestFirstName}, your reservation is confirmed. A confirmation has been sent to {reservation.guestEmail}.
+              </p>
             </>
           )}
         </div>
