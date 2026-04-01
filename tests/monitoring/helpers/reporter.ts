@@ -8,6 +8,7 @@ import type {
 } from '@playwright/test/reporter';
 import * as fs from 'fs';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
 
 interface TestEntry {
   title: string;
@@ -64,7 +65,8 @@ class MonitoringReporter implements Reporter {
       tests: this.tests,
     };
 
-    const resultsDir = path.join(__dirname, '..', 'results');
+    const currentDir = path.dirname(fileURLToPath(import.meta.url));
+    const resultsDir = path.join(currentDir, '..', 'results');
     if (!fs.existsSync(resultsDir)) {
       fs.mkdirSync(resultsDir, { recursive: true });
     }
