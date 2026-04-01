@@ -1,9 +1,9 @@
-name: Synthetic Health Checks — nfstay.app
+name: Synthetic Health Checks - nfstay.app
 
 on:
   schedule:
-    - cron: '*/5 * * * *' # Every 5 minutes
-  workflow_dispatch: # Allow manual trigger
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
 
 jobs:
   synthetic-tests:
@@ -16,19 +16,15 @@ jobs:
         with:
           node-version: '20'
           cache: npm
-          cache-dependency-path: bookingsite/package-lock.json
 
       - name: Install dependencies
         run: npm ci
-        working-directory: bookingsite
 
       - name: Install Playwright Chromium
         run: npx playwright install chromium --with-deps
-        working-directory: bookingsite
 
       - name: Run synthetic health checks
         run: npx playwright test e2e/synthetic/ --reporter=list
-        working-directory: bookingsite
         env:
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
 
@@ -37,5 +33,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: synthetic-results-bookingsite-${{ github.run_id }}
-          path: bookingsite/test-results/
+          path: test-results/
           retention-days: 7
