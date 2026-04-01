@@ -1,6 +1,9 @@
 # nfstay Booking Site - AI Agent Instructions
 
-> **Single source of truth for all AI operating rules.** Read FIRST. Every session. No exceptions.
+> **Single source of truth for bookingsite operating rules.** Read FIRST. Every session. No exceptions.
+> This file extends the tracked master copilot standard at [../../marketplace10/docs/COPILOT_PROMPT.md](../../marketplace10/docs/COPILOT_PROMPT.md).
+> The master standard defines shared behaviors (two-phase workflow, hard rules, reporting format).
+> This file adds bookingsite-specific rules, routes, and procedures.
 
 ---
 
