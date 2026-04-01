@@ -38,7 +38,7 @@ These files provide fallback data when Supabase tables are empty:
 | `nfs_properties` | Property listings (details, pricing, amenities, images) | Yes - read |
 | `nfs_reservations` | Guest bookings (dates, guests, status, payment) | Yes - read + insert via edge function |
 | `nfs_stripe_accounts` | Operator Stripe Connect accounts | Not yet |
-| `nfs_hospitable_connections` | Hospitable sync credentials | Not yet |
+| `nfs_hospitable_connections` | Hospitable sync credentials | Yes - read via hooks, OAuth via shared edge function |
 | `nfs_promo_codes` | Discount codes per operator | Not yet |
 | `nfs_analytics` | Aggregated analytics events | Not yet |
 | `nfs_webhook_events` | Inbound webhook log | Not yet |
@@ -63,6 +63,7 @@ These files provide fallback data when Supabase tables are empty:
 | Function | Purpose | Status |
 |----------|---------|--------|
 | `nfs-create-checkout` | Creates Stripe Checkout Session + pending reservation | Deployed + active |
+| `nfs-hospitable-oauth` | Hospitable Partner Connect OAuth flow (authorize, callback, disconnect, resync) | Deployed (shared with hub.nfstay.com) |
 
 ## Supabase Secrets (for Edge Functions)
 
