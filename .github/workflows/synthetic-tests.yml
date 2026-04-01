@@ -24,7 +24,7 @@ jobs:
         run: npx playwright install chromium --with-deps
 
       - name: Run synthetic health checks
-        run: npx playwright test e2e/synthetic/ --reporter=list
+        run: npx playwright test e2e/synthetic/ --config=e2e/playwright.config.ts --reporter=list
         env:
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
 
