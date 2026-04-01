@@ -107,7 +107,7 @@ export function useNfsHospitableConnect() {
 
       const session = (await supabase.auth.getSession()).data.session;
       const response = await fetch(
-        `${SUPABASE_URL}/functions/v1/nfs-hospitable-oauth?action=authorize&operator_id=${operator.id}&profile_id=${operator.profile_id}`,
+        `${SUPABASE_URL}/functions/v1/nfs-hospitable-oauth?action=authorize&operator_id=${operator.id}&profile_id=${operator.profile_id}&origin=${encodeURIComponent('https://nfstay.app')}`,
         {
           headers: {
             Authorization: `Bearer ${session?.access_token || ""}`,
