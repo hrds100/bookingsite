@@ -1,4 +1,7 @@
-# NFStay Booking Site — nfstay.app
+# NFStay Booking Site - nfstay.app
+
+> **Master copilot standard:** [../marketplace10/docs/COPILOT_PROMPT.md](../marketplace10/docs/COPILOT_PROMPT.md)
+> This file is the quick-ref loaded every session. It extends the master standard with bookingsite-specific details.
 
 Standalone vacation rental booking platform. React + Vite + TypeScript + Tailwind + shadcn/ui + Supabase.
 
