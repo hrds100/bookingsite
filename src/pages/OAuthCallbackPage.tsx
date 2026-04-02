@@ -24,9 +24,9 @@ export default function OAuthCallbackPage() {
 
     if (status === "success" || success === "connected") {
       setCallbackState("success");
-      // Auto-redirect to settings after 2 seconds
+      // Auto-redirect to properties after successful connect
       const timer = setTimeout(() => {
-        navigate("/nfstay/settings", { replace: true });
+        navigate("/nfstay/properties", { replace: true });
       }, 2000);
       return () => clearTimeout(timer);
     }
