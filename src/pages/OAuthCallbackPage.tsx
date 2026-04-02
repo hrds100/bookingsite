@@ -65,7 +65,7 @@ export default function OAuthCallbackPage() {
             <h2 className="text-lg font-semibold">Connected successfully</h2>
             <p className="text-sm text-muted-foreground">
               Your {provider} account has been connected. Redirecting to
-              settings...
+              your properties...
             </p>
             <Loader2 className="w-4 h-4 animate-spin text-muted-foreground mx-auto" />
           </>
