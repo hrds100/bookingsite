@@ -105,32 +105,30 @@ export function NfsMainNavbar() {
 
             {!isSearchPage && (
               <div className="hidden lg:flex items-center justify-center">
-                <div className="relative bg-white/95 backdrop-blur-sm border border-gray-200/50 rounded-full p-1.5 shadow-lg shadow-emerald-500/5 hover:shadow-emerald-500/10 transition-all duration-300">
+                <div className="relative bg-white/95 backdrop-blur-sm border border-gray-200/50 rounded-full p-1 shadow-sm transition-all duration-300">
                   {/* Animated gradient indicator */}
                   <div
-                    className={`absolute top-1.5 h-[calc(100%-12px)] bg-primary-gradient rounded-full transition-all duration-500 ease-out shadow-sm ${
+                    className={`absolute top-1 h-[calc(100%-8px)] bg-primary-gradient rounded-full transition-all duration-500 ease-out shadow-sm ${
                       navMode === "traveler" || isSearchPage
-                        ? "left-1.5 w-[calc(50%-6px)]"
-                        : "left-[calc(50%+3px)] w-[calc(50%-6px)]"
+                        ? "left-1 w-[calc(50%-4px)]"
+                        : "left-[calc(50%+2px)] w-[calc(50%-4px)]"
                     }`}
                   />
                   <button
                     onClick={() => handleNavToggle("traveler")}
-                    className={`relative z-10 px-4 xl:px-6 py-2.5 rounded-full text-sm font-medium transition-all duration-300 min-w-[120px] xl:min-w-[140px] transform hover:scale-105 ${
+                    className={`relative z-10 px-3 lg:px-4 py-1.5 lg:py-2 rounded-full text-xs lg:text-sm font-medium transition-all duration-300 ${
                       navMode === "traveler" || isSearchPage ? "text-white" : "text-gray-600 hover:text-primary"
                     }`}
                   >
-                    <span className="hidden xl:inline">Search Properties</span>
-                    <span className="xl:hidden">Search</span>
+                    Find Stays
                   </button>
                   <button
                     onClick={() => handleNavToggle("reservations")}
-                    className={`relative z-10 px-4 xl:px-6 py-2.5 rounded-full text-sm font-medium transition-all duration-300 min-w-[120px] xl:min-w-[140px] transform hover:scale-105 ${
+                    className={`relative z-10 px-3 lg:px-4 py-1.5 lg:py-2 rounded-full text-xs lg:text-sm font-medium transition-all duration-300 ${
                       navMode === "reservations" ? "text-white" : "text-gray-600 hover:text-primary"
                     }`}
                   >
-                    <span className="hidden xl:inline">My Reservations</span>
-                    <span className="xl:hidden">Bookings</span>
+                    My Reservations
                   </button>
                 </div>
               </div>
