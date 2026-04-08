@@ -316,18 +316,20 @@ export function NfsMainNavbar() {
                   <ChevronDown className="w-3 h-3" />
                 </button>
               ) : (
-                <Link
-                  to="/signup"
-                  className="hidden sm:flex px-3 lg:px-4 py-1.5 lg:py-2 text-xs lg:text-sm font-medium border border-gray-300 rounded-full hover:bg-gray-50 transition-colors text-gray-700"
-                >
-                  Sign up
-                </Link>
-                <Link
-                  to="/signin"
-                  className="hidden sm:flex px-3 lg:px-4 py-1.5 lg:py-2 text-xs lg:text-sm font-medium bg-primary-gradient text-white rounded-full hover:opacity-90 transition-opacity"
-                >
-                  Sign In
-                </Link>
+                <>
+                  <Link
+                    to="/signup"
+                    className="hidden sm:flex px-3 lg:px-4 py-1.5 lg:py-2 text-xs lg:text-sm font-medium border border-gray-300 rounded-full hover:bg-gray-50 transition-colors text-gray-700"
+                  >
+                    Sign up
+                  </Link>
+                  <Link
+                    to="/signin"
+                    className="hidden sm:flex px-3 lg:px-4 py-1.5 lg:py-2 text-xs lg:text-sm font-medium bg-primary-gradient text-white rounded-full hover:opacity-90 transition-opacity"
+                  >
+                    Sign In
+                  </Link>
+                </>
               )}
 
               {/* Mobile user icon */}
