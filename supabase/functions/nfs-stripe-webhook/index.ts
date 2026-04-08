@@ -40,10 +40,15 @@ serve(async (req) => {
     }
 
     // Verify HMAC-SHA256: signed_payload = timestamp + "." + body
+    // Stripe secrets are "whsec_<base64>" — must decode the base64 portion to get raw key bytes
     const encoder = new TextEncoder();
+    const secretBase64 = STRIPE_WEBHOOK_SECRET.startsWith("whsec_")
+      ? STRIPE_WEBHOOK_SECRET.slice(6)
+      : STRIPE_WEBHOOK_SECRET;
+    const keyBytes = Uint8Array.from(atob(secretBase64), (c) => c.charCodeAt(0));
     const key = await crypto.subtle.importKey(
       "raw",
-      encoder.encode(STRIPE_WEBHOOK_SECRET),
+      keyBytes,
       { name: "HMAC", hash: "SHA-256" },
       false,
       ["sign"]
