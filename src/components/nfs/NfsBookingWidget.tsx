@@ -8,7 +8,6 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { validatePromoCode as validatePromoCodeReal } from "@/lib/promo-codes";
-import { mockAddons } from "@/data/mock-addons";
 import type { MockProperty } from "@/data/mock-properties";
 import type { DateRange } from "react-day-picker";
 
@@ -51,13 +50,8 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
         description: a.description || '',
       }));
     }
-    // Fall back to mock add-ons
-    return mockAddons.map(a => ({
-      id: a.id,
-      name: a.label,
-      price: a.price,
-      description: a.description,
-    }));
+    // No add-ons configured for this property
+    return [];
   }, [(property as any).addons]);
 
   // Convert all prices from property's native currency to user's selected currency
