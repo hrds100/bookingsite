@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { CheckCircle, Clock, MapPin, Calendar, Users, Loader2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { notifyBookingConfirmed } from "@/lib/n8n";
+import { notifyBookingConfirmed } from "@/lib/email";
 import { supabase } from "@/lib/supabase";
 
 export default function NfsPaymentSuccess() {

@@ -8,7 +8,7 @@ import { NfsEmptyState } from "@/components/nfs/NfsEmptyState";
 import { useNfsReservationWithProperty, useNfsUpdateReservation } from "@/hooks/useNfsReservations";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { useAuth } from "@/hooks/useAuth";
-import { notifyBookingCancelled } from "@/lib/n8n";
+import { notifyBookingCancelled } from "@/lib/email";
 import { toast } from "@/hooks/use-toast";
 
 export default function TravelerReservationDetail() {

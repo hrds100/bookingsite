@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/lib/supabase";
+import { notifyGuestSignup } from "@/lib/email";
 
 export default function TravelerSignupPage() {
   const navigate = useNavigate();
@@ -47,6 +48,7 @@ export default function TravelerSignupPage() {
       // If Supabase auto-confirmed the account (email confirmation disabled),
       // a session is returned immediately — redirect straight to the homepage.
       if (data.session) {
+        notifyGuestSignup({ guestName: name.trim(), guestEmail: email.trim().toLowerCase() });
         navigate("/");
         return;
       }
