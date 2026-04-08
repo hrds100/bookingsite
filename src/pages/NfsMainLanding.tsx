@@ -267,7 +267,7 @@ export default function NfsMainLanding() {
           <div className="bg-primary rounded-3xl p-10 md:p-16 text-center">
             <h2 className="text-3xl font-bold text-primary-foreground mb-3">Ready to list your property?</h2>
             <p className="text-primary-foreground/80 mb-6 max-w-md mx-auto">Join hundreds of operators already using nfstay to accept direct bookings.</p>
-            <Button size="lg" variant="secondary" className="rounded-2xl font-semibold" onClick={() => { window.location.href = "https://hub.nfstay.com/signup"; }}>
+            <Button size="lg" variant="secondary" className="rounded-2xl font-semibold" onClick={() => { window.location.href = "https://hub.nfstay.com"; }}>
               Get started free
             </Button>
           </div>
