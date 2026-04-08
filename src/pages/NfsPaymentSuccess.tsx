@@ -3,7 +3,8 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { CheckCircle, Clock, MapPin, Calendar, Users, Loader2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { notifyBookingConfirmed } from "@/lib/email";
-import { supabase } from "@/lib/supabase";
+
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 
 export default function NfsPaymentSuccess() {
   const navigate = useNavigate();
@@ -19,13 +20,15 @@ export default function NfsPaymentSuccess() {
       if (!sessionId) return null;
 
       try {
-        const { data, error } = await supabase
-          .from("nfs_reservations")
-          .select("*, nfs_properties!inner(public_title, city, country, images, base_rate_currency)")
-          .eq("stripe_session_id", sessionId)
-          .single();
-
-        if (error || !data) return null;
+        const res = await fetch(`${SUPABASE_URL}/functions/v1/nfs-booking-by-session`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ session_id: sessionId }),
+        });
+        if (!res.ok) return null;
+        const json = await res.json();
+        const data = json.reservation;
+        if (!data) return null;
 
         const nights = Math.ceil(
           (new Date(data.check_out).getTime() - new Date(data.check_in).getTime()) /

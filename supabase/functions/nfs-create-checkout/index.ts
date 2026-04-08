@@ -217,13 +217,16 @@ serve(async (req) => {
     }
 
     // Create pending reservation in database
-    await supabase.from("nfs_reservations").insert({
+    const { error: insertErr } = await supabase.from("nfs_reservations").insert({
       property_id: propertyId,
+      operator_id: property.nfs_operators?.id || null,
       guest_email: guestEmail,
       guest_first_name: guestName?.split(" ")[0] || "",
       guest_last_name: guestName?.split(" ").slice(1).join(" ") || "",
       check_in: checkIn,
       check_out: checkOut,
+      check_in_time: "",
+      check_out_time: "",
       adults: adults || 1,
       children: children || 0,
       infants: 0,
@@ -236,6 +239,9 @@ serve(async (req) => {
       discount_amount: promoDiscount,
       promo_code: validatedPromoCode,
     });
+    if (insertErr) {
+      console.error("Failed to create reservation:", insertErr.message);
+    }
 
     return new Response(JSON.stringify({ url: session.url }), {
       status: 200,
