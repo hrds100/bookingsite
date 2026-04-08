@@ -31,7 +31,7 @@ export default function TravelerSignupPage() {
 
     setLoading(true);
     try {
-      const { error: signUpError } = await supabase.auth.signUp({
+      const { data, error: signUpError } = await supabase.auth.signUp({
         email: email.trim().toLowerCase(),
         password,
         options: {
@@ -44,6 +44,14 @@ export default function TravelerSignupPage() {
         return;
       }
 
+      // If Supabase auto-confirmed the account (email confirmation disabled),
+      // a session is returned immediately — redirect straight to the homepage.
+      if (data.session) {
+        navigate("/");
+        return;
+      }
+
+      // No session → email confirmation is required, show the check-your-email screen.
       setSuccess(true);
     } catch {
       setError("Something went wrong. Please try again.");
