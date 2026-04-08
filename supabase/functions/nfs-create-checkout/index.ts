@@ -216,10 +216,20 @@ serve(async (req) => {
       });
     }
 
+    // Try to get the user ID from the auth header so traveler can see their reservation
+    let createdBy: string | null = null;
+    const authHeader = req.headers.get("Authorization");
+    if (authHeader?.startsWith("Bearer ")) {
+      const token = authHeader.slice(7);
+      const { data: { user } } = await supabase.auth.getUser(token);
+      createdBy = user?.id || null;
+    }
+
     // Create pending reservation in database
     const { error: insertErr } = await supabase.from("nfs_reservations").insert({
       property_id: propertyId,
       operator_id: property.nfs_operators?.id || null,
+      created_by: createdBy,
       guest_email: guestEmail,
       guest_first_name: guestName?.split(" ")[0] || "",
       guest_last_name: guestName?.split(" ").slice(1).join(" ") || "",
