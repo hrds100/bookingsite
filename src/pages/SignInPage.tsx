@@ -107,24 +107,13 @@ export default function SignInPage() {
             </Button>
           </form>
 
-          <div className="mt-4 text-center space-y-2">
+          <div className="mt-4 text-center">
             <Link
               to="/forgot-password"
               className="text-sm text-primary hover:underline"
             >
               Forgot password?
             </Link>
-            <p className="text-sm text-muted-foreground">
-              Don't have an account? Sign up at{" "}
-              <a
-                href="https://hub.nfstay.com"
-                className="text-primary hover:underline font-medium"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                hub.nfstay.com
-              </a>
-            </p>
           </div>
         </div>
       </div>
