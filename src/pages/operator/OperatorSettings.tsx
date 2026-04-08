@@ -139,6 +139,7 @@ export default function OperatorSettings() {
 
   const [saving, setSaving] = useState<string | null>(null);
   const [synced, setSynced] = useState(false);
+  const [domainVerified, setDomainVerified] = useState<boolean | null>(null);
 
   // Logo upload state
   const [uploadingLogo, setUploadingLogo] = useState(false);
@@ -230,11 +231,46 @@ export default function OperatorSettings() {
       about_bio: brandingForm.about_bio || null,
     });
 
-  const handleSaveDomain = () =>
-    saveTab("Domain", {
+  const handleSaveDomain = async () => {
+    await saveTab("Domain", {
       subdomain: domainForm.subdomain || null,
       custom_domain: domainForm.custom_domain || null,
     });
+
+    // Auto-provision the custom domain in Vercel
+    if (domainForm.custom_domain) {
+      try {
+        const res = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/nfs-vercel-domain`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ domain: domainForm.custom_domain }),
+          }
+        );
+        const data = await res.json();
+        if (data.success) {
+          setDomainVerified(data.verified ?? false);
+          if (!data.verified) {
+            toast({
+              title: "Domain added to Vercel",
+              description: "DNS is propagating — this can take a few minutes. Reload to recheck.",
+            });
+          } else {
+            toast({ title: "Domain verified", description: `${domainForm.custom_domain} is live.` });
+          }
+        } else {
+          toast({
+            title: "Vercel provisioning failed",
+            description: data.error ?? "Could not add domain to Vercel. Try again.",
+            variant: "destructive",
+          });
+        }
+      } catch {
+        // Non-blocking — DB save already succeeded
+      }
+    }
+  };
 
   const handleSaveSocial = () =>
     saveTab("Social", {
@@ -607,13 +643,18 @@ export default function OperatorSettings() {
                   placeholder="stays.yourcompany.com"
                   className="mt-1.5"
                 />
+                {domainVerified !== null && (
+                  <p className={`text-xs mt-1.5 font-medium ${domainVerified ? "text-primary" : "text-warning"}`}>
+                    {domainVerified ? "✓ Domain verified and live" : "⏳ Verification pending — DNS may take a few minutes to propagate"}
+                  </p>
+                )}
                 <div className="bg-muted/50 border border-border rounded-lg p-3 mt-2">
                   <p className="text-xs font-medium text-foreground">DNS setup instructions</p>
                   <p className="text-xs text-muted-foreground mt-1">
                     1. Add a CNAME record pointing your domain to <span className="font-mono text-foreground">cname.vercel-dns.com</span>
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    2. Enter the domain above and save
+                    2. Enter the domain above and save — Vercel provisioning happens automatically
                   </p>
                   <p className="text-xs text-muted-foreground">
                     3. SSL will be provisioned automatically within a few minutes
