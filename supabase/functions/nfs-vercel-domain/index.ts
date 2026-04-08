@@ -2,6 +2,9 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 const VERCEL_TOKEN = Deno.env.get("VERCEL_TOKEN") ?? "";
 const VERCEL_PROJECT_ID = Deno.env.get("VERCEL_PROJECT_ID") ?? "";
+const VERCEL_TEAM_ID = Deno.env.get("VERCEL_TEAM_ID") ?? "";
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
+const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -22,7 +25,7 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const { domain } = await req.json();
+    const { domain, operatorId } = await req.json();
 
     if (!domain || typeof domain !== "string") {
       return new Response(
@@ -32,10 +35,11 @@ Deno.serve(async (req: Request) => {
     }
 
     const cleanDomain = domain.trim().toLowerCase().replace(/^https?:\/\//, "");
+    const teamParam = VERCEL_TEAM_ID ? `?teamId=${VERCEL_TEAM_ID}` : "";
 
     // Add domain to Vercel project
     const addRes = await fetch(
-      `https://api.vercel.com/v10/projects/${VERCEL_PROJECT_ID}/domains`,
+      `https://api.vercel.com/v10/projects/${VERCEL_PROJECT_ID}/domains${teamParam}`,
       {
         method: "POST",
         headers: {
@@ -59,19 +63,34 @@ Deno.serve(async (req: Request) => {
 
     // Fetch verification status
     const checkRes = await fetch(
-      `https://api.vercel.com/v10/projects/${VERCEL_PROJECT_ID}/domains/${cleanDomain}`,
+      `https://api.vercel.com/v10/projects/${VERCEL_PROJECT_ID}/domains/${cleanDomain}${teamParam}`,
       {
         headers: { Authorization: `Bearer ${VERCEL_TOKEN}` },
       }
     );
 
     const checkData = await checkRes.json();
+    const verified = checkData.verified ?? false;
+
+    // If verified and we have an operatorId, mark custom_domain_verified in DB
+    if (verified && operatorId && SUPABASE_URL && SUPABASE_SERVICE_KEY) {
+      await fetch(`${SUPABASE_URL}/rest/v1/nfs_operators?id=eq.${operatorId}`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`,
+          apikey: SUPABASE_SERVICE_KEY,
+          "Content-Type": "application/json",
+          Prefer: "return=minimal",
+        },
+        body: JSON.stringify({ custom_domain_verified: true }),
+      });
+    }
 
     return new Response(
       JSON.stringify({
         success: true,
         domain: cleanDomain,
-        verified: checkData.verified ?? false,
+        verified,
         verification: checkData.verification ?? [],
       }),
       { status: 200, headers: { ...CORS, "Content-Type": "application/json" } }

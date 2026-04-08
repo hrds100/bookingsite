@@ -245,7 +245,7 @@ export default function OperatorSettings() {
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ domain: domainForm.custom_domain }),
+            body: JSON.stringify({ domain: domainForm.custom_domain, operatorId }),
           }
         );
         const data = await res.json();
