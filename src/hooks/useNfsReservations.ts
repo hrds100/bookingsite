@@ -41,17 +41,17 @@ export function useNfsReservations(guestEmail?: string) {
 export function useNfsOperatorReservations(operatorId?: string | null) {
   return useQuery({
     queryKey: ["nfs-operator-reservations", operatorId],
-    queryFn: async (): Promise<MockReservation[]> => {
+    queryFn: async (): Promise<ReservationWithProperty[]> => {
       if (!SUPABASE_CONFIGURED || !operatorId) return [];
 
       const { data, error } = await supabase
         .from("nfs_reservations")
-        .select("*, nfs_properties!inner(operator_id)")
+        .select("*, nfs_properties!inner(operator_id, public_title, city, country, images)")
         .eq("nfs_properties.operator_id", operatorId)
         .order("created_at", { ascending: false });
 
       if (error || !data) return [];
-      return data as unknown as MockReservation[];
+      return data as unknown as ReservationWithProperty[];
     },
     enabled: !!operatorId,
     staleTime: 30_000,

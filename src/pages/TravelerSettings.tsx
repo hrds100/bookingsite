@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { supabase } from "@/lib/supabase";
 import { Switch } from "@/components/ui/switch";
 import {
   Select,
@@ -50,6 +51,9 @@ export default function TravelerSettings() {
   const [whatsappNotifications, setWhatsappNotifications] = useState(false);
   const [currency, setCurrency] = useState("GBP");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [passwordSaving, setPasswordSaving] = useState(false);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -61,8 +65,51 @@ export default function TravelerSettings() {
     setName(userName);
   }, [userName]);
 
-  const handleSave = () => {
-    toast.success("Settings saved");
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const { error } = await supabase.auth.updateUser({
+        data: { name: name.trim() },
+      });
+      if (error) {
+        toast.error(error.message);
+      } else {
+        toast.success("Profile saved");
+      }
+    } catch {
+      toast.error("Something went wrong. Please try again.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handlePasswordSave = async () => {
+    setPasswordError(null);
+    if (!newPassword) return;
+    if (newPassword !== confirmPassword) {
+      setPasswordError("Passwords don't match.");
+      return;
+    }
+    if (newPassword.length < 8) {
+      setPasswordError("Password must be at least 8 characters.");
+      return;
+    }
+    setPasswordSaving(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) {
+        setPasswordError(error.message);
+      } else {
+        toast.success("Password updated");
+        setCurrentPassword("");
+        setNewPassword("");
+        setConfirmPassword("");
+      }
+    } catch {
+      setPasswordError("Something went wrong. Please try again.");
+    } finally {
+      setPasswordSaving(false);
+    }
   };
 
   const handlePhotoUpload = () => {
@@ -154,6 +201,7 @@ export default function TravelerSettings() {
               type="password"
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
+              placeholder="Your current password"
               className="mt-1"
             />
           </div>
@@ -164,6 +212,7 @@ export default function TravelerSettings() {
               type="password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="At least 8 characters"
               className="mt-1"
             />
           </div>
@@ -174,9 +223,21 @@ export default function TravelerSettings() {
               type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="Repeat your new password"
               className="mt-1"
             />
           </div>
+          {passwordError && (
+            <p className="text-sm text-destructive">{passwordError}</p>
+          )}
+          <Button
+            variant="outline"
+            className="rounded-full"
+            onClick={handlePasswordSave}
+            disabled={passwordSaving || !newPassword}
+          >
+            {passwordSaving ? "Updating..." : "Update password"}
+          </Button>
         </div>
       </section>
 
@@ -265,8 +326,9 @@ export default function TravelerSettings() {
       <Button
         className="w-full sm:w-auto rounded-full bg-primary-gradient text-white"
         onClick={handleSave}
+        disabled={saving}
       >
-        Save settings
+        {saving ? "Saving..." : "Save settings"}
       </Button>
     </div>
   );

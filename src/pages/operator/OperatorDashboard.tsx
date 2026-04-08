@@ -6,7 +6,7 @@ import { getReservationProperty } from "@/data/mock-reservations";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { useAuth } from "@/hooks/useAuth";
 import { useNfsOperator, useNfsOperatorProperties } from "@/hooks/useNfsOperator";
-import { useNfsOperatorReservations } from "@/hooks/useNfsReservations";
+import { useNfsOperatorReservations, type ReservationWithProperty } from "@/hooks/useNfsReservations";
 import { useOperatorMonthlyRevenue, useOperatorOccupancy, useOperatorTotalRevenue } from "@/hooks/useOperatorStats";
 import { format, parseISO } from "date-fns";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line } from "recharts";
@@ -111,11 +111,12 @@ export default function OperatorDashboard() {
             </thead>
             <tbody>
               {recentReservations.map((r) => {
-                const prop = getReservationProperty(r);
+                const rw = r as ReservationWithProperty;
+                const propTitle = rw.nfs_properties?.public_title ?? getReservationProperty(r).title;
                 return (
                   <tr key={r.id} className="border-b border-border last:border-0">
                     <td className="py-3 font-medium">{r.guest_first_name} {r.guest_last_name}</td>
-                    <td className="py-3 text-muted-foreground truncate max-w-[160px]">{prop.title}</td>
+                    <td className="py-3 text-muted-foreground truncate max-w-[160px]">{propTitle}</td>
                     <td className="py-3 text-muted-foreground whitespace-nowrap">{format(parseISO(r.check_in), 'MMM d')} – {format(parseISO(r.check_out), 'MMM d')}</td>
                     <td className="py-3 font-medium">{formatPrice(r.total_amount)}</td>
                     <td className="py-3"><NfsStatusBadge status={r.status} /></td>

@@ -4,14 +4,26 @@ import { CalendarDays, MapPin, Users, ChevronRight } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { NfsStatusBadge } from "@/components/nfs/NfsStatusBadge";
 import { NfsEmptyState } from "@/components/nfs/NfsEmptyState";
-import { getReservationProperty, MockReservation } from "@/data/mock-reservations";
+import { getReservationProperty } from "@/data/mock-reservations";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { useAuth } from "@/hooks/useAuth";
-import { useNfsReservations } from "@/hooks/useNfsReservations";
+import { useNfsReservations, type ReservationWithProperty } from "@/hooks/useNfsReservations";
 
-function ReservationCard({ r }: { r: MockReservation }) {
+function getPropertyDisplay(r: ReservationWithProperty) {
+  if (r.nfs_properties?.public_title) {
+    return {
+      title: r.nfs_properties.public_title,
+      image: r.nfs_properties.images?.[0]?.url ?? "",
+      city: r.nfs_properties.city ?? "",
+      country: r.nfs_properties.country ?? "",
+    };
+  }
+  return getReservationProperty(r);
+}
+
+function ReservationCard({ r }: { r: ReservationWithProperty }) {
   const { formatPrice } = useCurrency();
-  const prop = getReservationProperty(r);
+  const prop = getPropertyDisplay(r);
   return (
     <Link data-feature="NFSTAY__TRAVELER_CARD" to={`/traveler/reservation/${r.id}`} className="flex gap-4 bg-card border border-border rounded-2xl p-4 hover:border-primary/30 hover:shadow-sm transition-all group">
       <img src={prop.image} alt={prop.title} className="w-24 h-24 rounded-xl object-cover shrink-0" />
@@ -50,12 +62,12 @@ export default function TravelerReservations() {
     return <Navigate to="/signin" replace />;
   }
 
-  const all = reservations ?? [];
+  const all: ReservationWithProperty[] = reservations ?? [];
   const upcoming = all.filter(r => isFuture(parseISO(r.check_in)) && r.status !== 'cancelled');
   const past = all.filter(r => isPast(parseISO(r.check_out)) || r.status === 'completed');
   const cancelled = all.filter(r => r.status === 'cancelled');
 
-  const renderList = (list: typeof all) =>
+  const renderList = (list: ReservationWithProperty[]) =>
     list.length === 0
       ? <NfsEmptyState icon={CalendarDays} title="No reservations" description="You don't have any reservations in this category." />
       : <div className="space-y-3">{list.map(r => <ReservationCard key={r.id} r={r} />)}</div>;

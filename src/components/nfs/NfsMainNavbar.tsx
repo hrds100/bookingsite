@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
-import { Menu, X, Search, Clock, Users, User, ChevronDown, LogOut, MessageCircle, Mail, Phone, Minus, Plus } from "lucide-react";
+import { Menu, X, Search, Clock, Users, User, ChevronDown, LogOut, MessageCircle, Mail, Phone, Minus, Plus, Settings } from "lucide-react";
 import { format } from "date-fns";
 import type { DateRange } from "react-day-picker";
 import { Calendar } from "@/components/ui/calendar";
@@ -393,6 +393,21 @@ export function NfsMainNavbar() {
                 Dashboard
               </Link>
             )}
+            <Link
+              to="/traveler/reservations"
+              onClick={() => setDrawerOpen(false)}
+              className="flex items-center gap-3 hover:text-primary font-semibold transition-colors"
+            >
+              My Reservations
+            </Link>
+            <Link
+              to="/traveler/settings"
+              onClick={() => setDrawerOpen(false)}
+              className="flex items-center gap-3 hover:text-primary font-semibold transition-colors"
+            >
+              <Settings className="w-4 h-4" />
+              Settings
+            </Link>
             <button
               onClick={() => { signOut(); setDrawerOpen(false); }}
               className="flex items-center gap-3 cursor-pointer hover:text-primary font-semibold transition-colors"

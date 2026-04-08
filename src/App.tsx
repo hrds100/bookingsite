@@ -17,6 +17,7 @@ import NfsPaymentCancel from "./pages/NfsPaymentCancel";
 import NfsGuestBookingLookup from "./pages/NfsGuestBookingLookup";
 import TravelerReservations from "./pages/TravelerReservations";
 import TravelerReservationDetail from "./pages/TravelerReservationDetail";
+import TravelerSettings from "./pages/TravelerSettings";
 import OperatorDashboard from "./pages/operator/OperatorDashboard";
 import OperatorProperties from "./pages/operator/OperatorProperties";
 import OperatorPropertyForm from "./pages/operator/OperatorPropertyForm";
@@ -70,6 +71,7 @@ const App = () => (
               <Route path="/payment/cancel" element={<NfsPaymentCancel />} />
               <Route path="/traveler/reservations" element={<TravelerReservations />} />
               <Route path="/traveler/reservation/:id" element={<TravelerReservationDetail />} />
+              <Route path="/traveler/settings" element={<TravelerSettings />} />
             </Route>
 
             {/* Operator Portal */}
