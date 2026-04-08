@@ -33,7 +33,8 @@ import AdminAnalytics from "./pages/admin/AdminAnalytics";
 import AdminSettings from "./pages/admin/AdminSettings";
 import AdminSystemHealth from "./pages/admin/AdminSystemHealth";
 import SignInPage from "./pages/SignInPage";
-import SignUpPage from "./pages/SignUpPage";
+// SignUpPage route removed — sign-up happens on hub.nfstay.com only
+// import SignUpPage from "./pages/SignUpPage";
 import TermsPage from "./pages/TermsPage";
 import PrivacyPage from "./pages/PrivacyPage";
 import TravelerLoginPage from "./pages/TravelerLoginPage";
@@ -101,7 +102,7 @@ const App = () => (
             <Route path="/auth/callback" element={<AuthCallbackPage />} />
             <Route path="/auth/bridge" element={<AuthBridgePage />} />
             <Route path="/signin" element={<SignInPage />} />
-            <Route path="/signup" element={<SignUpPage />} />
+            {/* /signup route removed — sign-up happens on hub.nfstay.com only */}
             <Route path="/terms" element={<TermsPage />} />
             <Route path="/privacy" element={<PrivacyPage />} />
             <Route path="/traveler/login" element={<TravelerLoginPage />} />

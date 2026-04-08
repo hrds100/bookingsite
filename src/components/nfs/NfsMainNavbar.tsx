@@ -329,7 +329,7 @@ export function NfsMainNavbar() {
                 { label: "Find a stay", href: "/search", external: false },
                 { label: "Reservations", href: "/traveler/reservations", external: false },
                 { label: "Find your booking", href: "/booking", external: false },
-                { label: "List your property", href: "https://hub.nfstay.com/signup", external: true },
+                { label: "List your property", href: "https://hub.nfstay.com", external: true },
                 { label: "FAQ", href: "#", external: false },
               ].map((link) => (
                 link.external ? (
