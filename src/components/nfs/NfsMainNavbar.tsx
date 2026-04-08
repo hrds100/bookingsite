@@ -1,6 +1,10 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
-import { Menu, X, Search, Clock, Users, User, ChevronDown, LogOut, MessageCircle, Mail, Phone } from "lucide-react";
+import { Menu, X, Search, Clock, Users, User, ChevronDown, LogOut, MessageCircle, Mail, Phone, Minus, Plus } from "lucide-react";
+import { format } from "date-fns";
+import type { DateRange } from "react-day-picker";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { NfsLogo } from "./NfsLogo";
 import { NfsCurrencySelector } from "./NfsCurrencySelector";
 import { NfsFavouritesDropdown } from "./NfsFavouritesDropdown";
@@ -21,6 +25,10 @@ export function NfsMainNavbar() {
   const isHomePage = location.pathname === "/";
 
   const [navMode, setNavMode] = useState<"traveler" | "reservations">("traveler");
+  const [navDateRange, setNavDateRange] = useState<DateRange | undefined>();
+  const [navAdults, setNavAdults] = useState(0);
+  const [navChildren, setNavChildren] = useState(0);
+  const [navGuestsOpen, setNavGuestsOpen] = useState(false);
 
   useEffect(() => {
     if (location.pathname.includes("/traveler/reservations")) {
@@ -46,6 +54,10 @@ export function NfsMainNavbar() {
   const handleSearch = () => {
     const p = new URLSearchParams();
     if (query) p.set("query", query);
+    if (navDateRange?.from) p.set("check_in", format(navDateRange.from, "yyyy-MM-dd"));
+    if (navDateRange?.to) p.set("check_out", format(navDateRange.to, "yyyy-MM-dd"));
+    if (navAdults > 0) p.set("adults", String(navAdults));
+    if (navChildren > 0) p.set("children", String(navChildren));
     navigate(`/search?${p.toString()}`);
   };
 
@@ -140,15 +152,91 @@ export function NfsMainNavbar() {
                     />
                   </div>
                   <div className="h-6 w-px bg-gray-200 hidden sm:block" />
-                  <button className="hidden sm:flex items-center gap-1.5 text-sm text-gray-500 px-3 hover:text-gray-900 transition-colors whitespace-nowrap">
-                    <Clock className="w-4 h-4" />
-                    <span>Any dates...</span>
-                  </button>
+                  {/* Date range picker */}
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <button className="hidden sm:flex items-center gap-1.5 text-sm text-gray-500 px-3 hover:text-gray-900 transition-colors whitespace-nowrap">
+                        <Clock className="w-4 h-4" />
+                        <span>
+                          {navDateRange?.from
+                            ? `${format(navDateRange.from, "MMM d")}${navDateRange.to ? ` – ${format(navDateRange.to, "MMM d")}` : ""}`
+                            : "Any dates..."}
+                        </span>
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="center" side="bottom">
+                      <Calendar
+                        mode="range"
+                        selected={navDateRange}
+                        onSelect={setNavDateRange}
+                        numberOfMonths={2}
+                        disabled={{ before: new Date() }}
+                        className="p-3 pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
                   <div className="h-6 w-px bg-gray-200 hidden sm:block" />
-                  <button className="hidden sm:flex items-center gap-1.5 text-sm text-gray-500 px-3 hover:text-gray-900 transition-colors whitespace-nowrap">
-                    <Users className="w-4 h-4" />
-                    <span>1 guest</span>
-                  </button>
+                  {/* Guest count picker */}
+                  <Popover open={navGuestsOpen} onOpenChange={setNavGuestsOpen}>
+                    <PopoverTrigger asChild>
+                      <button className="hidden sm:flex items-center gap-1.5 text-sm text-gray-500 px-3 hover:text-gray-900 transition-colors whitespace-nowrap">
+                        <Users className="w-4 h-4" />
+                        <span>
+                          {navAdults + navChildren > 0
+                            ? `${navAdults + navChildren} guest${navAdults + navChildren !== 1 ? "s" : ""}`
+                            : "Add guests"}
+                        </span>
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-64 p-4" align="center" side="bottom">
+                      {/* Adults */}
+                      <div className="flex items-center justify-between py-2">
+                        <div>
+                          <p className="text-sm font-medium">Adults</p>
+                          <p className="text-xs text-muted-foreground">Ages 13+</p>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <button
+                            onClick={() => setNavAdults(Math.max(0, navAdults - 1))}
+                            disabled={navAdults <= 0}
+                            className="w-8 h-8 rounded-full border border-border flex items-center justify-center disabled:opacity-30"
+                          >
+                            <Minus className="w-3.5 h-3.5" />
+                          </button>
+                          <span className="text-sm w-3 text-center">{navAdults}</span>
+                          <button
+                            onClick={() => setNavAdults(navAdults + 1)}
+                            className="w-8 h-8 rounded-full border border-border flex items-center justify-center"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                      {/* Children */}
+                      <div className="flex items-center justify-between py-2">
+                        <div>
+                          <p className="text-sm font-medium">Children</p>
+                          <p className="text-xs text-muted-foreground">Ages 2–12</p>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <button
+                            onClick={() => setNavChildren(Math.max(0, navChildren - 1))}
+                            disabled={navChildren <= 0}
+                            className="w-8 h-8 rounded-full border border-border flex items-center justify-center disabled:opacity-30"
+                          >
+                            <Minus className="w-3.5 h-3.5" />
+                          </button>
+                          <span className="text-sm w-3 text-center">{navChildren}</span>
+                          <button
+                            onClick={() => setNavChildren(navChildren + 1)}
+                            className="w-8 h-8 rounded-full border border-border flex items-center justify-center"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
                   <button onClick={handleSearch} className="bg-primary-gradient text-white font-medium py-2 px-5 rounded-full text-sm hover:opacity-90 transition-opacity ml-1 shrink-0">
                     Search
                   </button>
@@ -229,6 +317,12 @@ export function NfsMainNavbar() {
                 </button>
               ) : (
                 <Link
+                  to="/signup"
+                  className="hidden sm:flex px-3 lg:px-4 py-1.5 lg:py-2 text-xs lg:text-sm font-medium border border-gray-300 rounded-full hover:bg-gray-50 transition-colors text-gray-700"
+                >
+                  Sign up
+                </Link>
+                <Link
                   to="/signin"
                   className="hidden sm:flex px-3 lg:px-4 py-1.5 lg:py-2 text-xs lg:text-sm font-medium bg-primary-gradient text-white rounded-full hover:opacity-90 transition-opacity"
                 >
@@ -274,18 +368,6 @@ export function NfsMainNavbar() {
             <h3 className="font-semibold text-base">Traveler</h3>
             <p className="text-[#737373] font-medium text-sm">Find Stays and manage bookings</p>
           </Link>
-          {!isWhiteLabel && (
-            <Link data-feature="NFSTAY__NAVBAR_LINK" to="/nfstay" onClick={() => setSidebarOpen(false)} className="block p-2 rounded-lg hover:bg-[#f0f0ed] transition-colors">
-              <h3 className="font-semibold text-base">Operators</h3>
-              <p className="text-[#737373] font-medium text-sm">Grow your vacation rental business</p>
-            </Link>
-          )}
-          {!isWhiteLabel && (
-            <Link data-feature="NFSTAY__NAVBAR_LINK" to="/admin/nfstay" onClick={() => setSidebarOpen(false)} className="block p-2 rounded-lg hover:bg-[#f0f0ed] transition-colors">
-              <h3 className="font-semibold text-base">Admin</h3>
-              <p className="text-[#737373] font-medium text-sm">Platform management</p>
-            </Link>
-          )}
         </div>
       </div>
 
@@ -360,6 +442,13 @@ export function NfsMainNavbar() {
                 className="block w-full px-4 py-3 font-medium bg-primary-gradient text-white rounded-xl hover:opacity-90 transition-opacity text-center shadow-lg shadow-emerald-500/25"
               >
                 Sign In
+              </Link>
+              <Link
+                to="/signup"
+                onClick={() => setDrawerOpen(false)}
+                className="block w-full px-4 py-3 font-medium border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors text-center text-gray-700"
+              >
+                Create account
               </Link>
               <div className="space-y-2">
                 <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Contact us</p>

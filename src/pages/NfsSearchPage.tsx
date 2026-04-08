@@ -1,7 +1,7 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Search } from "lucide-react";
-import { differenceInDays } from "date-fns";
+import { differenceInDays, parseISO } from "date-fns";
 import { NfsPropertyCard } from "@/components/nfs/NfsPropertyCard";
 import { NfsSearchFilters } from "@/components/nfs/NfsSearchFilters";
 import { NfsSearchMap } from "@/components/nfs/NfsSearchMap";
@@ -32,10 +32,26 @@ export default function NfsSearchPage() {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
 
-  // New filter state
+  // New filter state — initialised from URL params (set by navbar search)
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [adults, setAdults] = useState(0);
   const [children, setChildren] = useState(0);
+
+  // Sync dateRange + guests from URL params whenever they change
+  // (covers both initial mount and navbar re-search while already on /search)
+  const checkIn = searchParams.get("check_in");
+  const checkOut = searchParams.get("check_out");
+  const urlAdults = searchParams.get("adults");
+  const urlChildren = searchParams.get("children");
+  useEffect(() => {
+    if (checkIn) {
+      setDateRange({ from: parseISO(checkIn), to: checkOut ? parseISO(checkOut) : undefined });
+    } else {
+      setDateRange(undefined);
+    }
+    setAdults(urlAdults ? Number(urlAdults) : 0);
+    setChildren(urlChildren ? Number(urlChildren) : 0);
+  }, [checkIn, checkOut, urlAdults, urlChildren]);
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
   const [locationQuery, setLocationQuery] = useState('');
 
