@@ -2,7 +2,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 const RESEND_KEY = Deno.env.get("RESEND_API_KEY") ?? "";
 const ADMIN_EMAIL = "hugo@nfstay.com";
-const FROM = "NFStay <bookings@nfstay.app>";
+const FROM = "nfstay <bookings@nfstay.app>";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
