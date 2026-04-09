@@ -151,23 +151,35 @@ export function WhiteLabelProvider({ children }: { children: ReactNode }) {
       setMeta('meta[name="twitter:description"]', 'content', desc);
       setMeta('meta[name="description"]', 'content', desc);
 
-      // OG image — use operator's dedicated og_image_url, fall back to hero_photo
-      const ogImage = op.og_image_url || op.hero_photo;
-      if (ogImage) {
-        setMeta('meta[property="og:image"]', 'content', ogImage);
-        setMeta('meta[name="twitter:image"]', 'content', ogImage);
+      // OG image — only use operator's own og_image_url, no nfstay fallback
+      const ogImageEl = document.querySelector('meta[property="og:image"]') as HTMLMetaElement | null;
+      const twImageEl = document.querySelector('meta[name="twitter:image"]') as HTMLMetaElement | null;
+      if (op.og_image_url) {
+        setMeta('meta[property="og:image"]', 'content', op.og_image_url);
+        setMeta('meta[name="twitter:image"]', 'content', op.og_image_url);
         setMeta('meta[property="twitter:card"]', 'content', 'summary_large_image');
+      } else {
+        // Remove nfstay default og:image so it doesn't appear on operator sites
+        ogImageEl?.removeAttribute('content');
+        ogImageEl?.parentNode?.removeChild(ogImageEl);
+        twImageEl?.removeAttribute('content');
+        twImageEl?.parentNode?.removeChild(twImageEl);
       }
 
-      // Favicon
+      // Favicon — use operator's favicon, or clear nfstay default
+      const faviconEl = document.querySelector('link[rel="icon"]') as HTMLLinkElement | null;
       if (op.favicon_url) {
-        let favicon = document.querySelector('link[rel="icon"]') as HTMLLinkElement | null;
-        if (!favicon) {
-          favicon = document.createElement('link');
-          favicon.rel = 'icon';
-          document.head.appendChild(favicon);
+        if (faviconEl) {
+          faviconEl.href = op.favicon_url;
+        } else {
+          const newFavicon = document.createElement('link');
+          newFavicon.rel = 'icon';
+          newFavicon.href = op.favicon_url;
+          document.head.appendChild(newFavicon);
         }
-        favicon.href = op.favicon_url;
+      } else {
+        // Remove nfstay favicon so browser shows nothing (or its default blank tab icon)
+        faviconEl?.parentNode?.removeChild(faviconEl);
       }
     } else {
       document.title = 'Find Stays, Book Directly';
