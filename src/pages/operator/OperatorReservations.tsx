@@ -5,11 +5,44 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NfsStatusBadge } from "@/components/nfs/NfsStatusBadge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { mockReservations, type MockReservation } from "@/data/mock-reservations";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { useAuth } from "@/hooks/useAuth";
 import { useNfsOperatorReservations, type ReservationWithProperty } from "@/hooks/useNfsReservations";
 import { format, parseISO, isFuture, isPast } from "date-fns";
+
+function exportToCsv(reservations: ReservationWithProperty[]) {
+  const headers = ["ID", "Guest Name", "Guest Email", "Guest Phone", "Property", "Check-in", "Check-out", "Nights", "Adults", "Children", "Total Amount", "Currency", "Status", "Payment Status", "Booked At"];
+  const rows = reservations.map(r => {
+    const checkIn = parseISO(r.check_in);
+    const checkOut = parseISO(r.check_out);
+    const nights = Math.round((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24));
+    return [
+      r.id,
+      `${r.guest_first_name} ${r.guest_last_name}`,
+      r.guest_email ?? "",
+      r.guest_phone ?? "",
+      r.nfs_properties?.public_title ?? r.property_id ?? "",
+      format(checkIn, "yyyy-MM-dd"),
+      format(checkOut, "yyyy-MM-dd"),
+      nights,
+      r.adults,
+      r.children,
+      r.total_amount,
+      r.payment_currency ?? "GBP",
+      r.status,
+      r.payment_status,
+      format(parseISO(r.created_at), "yyyy-MM-dd HH:mm"),
+    ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(",");
+  });
+  const csv = [headers.join(","), ...rows].join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `reservations-${format(new Date(), "yyyy-MM-dd")}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 export default function OperatorReservations() {
   const { formatPrice } = useCurrency();
@@ -95,7 +128,7 @@ export default function OperatorReservations() {
           <p className="text-sm text-muted-foreground">{all.length} total reservations</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" className="rounded-lg gap-2"><Download className="w-4 h-4" /> Export CSV</Button>
+          <Button variant="outline" className="rounded-lg gap-2" onClick={() => exportToCsv(all)} disabled={all.length === 0}><Download className="w-4 h-4" /> Export CSV</Button>
           <Button asChild className="rounded-lg gap-2">
             <Link to="/nfstay/create-reservation"><Plus className="w-4 h-4" /> Create</Link>
           </Button>

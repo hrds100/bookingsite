@@ -95,12 +95,15 @@ export default function OperatorCreateReservation() {
         .from("nfs_reservations")
         .insert({
           property_id: propertyId,
+          operator_id: operatorId ?? undefined,
           guest_first_name: firstName,
           guest_last_name: lastName,
           guest_email: email,
           guest_phone: phone || null,
           check_in: checkIn,
           check_out: checkOut,
+          check_in_time: "14:00",
+          check_out_time: "11:00",
           adults: parseInt(adults, 10),
           children: parseInt(children, 10),
           infants: 0,
@@ -108,6 +111,7 @@ export default function OperatorCreateReservation() {
           payment_status: paymentStatus,
           total_amount: total,
           payment_currency: "GBP",
+          booking_source: "operator_direct",
         });
 
       if (error) throw error;
