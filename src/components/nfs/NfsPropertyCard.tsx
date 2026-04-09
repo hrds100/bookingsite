@@ -4,6 +4,7 @@ import { Heart, ChevronLeft, ChevronRight, MapPin, Users, BedDouble, Bath, Star 
 import type { MockProperty } from "@/data/mock-properties";
 import type { OperatorDomainInfo } from "@/hooks/useNfsOperator";
 import { useCurrency } from "@/contexts/CurrencyContext";
+import { useWhiteLabel } from "@/contexts/WhiteLabelContext";
 
 interface NfsPropertyCardProps {
   property: MockProperty;
@@ -39,6 +40,7 @@ export function NfsPropertyCard({ property, onHover, operatorDomains }: NfsPrope
   const [currentImage, setCurrentImage] = useState(0);
   const [isFavourite, setIsFavourite] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  const { isWhiteLabel } = useWhiteLabel();
 
   const sortedImages = [...property.images].sort((a, b) => {
     if (a.is_cover && !b.is_cover) return -1;
@@ -48,7 +50,10 @@ export function NfsPropertyCard({ property, onHover, operatorDomains }: NfsPrope
 
   const isNew = Date.now() - new Date(property.created_at).getTime() < 7 * 24 * 60 * 60 * 1000;
   const { formatPrice } = useCurrency();
-  const cardHref = resolveCardHref(property, operatorDomains);
+  // Only forward on the main nfstay.app site — not when already on an operator's domain
+  const cardHref = isWhiteLabel
+    ? `/property/${property.slug || property.id}`
+    : resolveCardHref(property, operatorDomains);
 
   useEffect(() => {
     const favs: string[] = JSON.parse(localStorage.getItem('nfs_favourites') || '[]');
