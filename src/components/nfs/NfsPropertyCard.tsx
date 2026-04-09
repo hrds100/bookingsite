@@ -1,20 +1,44 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { Heart, ChevronLeft, ChevronRight, MapPin, Users, BedDouble, Bath, Star } from "lucide-react";
 import type { MockProperty } from "@/data/mock-properties";
+import type { OperatorDomainInfo } from "@/hooks/useNfsOperator";
 import { useCurrency } from "@/contexts/CurrencyContext";
-import { getPropertyRating } from "@/data/mock-reviews";
 
 interface NfsPropertyCardProps {
   property: MockProperty;
   onHover?: (id: string | null) => void;
+  /** Map of operatorId → domain info, used to route clicks to the operator's own site */
+  operatorDomains?: Record<string, OperatorDomainInfo>;
 }
 
-export function NfsPropertyCard({ property, onHover }: NfsPropertyCardProps) {
+/** Resolve where a card click should navigate.
+ *  - If the property's operator has a custom domain or subdomain → /forward?...
+ *  - Otherwise → /property/:slug (stays on nfstay.app)
+ */
+function resolveCardHref(property: MockProperty, operatorDomains?: Record<string, OperatorDomainInfo>): string {
+  const info = operatorDomains?.[property.operator_id];
+  if (!info) return `/property/${property.slug || property.id}`;
+
+  const { brand_name, subdomain, custom_domain, primary_domain_type } = info;
+
+  let operatorHost: string | null = null;
+  if (primary_domain_type === "custom" && custom_domain) {
+    operatorHost = custom_domain;
+  } else if (subdomain) {
+    operatorHost = `${subdomain}.nfstay.app`;
+  }
+
+  if (!operatorHost) return `/property/${property.slug || property.id}`;
+
+  const destination = `https://${operatorHost}/property/${property.slug || property.id}`;
+  return `/forward?redirect_uri=${encodeURIComponent(destination)}&brand=${encodeURIComponent(brand_name)}`;
+}
+
+export function NfsPropertyCard({ property, onHover, operatorDomains }: NfsPropertyCardProps) {
   const [currentImage, setCurrentImage] = useState(0);
   const [isFavourite, setIsFavourite] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
-  const navigate = useNavigate();
 
   const sortedImages = [...property.images].sort((a, b) => {
     if (a.is_cover && !b.is_cover) return -1;
@@ -24,6 +48,7 @@ export function NfsPropertyCard({ property, onHover }: NfsPropertyCardProps) {
 
   const isNew = Date.now() - new Date(property.created_at).getTime() < 7 * 24 * 60 * 60 * 1000;
   const { formatPrice } = useCurrency();
+  const cardHref = resolveCardHref(property, operatorDomains);
 
   useEffect(() => {
     const favs: string[] = JSON.parse(localStorage.getItem('nfs_favourites') || '[]');
@@ -41,7 +66,7 @@ export function NfsPropertyCard({ property, onHover }: NfsPropertyCardProps) {
 
   return (
     <Link
-      to={`/property/${property.slug || property.id}`}
+      to={cardHref}
       className="group block"
       onMouseEnter={() => { setIsHovered(true); onHover?.(property.id); }}
       onMouseLeave={() => { setIsHovered(false); onHover?.(null); }}

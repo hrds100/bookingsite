@@ -11,6 +11,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { useRecentlyViewed } from "@/hooks/useRecentlyViewed";
 import { useWhiteLabel } from "@/contexts/WhiteLabelContext";
 import { useWhiteLabelProperties } from "@/hooks/useWhiteLabelProperties";
+import { useNfsOperatorDomains } from "@/hooks/useNfsOperator";
 
 const faqs = [
   { q: 'How does booking work?', a: 'Search for your ideal property, select your dates and guests, then complete booking with secure payment via Stripe. You\'ll receive instant confirmation.' },
@@ -29,6 +30,7 @@ export default function NfsMainLanding() {
   const testimonialRef = useRef<HTMLDivElement>(null);
   const { operator: wlOperator, isWhiteLabel, loading: wlLoading } = useWhiteLabel();
   const { data: wlProperties } = useWhiteLabelProperties();
+  const operatorDomains = useNfsOperatorDomains();
 
   const scrollDestinations = (dir: number) => {
     scrollRef.current?.scrollBy({ left: dir * 220, behavior: 'smooth' });
@@ -126,7 +128,7 @@ export default function NfsMainLanding() {
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 gap-6">
           {featuredProperties.map((p) => (
-            <NfsPropertyCard key={p.id} property={p} data-feature="NFSTAY__LANDING_CARD" />
+            <NfsPropertyCard key={p.id} property={p} data-feature="NFSTAY__LANDING_CARD" operatorDomains={operatorDomains} />
           ))}
         </div>
       </section>
@@ -137,7 +139,7 @@ export default function NfsMainLanding() {
           <h2 className="text-2xl font-bold tracking-tight mb-6">Recently Viewed</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {recentProperties.slice(0, 4).map((p) => (
-              <NfsPropertyCard key={p!.id} property={p!} />
+              <NfsPropertyCard key={p!.id} property={p!} operatorDomains={operatorDomains} />
             ))}
           </div>
         </section>

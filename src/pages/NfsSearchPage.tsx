@@ -15,6 +15,7 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { useWhiteLabelProperties } from "@/hooks/useWhiteLabelProperties";
+import { useNfsOperatorDomains } from "@/hooks/useNfsOperator";
 import type { DateRange } from "react-day-picker";
 
 const PAGE_SIZE = 12;
@@ -56,6 +57,7 @@ export default function NfsSearchPage() {
   const [locationQuery, setLocationQuery] = useState('');
 
   const { data: scopedProperties = [], isLoading } = useWhiteLabelProperties();
+  const operatorDomains = useNfsOperatorDomains();
 
   const query = searchParams.get('query') || '';
 
@@ -228,7 +230,7 @@ export default function NfsSearchPage() {
             <>
               <div data-feature="NFSTAY__SEARCH_RESULTS" className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 pt-3">
                 {paginatedProperties.map((p) => (
-                  <NfsPropertyCard key={p.id} property={p} onHover={setHoveredId} />
+                  <NfsPropertyCard key={p.id} property={p} onHover={setHoveredId} operatorDomains={operatorDomains} />
                 ))}
               </div>
 

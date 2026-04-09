@@ -171,6 +171,47 @@ export function useNfsUpdatePropertyStatus() {
   });
 }
 
+/** Minimal domain info needed by property cards to resolve redirect URLs */
+export interface OperatorDomainInfo {
+  brand_name: string;
+  subdomain: string | null;
+  custom_domain: string | null;
+  primary_domain_type: string | null;
+  logo_url: string | null;
+}
+
+/**
+ * Fetch a map of { operatorId → OperatorDomainInfo } for all operators.
+ * Used by property cards on nfstay.app to route traveler clicks to the
+ * operator's own branded booking site when they have a subdomain or custom domain.
+ */
+export function useNfsOperatorDomains(): Record<string, OperatorDomainInfo> {
+  const { data = {} } = useQuery({
+    queryKey: ["nfs-operator-domains"],
+    queryFn: async (): Promise<Record<string, OperatorDomainInfo>> => {
+      if (!SUPABASE_CONFIGURED) return {};
+      const { data, error } = await supabase
+        .from("nfs_operators")
+        .select("id, brand_name, subdomain, custom_domain, primary_domain_type, logo_url");
+      if (error || !data) return {};
+      return Object.fromEntries(
+        data.map((op) => [
+          op.id,
+          {
+            brand_name: op.brand_name as string,
+            subdomain: op.subdomain as string | null,
+            custom_domain: op.custom_domain as string | null,
+            primary_domain_type: op.primary_domain_type as string | null,
+            logo_url: op.logo_url as string | null,
+          },
+        ])
+      );
+    },
+    staleTime: 5 * 60_000,
+  });
+  return data;
+}
+
 /** Fetch operator's own properties */
 export function useNfsOperatorProperties(operatorId?: string | null) {
   return useQuery({

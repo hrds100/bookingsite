@@ -46,6 +46,7 @@ import AuthCallbackPage from "./pages/AuthCallbackPage";
 import WalletProvisioner from "./components/WalletProvisioner";
 import FeatureInspector from "./components/dev/FeatureInspector";
 import AuthBridgePage from "./pages/AuthBridgePage";
+import ForwardPage from "./pages/ForwardPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -104,6 +105,7 @@ const App = () => (
             <Route path="/nfstay/oauth-callback" element={<OAuthCallbackPage />} />
             <Route path="/auth/callback" element={<AuthCallbackPage />} />
             <Route path="/auth/bridge" element={<AuthBridgePage />} />
+            <Route path="/forward" element={<ForwardPage />} />
             <Route path="/signin" element={<SignInPage />} />
             <Route path="/signup" element={<TravelerSignupPage />} />
             <Route path="/terms" element={<TermsPage />} />
