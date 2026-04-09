@@ -38,6 +38,7 @@ import SignInPage from "./pages/SignInPage";
 import TravelerSignupPage from "./pages/TravelerSignupPage";
 import TermsPage from "./pages/TermsPage";
 import PrivacyPage from "./pages/PrivacyPage";
+import CookiePage from "./pages/CookiePage";
 import TravelerLoginPage from "./pages/TravelerLoginPage";
 import VerifyEmailPage from "./pages/VerifyEmailPage";
 import VerifyOtpPage from "./pages/VerifyOtpPage";
@@ -110,6 +111,7 @@ const App = () => (
             <Route path="/signup" element={<TravelerSignupPage />} />
             <Route path="/terms" element={<TermsPage />} />
             <Route path="/privacy" element={<PrivacyPage />} />
+            <Route path="/cookie-policy" element={<CookiePage />} />
             <Route path="/traveler/login" element={<TravelerLoginPage />} />
             <Route path="/verify-email" element={<VerifyEmailPage />} />
             <Route path="/verify-otp" element={<VerifyOtpPage />} />

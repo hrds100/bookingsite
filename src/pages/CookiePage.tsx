@@ -2,18 +2,18 @@ import { useWhiteLabel } from "@/contexts/WhiteLabelContext";
 import { useNfsLegalPage, useNfsLegalProtectedBlock } from "@/hooks/useNfsLegalPage";
 import { NfsLegalPageLayout } from "@/components/nfs/NfsLegalPageLayout";
 
-export default function PrivacyPage() {
+export default function CookiePage() {
   const { operator, isWhiteLabel } = useWhiteLabel();
   const operatorId = isWhiteLabel ? operator?.id : undefined;
 
-  const { data: content = "", isLoading } = useNfsLegalPage("privacy", operatorId);
-  const { data: protectedBlock = "" } = useNfsLegalProtectedBlock("privacy");
+  const { data: content = "", isLoading } = useNfsLegalPage("cookie", operatorId);
+  const { data: protectedBlock = "" } = useNfsLegalProtectedBlock("cookie");
 
   const brand = isWhiteLabel && operator?.brand_name ? operator.brand_name : "nfstay";
-  const title = `${brand} Privacy Policy`;
+  const title = `${brand} Cookie Policy`;
 
   return (
-    <div data-feature="NFSTAY__PRIVACY">
+    <div data-feature="NFSTAY__COOKIE">
       <NfsLegalPageLayout
         title={title}
         updatedAt="April 2026"

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
 import { useNfsOperator, useNfsOperatorUpdate } from "@/hooks/useNfsOperator";
+import { useNfsOperatorLegalPage, useNfsOperatorLegalPageUpdate, type LegalPageType } from "@/hooks/useNfsLegalPage";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabase";
 import { Loader2 } from "lucide-react";
@@ -406,6 +407,7 @@ export default function OperatorSettings() {
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
           <TabsTrigger value="payout">Payout</TabsTrigger>
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
+          <TabsTrigger value="legal">Legal Pages</TabsTrigger>
         </TabsList>
 
         {/* Tab 1: Profile */}
@@ -1004,7 +1006,101 @@ export default function OperatorSettings() {
             ))}
           </section>
         </TabsContent>
+
+        {/* Tab: Legal Pages */}
+        <TabsContent value="legal" className="mt-6">
+          <LegalPagesTab />
+        </TabsContent>
       </Tabs>
     </div>
+  );
+}
+
+/** Isolated sub-component so hooks run per page type cleanly */
+function LegalPagesTab() {
+  return (
+    <div className="space-y-8">
+      <LegalPageEditor pageType="privacy" label="Privacy Policy" path="/privacy" />
+      <LegalPageEditor pageType="terms" label="Terms & Conditions" path="/terms" />
+      <LegalPageEditor pageType="cookie" label="Cookie Policy" path="/cookie-policy" />
+    </div>
+  );
+}
+
+function LegalPageEditor({ pageType, label, path }: { pageType: LegalPageType; label: string; path: string }) {
+  const { data: savedContent = "", isLoading } = useNfsOperatorLegalPage(pageType);
+  const updateLegal = useNfsOperatorLegalPageUpdate();
+  const [draft, setDraft] = useState("");
+  const [initialised, setInitialised] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  // Populate draft once saved content loads
+  useEffect(() => {
+    if (!isLoading && !initialised) {
+      setDraft(savedContent);
+      setInitialised(true);
+    }
+  }, [isLoading, savedContent, initialised]);
+
+  const handleSave = useCallback(async () => {
+    setSaving(true);
+    try {
+      await updateLegal.mutateAsync({ pageType, content: draft });
+      toast({ title: "Saved", description: `${label} has been saved.` });
+    } catch {
+      toast({ title: "Error", description: "Could not save. Please try again.", variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  }, [updateLegal, pageType, draft, label]);
+
+  const handleReset = useCallback(() => {
+    setDraft("");
+  }, []);
+
+  return (
+    <section className="bg-card border border-border rounded-2xl p-6 space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-semibold">{label}</h2>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Edit your {label.toLowerCase()} content. Leave blank to use the nfstay default.{" "}
+            <a href={path} target="_blank" rel="noreferrer" className="text-primary underline">
+              Preview page ↗
+            </a>
+          </p>
+        </div>
+      </div>
+
+      {isLoading ? (
+        <div className="h-40 bg-muted rounded-lg animate-pulse" />
+      ) : (
+        <Textarea
+          value={draft}
+          onChange={e => setDraft(e.target.value)}
+          rows={16}
+          placeholder={`Enter your ${label} content in Markdown format, or leave blank to use the nfstay default template.`}
+          className="font-mono text-xs"
+        />
+      )}
+
+      <p className="text-xs text-muted-foreground">
+        Content is formatted as Markdown. Use ## for headings, **bold**, - for bullet points.
+      </p>
+
+      <div className="flex gap-3">
+        <Button onClick={handleSave} disabled={saving || isLoading} size="sm">
+          {saving ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving…</> : "Save"}
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleReset}
+          disabled={saving}
+        >
+          Reset to default
+        </Button>
+      </div>
+    </section>
   );
 }
