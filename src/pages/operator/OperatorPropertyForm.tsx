@@ -15,7 +15,7 @@ import { useNfsPropertyCreate, useNfsPropertyUpdate, type PropertyFields } from 
 import { useNfsImageUpload } from "@/hooks/useNfsImageUpload";
 import NfsPlacesAutocomplete, { type PlaceResult } from "@/components/nfs/NfsPlacesAutocomplete";
 import { supabase } from "@/lib/supabase";
-import { notifyNewProperty } from "@/lib/n8n";
+import { notifyNewProperty } from "@/lib/email";
 import {
   useNfsHospitableConnection,
   useNfsHospitableSyncedProperties,

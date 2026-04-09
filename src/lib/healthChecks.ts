@@ -69,49 +69,27 @@ export function getAllExecutionsForFlow(flow: FlowDef): ExecutionEntry[] {
   return all.sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime());
 }
 
-export async function checkN8n(): Promise<HealthCheckResult> {
-  const name = 'n8n';
-  const label = 'Automations';
+export async function checkEmailService(): Promise<HealthCheckResult> {
+  const name = 'email';
+  const label = 'Email Notifications';
 
-  const { signal, clear } = makeController();
+  const supabaseUrl = typeof window !== 'undefined'
+    ? (window as unknown as Record<string, string>).__SUPABASE_URL__
+    : undefined;
+  const url = `${supabaseUrl ?? 'https://asazddtvjvmckouxcmmo.supabase.co'}/functions/v1/nfs-send-email`;
+
+  const { signal, clear } = makeController(5_000);
   try {
-    const res = await fetch(
-      'https://asazddtvjvmckouxcmmo.supabase.co/functions/v1/n8n-health',
-      { signal },
-    );
+    // OPTIONS ping — just checks the function is reachable
+    const res = await fetch(url, { method: 'OPTIONS', signal });
     clear();
-    if (!res.ok) return downResult(name, label, 'Automation health proxy returned an error');
-    const json = await res.json();
-
-    // Store execution data if present
-    const executions: Record<string, ExecutionEntry[]> = json?.executions ?? {};
-    lastExecutionData = executions;
-
-    const allWorkflows: { name: string; active: boolean }[] = json?.workflows ?? [];
-    const prodWorkflows = allWorkflows.filter((w) =>
-      /^(NFsTay|marketplace10|nfs-)/i.test(w.name)
-    );
-    // Deduplicate: if a workflow name has an active copy, ignore inactive duplicates
-    const activeNames = new Set(prodWorkflows.filter((w) => w.active).map((w) => w.name));
-    const uniqueProd = prodWorkflows.filter((w) => w.active || !activeNames.has(w.name));
-    const prodActive = uniqueProd.filter((w) => w.active).length;
-    const prodTotal = uniqueProd.length;
-    const totalActive: number = json?.active ?? 0;
-    if (prodTotal === 0)
-      return healthyResult(name, label, `${totalActive} workflows active`);
-    const inactive = uniqueProd.filter((w) => !w.active).map((w) => w.name);
-    const knownInactive = new Set([
-      'NFsTay — New Inquiry',
-      'NFsTay — Test Echo (all webhooks)',
-      'marketplace10 – Affiliate Conversion Alerts',
-    ]);
-    const unexpectedInactive = inactive.filter((n) => !knownInactive.has(n));
-    if (unexpectedInactive.length === 0)
-      return healthyResult(name, label, `${prodActive} production workflows active`);
-    return { name, status: 'degraded', label, lastChecked: new Date(), details: `${prodActive} of ${prodTotal} active. Unexpected inactive: ${unexpectedInactive.join(', ')}` };
+    if (res.ok || res.status === 200 || res.status === 204) {
+      return healthyResult(name, label, 'Email edge function reachable');
+    }
+    return downResult(name, label, `Edge function returned ${res.status}`);
   } catch {
     clear();
-    return downResult(name, label, 'Unable to connect to automation engine');
+    return downResult(name, label, 'Unable to reach email edge function');
   }
 }
 
@@ -151,7 +129,7 @@ export interface ServiceDef {
 export const BOOKING_SERVICES: ServiceDef[] = [
   { key: 'supabase', name: 'Database & Login', icon: 'Database', check: checkSupabase },
   { key: 'stripe', name: 'Payments', icon: 'CreditCard', check: () => healthyResult('stripe', 'Payments', 'Stripe is managed externally — check Stripe dashboard for issues') },
-  { key: 'n8n', name: 'Automations', icon: 'Workflow', check: checkN8n },
+  { key: 'email', name: 'Email Notifications', icon: 'Mail', check: checkEmailService },
   { key: 'uptimerobot', name: 'Uptime Monitoring', icon: 'Activity', check: checkUptimeRobot },
 ];
 
@@ -183,7 +161,7 @@ export const BOOKING_FLOWS: FlowDef[] = [
       { label: 'Property Selected', dependsOn: 'supabase' },
       { label: 'Stripe Checkout', dependsOn: 'stripe' },
       { label: 'Booking Confirmed', dependsOn: 'supabase' },
-      { label: 'Host Notified', dependsOn: 'n8n', workflowName: 'nfs-hospitable-listing-sync' },
+      { label: 'Guest Notified', dependsOn: 'email' },
     ],
   },
 ];

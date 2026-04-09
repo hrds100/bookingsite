@@ -1,12 +1,21 @@
 /**
- * n8n webhook integration for nfstay booking site.
- *
- * All notifications (booking confirmation emails, admin alerts, etc.)
- * are sent via n8n webhooks. If the webhook fails, the app continues
- * normally — notifications are fire-and-forget.
+ * n8n compatibility shim — all calls now route to Supabase Edge Functions.
+ * Function signatures are unchanged so no call-sites need updating.
+ * n8n is no longer required or used by bookingsite.
  */
 
-const N8N_BASE = import.meta.env.VITE_N8N_WEBHOOK_URL || "";
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL ?? "";
+const ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY ?? "";
+
+const SEND_EMAIL_URL = `${SUPABASE_URL}/functions/v1/nfs-send-email`;
+const SEND_OTP_URL = `${SUPABASE_URL}/functions/v1/send-otp`;
+const VERIFY_OTP_URL = `${SUPABASE_URL}/functions/v1/verify-otp`;
+
+const AUTH_HEADERS = {
+  "Content-Type": "application/json",
+  "Authorization": `Bearer ${ANON_KEY}`,
+  "apikey": ANON_KEY,
+};
 
 interface BookingNotification {
   reservationId: string;
@@ -24,53 +33,42 @@ interface BookingNotification {
   currency: string;
 }
 
-/**
- * Fire-and-forget POST to an n8n webhook.
- * Never throws — logs errors silently.
- */
-async function postWebhook(path: string, payload: Record<string, unknown>): Promise<void> {
-  if (!N8N_BASE) {
-    console.warn("[n8n] VITE_N8N_WEBHOOK_URL not set, skipping notification");
-    return;
-  }
-
-  const url = `${N8N_BASE}/${path}`;
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 8000);
-
-  try {
-    await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-      signal: controller.signal,
-    });
-  } catch (err) {
-    console.warn(`[n8n] Webhook ${path} failed (non-blocking):`, err);
-  } finally {
-    clearTimeout(timeout);
-  }
-}
-
 /** Strip spaces, dashes, parens from phone numbers: "+44 7863 992555" -> "+447863992555" */
 function cleanPhone(phone: string): string {
   return phone.replace(/[^0-9+]/g, "");
 }
 
-/** POST /webhook/send-otp -> { phone } -> { success, message_id } */
+/** Fire-and-forget POST to nfs-send-email edge function */
+async function postEmail(payload: Record<string, unknown>): Promise<void> {
+  if (!SUPABASE_URL) {
+    console.warn("[email] VITE_SUPABASE_URL not set, skipping notification");
+    return;
+  }
+  try {
+    await fetch(SEND_EMAIL_URL, {
+      method: "POST",
+      headers: AUTH_HEADERS,
+      body: JSON.stringify(payload),
+    });
+  } catch (err) {
+    console.warn("[email] notification failed (non-blocking):", err);
+  }
+}
+
+/** POST to send-otp edge function → { phone } → { success, message_id } */
 export async function sendOtp(
   phone: string
 ): Promise<{ success: boolean; message_id?: string }> {
-  if (!N8N_BASE) throw new Error("N8N_BASE not configured");
+  if (!SUPABASE_URL) throw new Error("VITE_SUPABASE_URL not configured");
 
   const clean = cleanPhone(phone);
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 8000);
 
   try {
-    const res = await fetch(`${N8N_BASE}/send-otp`, {
+    const res = await fetch(SEND_OTP_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: AUTH_HEADERS,
       body: JSON.stringify({ phone: clean }),
       signal: controller.signal,
     });
@@ -86,9 +84,8 @@ export async function sendOtp(
 }
 
 /**
- * POST /webhook/verify-otp -> { phone, code, name, email? } -> { success, error? }
- * NOTE: n8n verify-otp may return empty body (no Respond to Webhook node).
- * We treat empty 200 as success.
+ * POST to verify-otp edge function → { phone, code, name, email? } → { success, error? }
+ * Treats empty 200 as success (edge fn may not respond with body).
  */
 export async function verifyOtp(params: {
   phone: string;
@@ -96,16 +93,16 @@ export async function verifyOtp(params: {
   name: string;
   email?: string;
 }): Promise<{ success: boolean; error?: string }> {
-  if (!N8N_BASE) throw new Error("N8N_BASE not configured");
+  if (!SUPABASE_URL) throw new Error("VITE_SUPABASE_URL not configured");
 
   const clean = cleanPhone(params.phone);
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 8000);
 
   try {
-    const res = await fetch(`${N8N_BASE}/verify-otp`, {
+    const res = await fetch(VERIFY_OTP_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: AUTH_HEADERS,
       body: JSON.stringify({ ...params, phone: clean }),
       signal: controller.signal,
     });
@@ -115,7 +112,7 @@ export async function verifyOtp(params: {
     }
     const text = await res.text();
     if (!text.trim()) {
-      // n8n workflow ran but has no Respond to Webhook node - treat as success
+      // Edge function ran but has no response body — treat as success
       return { success: true };
     }
     return JSON.parse(text);
@@ -124,92 +121,49 @@ export async function verifyOtp(params: {
   }
 }
 
-/**
- * Notify n8n that a booking was confirmed.
- * Triggers: guest confirmation email + admin alert.
- */
+/** Notify that a booking was confirmed — triggers confirmation emails */
 export function notifyBookingConfirmed(data: BookingNotification): void {
-  postWebhook("nfstay-booking-confirmed", {
-    type: "booking_confirmed",
-    timestamp: new Date().toISOString(),
-    ...data,
-  });
+  postEmail({ type: "booking_confirmed", ...data });
 }
 
-/**
- * Notify n8n that a new enquiry was submitted (no payment yet).
- */
+/** Notify that a new enquiry was submitted (no payment yet) */
 export function notifyBookingEnquiry(data: Omit<BookingNotification, "reservationId">): void {
-  postWebhook("nfstay-booking-enquiry", {
-    type: "booking_enquiry",
-    timestamp: new Date().toISOString(),
-    ...data,
-  });
+  // No email type for enquiries yet — log only
+  console.info("[email] booking enquiry (no email template):", data);
 }
 
-/**
- * Notify n8n that an operator rejected a booking.
- * Triggers: guest rejection email with reason.
- */
+/** Notify that an operator rejected a booking */
 export function notifyBookingRejected(data: BookingNotification & { reason?: string }): void {
-  postWebhook("nfstay-booking-confirmed", {
-    type: "booking_rejected",
-    timestamp: new Date().toISOString(),
-    ...data,
-  });
+  postEmail({ type: "booking_cancelled", ...data });
 }
 
-/**
- * Notify admin (Hugo) that a new operator signed up.
- */
+/** Notify admin that a new operator signed up */
 export function notifyNewOperator(data: {
   operatorName: string;
   operatorEmail: string;
   subdomain: string;
 }): void {
-  postWebhook("nfstay-new-operator", {
-    type: "new_operator",
-    timestamp: new Date().toISOString(),
-    ...data,
-  });
+  postEmail({ type: "new_operator", ...data });
 }
 
-/**
- * Notify admin (Hugo) that an operator listed a new property.
- */
+/** Notify admin that an operator listed a new property */
 export function notifyNewProperty(data: {
   propertyName: string;
   operatorName: string;
   city: string;
 }): void {
-  postWebhook("nfstay-new-property", {
-    type: "new_property",
-    timestamp: new Date().toISOString(),
-    ...data,
-  });
+  postEmail({ type: "new_property", ...data });
 }
 
-/**
- * Notify n8n that a guest signed up - triggers welcome email.
- */
+/** Notify that a guest signed up — triggers welcome email */
 export function notifyGuestSignup(data: {
   guestName: string;
   guestEmail: string;
 }): void {
-  postWebhook("nfstay-guest-signup", {
-    type: "guest_signup",
-    timestamp: new Date().toISOString(),
-    ...data,
-  });
+  postEmail({ type: "guest_signup", ...data });
 }
 
-/**
- * Notify operator that a guest cancelled a booking.
- */
+/** Notify operator that a guest cancelled a booking */
 export function notifyBookingCancelled(data: BookingNotification): void {
-  postWebhook("nfstay-booking-confirmed", {
-    type: "booking_cancelled",
-    timestamp: new Date().toISOString(),
-    ...data,
-  });
+  postEmail({ type: "booking_cancelled", ...data });
 }

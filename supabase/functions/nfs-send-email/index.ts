@@ -247,6 +247,42 @@ Deno.serve(async (req: Request) => {
       await sendEmail(guestEmail, "Welcome to NFStay", html);
     }
 
+    /* ── new_operator ───────────────────────────────────── */
+    if (type === "new_operator") {
+      const { operatorName, operatorEmail, subdomain } = body;
+
+      const html = wrap(`
+        <div class="hd"><h1>New Operator Sign-up 🏢</h1></div>
+        <div class="bd">
+          <p style="color:#444;margin:0 0 20px">A new operator has completed onboarding.</p>
+          <p class="lbl">Operator</p><p class="val">${operatorName}</p>
+          <p class="lbl">Email</p><p class="val">${operatorEmail}</p>
+          <p class="lbl">Subdomain</p><p class="val">${subdomain}.nfstay.app</p>
+          <hr>
+          <p style="color:#444;font-size:14px">View in admin: <a href="https://nfstay.app/admin/operators">nfstay.app/admin/operators</a></p>
+        </div>`);
+
+      await sendEmail(ADMIN_EMAIL, `New Operator: ${operatorName}`, html);
+    }
+
+    /* ── new_property ───────────────────────────────────── */
+    if (type === "new_property") {
+      const { propertyName, operatorName, city } = body;
+
+      const html = wrap(`
+        <div class="hd"><h1>New Property Listed 🏠</h1></div>
+        <div class="bd">
+          <p style="color:#444;margin:0 0 20px">An operator has listed a new property.</p>
+          <p class="lbl">Property</p><p class="val">${propertyName}</p>
+          <p class="lbl">Operator</p><p class="val">${operatorName}</p>
+          <p class="lbl">City</p><p class="val">${city}</p>
+          <hr>
+          <p style="color:#444;font-size:14px">View in admin: <a href="https://nfstay.app/admin/operators">nfstay.app/admin/operators</a></p>
+        </div>`);
+
+      await sendEmail(ADMIN_EMAIL, `New Property: ${propertyName} (${operatorName})`, html);
+    }
+
     return new Response(JSON.stringify({ success: true }), {
       headers: { ...CORS, "Content-Type": "application/json" },
       status: 200,

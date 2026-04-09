@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useNfsOperatorCreate, useNfsOperator } from "@/hooks/useNfsOperator";
-import { notifyNewOperator } from "@/lib/n8n";
+import { notifyNewOperator } from "@/lib/email";
 
 const ACCENT_COLORS = [
   { label: "Green", value: "#22c55e" },

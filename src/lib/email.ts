@@ -56,3 +56,19 @@ export function notifyGuestSignup(data: {
 }): void {
   post({ type: "guest_signup", ...data });
 }
+
+export function notifyNewOperator(data: {
+  operatorName: string;
+  operatorEmail: string;
+  subdomain: string;
+}): void {
+  post({ type: "new_operator", ...data });
+}
+
+export function notifyNewProperty(data: {
+  propertyName: string;
+  operatorName: string;
+  city: string;
+}): void {
+  post({ type: "new_property", ...data });
+}
