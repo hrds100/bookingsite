@@ -262,7 +262,7 @@ export function NfsMainNavbar() {
                     <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-200 py-2 z-50">
                       {isWhiteLabel && wlOperator?.contact_whatsapp && (
                         <a
-                          href={`https://wa.me/${wlOperator.contact_whatsapp.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hi ${wlOperator.brand_name}, I have a question about your properties.`)}`}
+                          href={`https://wa.me/${wlOperator.contact_whatsapp.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(wlOperator.whatsapp_prefill_message || `Hi ${wlOperator.brand_name}, I have a question about your properties.`)}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           onClick={() => setContactOpen(false)}
@@ -471,7 +471,7 @@ export function NfsMainNavbar() {
                 <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Contact us</p>
                 {isWhiteLabel && wlOperator?.contact_whatsapp && (
                   <a
-                    href={`https://wa.me/${wlOperator.contact_whatsapp.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hi ${wlOperator.brand_name}, I have a question.`)}`}
+                    href={`https://wa.me/${wlOperator.contact_whatsapp.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(wlOperator.whatsapp_prefill_message || `Hi ${wlOperator.brand_name}, I have a question.`)}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={() => setDrawerOpen(false)}

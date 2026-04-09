@@ -32,6 +32,7 @@ interface ContactForm {
   contact_phone: string;
   contact_whatsapp: string;
   contact_telegram: string;
+  whatsapp_prefill_message: string;
 }
 
 interface BrandingForm {
@@ -85,6 +86,7 @@ const EMPTY_CONTACT: ContactForm = {
   contact_phone: "",
   contact_whatsapp: "",
   contact_telegram: "",
+  whatsapp_prefill_message: "",
 };
 
 const EMPTY_BRANDING: BrandingForm = {
@@ -161,6 +163,7 @@ export default function OperatorSettings() {
         contact_phone: operator.contact_phone || "",
         contact_whatsapp: operator.contact_whatsapp || "",
         contact_telegram: operator.contact_telegram || "",
+        whatsapp_prefill_message: operator.whatsapp_prefill_message || "",
       });
       setBrandingForm({
         logo_url: operator.logo_url || "",
@@ -220,6 +223,7 @@ export default function OperatorSettings() {
       contact_phone: contactForm.contact_phone || null,
       contact_whatsapp: contactForm.contact_whatsapp || null,
       contact_telegram: contactForm.contact_telegram || null,
+      whatsapp_prefill_message: contactForm.whatsapp_prefill_message || null,
     });
 
   const handleSaveBranding = () =>
@@ -486,6 +490,19 @@ export default function OperatorSettings() {
                   className="mt-1.5"
                   placeholder="@username"
                 />
+              </div>
+              <div className="md:col-span-2">
+                <Label>WhatsApp Pre-filled Message</Label>
+                <Textarea
+                  value={contactForm.whatsapp_prefill_message}
+                  onChange={e => setContactForm(p => ({ ...p, whatsapp_prefill_message: e.target.value }))}
+                  className="mt-1.5"
+                  rows={3}
+                  placeholder={`Hi ${contactForm.contact_whatsapp ? "us" : "[your brand name]"}, I have a question about your properties.`}
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  This message is pre-filled when guests tap the WhatsApp button on your site. Leave blank to use the default.
+                </p>
               </div>
             </div>
           </section>
