@@ -116,6 +116,19 @@ export default function SignInPage() {
             </Link>
           </div>
         </div>
+
+        {/* Create account */}
+        <div className="text-center">
+          <p className="text-sm text-muted-foreground">
+            Don't have an account?{" "}
+            <Link
+              to="/signup"
+              className="text-primary font-semibold hover:underline"
+            >
+              Create account
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );
