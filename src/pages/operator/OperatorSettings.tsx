@@ -1018,16 +1018,25 @@ export default function OperatorSettings() {
 
 /** Isolated sub-component so hooks run per page type cleanly */
 function LegalPagesTab() {
+  const { data: operator } = useNfsOperator();
+
+  // Resolve the operator's own site base URL for preview links
+  const baseUrl = (() => {
+    if (operator?.custom_domain) return `https://${operator.custom_domain}`;
+    if (operator?.subdomain) return `https://${operator.subdomain}.nfstay.app`;
+    return "";
+  })();
+
   return (
     <div className="space-y-8">
-      <LegalPageEditor pageType="privacy" label="Privacy Policy" path="/privacy" />
-      <LegalPageEditor pageType="terms" label="Terms & Conditions" path="/terms" />
-      <LegalPageEditor pageType="cookie" label="Cookie Policy" path="/cookie-policy" />
+      <LegalPageEditor pageType="privacy" label="Privacy Policy" path="/privacy" baseUrl={baseUrl} />
+      <LegalPageEditor pageType="terms" label="Terms & Conditions" path="/terms" baseUrl={baseUrl} />
+      <LegalPageEditor pageType="cookie" label="Cookie Policy" path="/cookie-policy" baseUrl={baseUrl} />
     </div>
   );
 }
 
-function LegalPageEditor({ pageType, label, path }: { pageType: LegalPageType; label: string; path: string }) {
+function LegalPageEditor({ pageType, label, path, baseUrl }: { pageType: LegalPageType; label: string; path: string; baseUrl: string }) {
   const { data: savedContent = "", isLoading } = useNfsOperatorLegalPage(pageType);
   const updateLegal = useNfsOperatorLegalPageUpdate();
   const [draft, setDraft] = useState("");
@@ -1065,9 +1074,13 @@ function LegalPageEditor({ pageType, label, path }: { pageType: LegalPageType; l
           <h2 className="text-lg font-semibold">{label}</h2>
           <p className="text-sm text-muted-foreground mt-0.5">
             Edit your {label.toLowerCase()} content. Leave blank to use the nfstay default.{" "}
-            <a href={path} target="_blank" rel="noreferrer" className="text-primary underline">
-              Preview page ↗
-            </a>
+            {baseUrl ? (
+              <a href={`${baseUrl}${path}`} target="_blank" rel="noreferrer" className="text-primary underline">
+                Preview page ↗
+              </a>
+            ) : (
+              <span className="text-muted-foreground/60">Set a subdomain or custom domain to preview.</span>
+            )}
           </p>
         </div>
       </div>
