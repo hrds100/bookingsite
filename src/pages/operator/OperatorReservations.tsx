@@ -5,10 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NfsStatusBadge } from "@/components/nfs/NfsStatusBadge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { mockReservations, getReservationProperty, type MockReservation } from "@/data/mock-reservations";
+import { mockReservations, type MockReservation } from "@/data/mock-reservations";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { useAuth } from "@/hooks/useAuth";
-import { useNfsOperatorReservations } from "@/hooks/useNfsReservations";
+import { useNfsOperatorReservations, type ReservationWithProperty } from "@/hooks/useNfsReservations";
 import { format, parseISO, isFuture, isPast } from "date-fns";
 
 export default function OperatorReservations() {
@@ -18,22 +18,22 @@ export default function OperatorReservations() {
   const [search, setSearch] = useState("");
 
   // Show operator's real reservations only — no mock fallback
-  const all: MockReservation[] = realReservations ?? [];
+  const all: ReservationWithProperty[] = realReservations ?? [];
 
   const upcoming = all.filter(r => isFuture(parseISO(r.check_in)) && r.status !== 'cancelled');
   const past = all.filter(r => isPast(parseISO(r.check_out)) || r.status === 'completed');
   const cancelled = all.filter(r => r.status === 'cancelled');
-  const pending = all.filter(r => r.status === 'pending');
+  const pending = all.filter(r => r.status === 'pending' || r.status === 'pending_approval');
 
-  const filterList = (list: MockReservation[]) =>
+  const filterList = (list: ReservationWithProperty[]) =>
     list.filter(r => {
-      const prop = getReservationProperty(r);
+      const propTitle = r.nfs_properties?.public_title ?? "";
       return `${r.guest_first_name} ${r.guest_last_name}`.toLowerCase().includes(search.toLowerCase()) ||
-        prop.title.toLowerCase().includes(search.toLowerCase()) ||
+        propTitle.toLowerCase().includes(search.toLowerCase()) ||
         r.id.toLowerCase().includes(search.toLowerCase());
     });
 
-  const ReservationTable = ({ data }: { data: MockReservation[] }) => {
+  const ReservationTable = ({ data }: { data: ReservationWithProperty[] }) => {
     const filtered = filterList(data);
     return (
       <div className="bg-card border border-border rounded-2xl overflow-hidden">
@@ -57,7 +57,7 @@ export default function OperatorReservations() {
               {filtered.length === 0 ? (
                 <tr><td colSpan={10} className="p-8 text-center text-muted-foreground">No reservations found</td></tr>
               ) : filtered.map((r) => {
-                const prop = getReservationProperty(r);
+                const propTitle = r.nfs_properties?.public_title ?? r.property_id ?? "—";
                 return (
                   <tr key={r.id} className="border-b border-border last:border-0 hover:bg-muted/20 transition-colors">
                     <td className="p-4 font-mono text-xs">{r.id.slice(0, 8).toUpperCase()}</td>
@@ -65,7 +65,7 @@ export default function OperatorReservations() {
                       <p className="font-medium">{r.guest_first_name} {r.guest_last_name}</p>
                       <p className="text-xs text-muted-foreground">{r.guest_email}</p>
                     </td>
-                    <td className="p-4 text-muted-foreground truncate max-w-[140px]">{prop.title}</td>
+                    <td className="p-4 text-muted-foreground truncate max-w-[140px]">{propTitle}</td>
                     <td className="p-4 text-muted-foreground whitespace-nowrap">{format(parseISO(r.check_in), 'MMM d, yyyy')}</td>
                     <td className="p-4 text-muted-foreground whitespace-nowrap">{format(parseISO(r.check_out), 'MMM d, yyyy')}</td>
                     <td className="p-4 text-muted-foreground">{r.adults + r.children}</td>

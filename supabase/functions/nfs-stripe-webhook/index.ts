@@ -1,7 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const STRIPE_WEBHOOK_SECRET = Deno.env.get("STRIPE_WEBHOOK_SECRET") || "";
+const STRIPE_SECRET_KEY = (
+  Deno.env.get("STRIPE_SECRET_KEY") ||
+  Deno.env.get("NFS_STRIPE_SECRET_KEY") ||
+  ""
+).trim();
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
@@ -12,83 +16,50 @@ serve(async (req) => {
 
   try {
     const body = await req.text();
+    let event: { type: string; data: { object: { id: string } } };
 
-    // Stripe signature verification (fail closed if secret is missing or signature is invalid)
-    const sigHeader = req.headers.get("stripe-signature");
-    if (!STRIPE_WEBHOOK_SECRET) {
-      console.error("STRIPE_WEBHOOK_SECRET is not set - rejecting webhook");
-      return new Response(JSON.stringify({ error: "Webhook secret not configured" }), { status: 500 });
-    }
-    if (!sigHeader) {
-      console.error("Missing stripe-signature header");
-      return new Response(JSON.stringify({ error: "Missing signature" }), { status: 400 });
+    try {
+      event = JSON.parse(body);
+    } catch {
+      return new Response(JSON.stringify({ error: "Invalid JSON" }), { status: 400 });
     }
 
-    // Parse Stripe-Signature header: t=timestamp,v1=signature
-    const parts = Object.fromEntries(
-      sigHeader.split(",").map((p) => {
-        const [key, ...val] = p.split("=");
-        return [key, val.join("=")];
-      })
-    );
-    const timestamp = parts["t"];
-    const expectedSig = parts["v1"];
-
-    if (!timestamp || !expectedSig) {
-      console.error("Malformed stripe-signature header");
-      return new Response(JSON.stringify({ error: "Malformed signature" }), { status: 400 });
-    }
-
-    // Verify HMAC-SHA256: signed_payload = timestamp + "." + body
-    // Stripe secrets are "whsec_<base64>" — must decode the base64 portion to get raw key bytes
-    const encoder = new TextEncoder();
-    const secretBase64 = STRIPE_WEBHOOK_SECRET.startsWith("whsec_")
-      ? STRIPE_WEBHOOK_SECRET.slice(6)
-      : STRIPE_WEBHOOK_SECRET;
-    const keyBytes = Uint8Array.from(atob(secretBase64), (c) => c.charCodeAt(0));
-    const key = await crypto.subtle.importKey(
-      "raw",
-      keyBytes,
-      { name: "HMAC", hash: "SHA-256" },
-      false,
-      ["sign"]
-    );
-    const signedPayload = encoder.encode(`${timestamp}.${body}`);
-    const signatureBytes = await crypto.subtle.sign("HMAC", key, signedPayload);
-    const computedSig = Array.from(new Uint8Array(signatureBytes))
-      .map((b) => b.toString(16).padStart(2, "0"))
-      .join("");
-
-    if (computedSig !== expectedSig) {
-      console.error("Stripe signature verification failed");
-      return new Response(JSON.stringify({ error: "Invalid signature" }), { status: 400 });
-    }
-
-    // Reject events older than 5 minutes (replay protection)
-    const eventAge = Math.abs(Date.now() / 1000 - Number(timestamp));
-    if (eventAge > 300) {
-      console.error("Stripe webhook timestamp too old:", eventAge, "seconds");
-      return new Response(JSON.stringify({ error: "Timestamp too old" }), { status: 400 });
-    }
-
-    const event = JSON.parse(body);
-
+    // Only process checkout completions
     if (event.type !== "checkout.session.completed") {
       return new Response(JSON.stringify({ received: true }), { status: 200 });
     }
 
-    const session = event.data.object;
+    const sessionId = event.data.object.id;
+    console.log("Processing checkout.session.completed:", sessionId);
+
+    // Verify the session is actually paid by fetching from Stripe directly
+    const stripeRes = await fetch(`https://api.stripe.com/v1/checkout/sessions/${sessionId}`, {
+      headers: { "Authorization": `Bearer ${STRIPE_SECRET_KEY}` },
+    });
+
+    if (!stripeRes.ok) {
+      console.error("Failed to fetch session from Stripe:", stripeRes.status);
+      return new Response(JSON.stringify({ error: "Could not verify session" }), { status: 400 });
+    }
+
+    const session = await stripeRes.json();
+
+    if (session.payment_status !== "paid") {
+      console.log("Session not paid, status:", session.payment_status);
+      return new Response(JSON.stringify({ received: true }), { status: 200 });
+    }
+
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     // Find reservation by stripe_session_id
     const { data: reservation, error: findErr } = await supabase
       .from("nfs_reservations")
-      .select("*, nfs_properties!inner(operator_id, name)")
-      .eq("stripe_session_id", session.id)
+      .select("*, nfs_properties!inner(operator_id, public_title)")
+      .eq("stripe_session_id", sessionId)
       .single();
 
     if (findErr || !reservation) {
-      console.error("Reservation not found for session:", session.id);
+      console.error("Reservation not found for session:", sessionId, findErr?.message);
       return new Response(JSON.stringify({ error: "Reservation not found" }), { status: 404 });
     }
 
@@ -100,17 +71,22 @@ serve(async (req) => {
       .single();
 
     const newStatus = operator?.booking_mode === "instant" ? "confirmed" : "pending_approval";
+    console.log("Setting reservation status to:", newStatus, "booking_mode:", operator?.booking_mode);
 
-    // Update reservation status
-    await supabase
+    const { error: updateErr } = await supabase
       .from("nfs_reservations")
       .update({ status: newStatus, payment_status: "paid" })
       .eq("id", reservation.id);
 
-    // Fire n8n notification webhook (fire and forget)
+    if (updateErr) {
+      console.error("Failed to update reservation:", updateErr.message);
+    } else {
+      console.log("Reservation updated:", reservation.id, "->", newStatus);
+    }
+
+    // Fire notification webhooks (fire and forget)
     const n8nBase = "https://n8n.srv886554.hstgr.cloud/webhook";
 
-    // Notify operator - differentiate by booking mode
     fetch(`${n8nBase}/nfstay-booking-enquiry`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -118,9 +94,9 @@ serve(async (req) => {
         emailType: newStatus === "confirmed" ? "booking_confirmed_operator" : "booking_request_operator",
         operatorEmail: operator?.contact_email,
         operatorName: operator?.brand_name,
-        guestName: reservation.guest_name,
+        guestName: `${reservation.guest_first_name || ""} ${reservation.guest_last_name || ""}`.trim(),
         guestEmail: reservation.guest_email,
-        propertyName: reservation.nfs_properties?.name,
+        propertyName: reservation.nfs_properties?.public_title,
         checkIn: reservation.check_in,
         checkOut: reservation.check_out,
         totalAmount: reservation.total_amount,
@@ -129,15 +105,14 @@ serve(async (req) => {
       }),
     }).catch(() => {});
 
-    // Notify guest - differentiate by booking mode
     fetch(`${n8nBase}/nfstay-booking-confirmed`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         emailType: newStatus === "confirmed" ? "booking_confirmed" : "booking_request_sent",
-        guestName: reservation.guest_name,
+        guestName: `${reservation.guest_first_name || ""} ${reservation.guest_last_name || ""}`.trim(),
         guestEmail: reservation.guest_email,
-        propertyName: reservation.nfs_properties?.name,
+        propertyName: reservation.nfs_properties?.public_title,
         checkIn: reservation.check_in,
         checkOut: reservation.check_out,
         totalAmount: reservation.total_amount,
@@ -147,7 +122,6 @@ serve(async (req) => {
       }),
     }).catch(() => {});
 
-    // Notify admin (Hugo) of every new booking
     fetch(`${n8nBase}/nfstay-booking-enquiry`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -155,9 +129,9 @@ serve(async (req) => {
         emailType: "admin_new_booking",
         operatorEmail: "hugo@nfstay.com",
         operatorName: "Admin",
-        guestName: reservation.guest_name,
+        guestName: `${reservation.guest_first_name || ""} ${reservation.guest_last_name || ""}`.trim(),
         guestEmail: reservation.guest_email,
-        propertyName: reservation.nfs_properties?.name,
+        propertyName: reservation.nfs_properties?.public_title,
         checkIn: reservation.check_in,
         checkOut: reservation.check_out,
         totalAmount: reservation.total_amount,
