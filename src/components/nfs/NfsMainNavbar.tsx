@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
-import { Menu, X, Search, Clock, Users, User, ChevronDown, LogOut, MessageCircle, Mail, Phone, Minus, Plus, Settings } from "lucide-react";
+import { Menu, X, Search, Clock, Users, User, ChevronDown, LogOut, MessageCircle, Mail, Phone, Minus, Plus, Settings, MapPin } from "lucide-react";
 import { format } from "date-fns";
 import type { DateRange } from "react-day-picker";
 import { Calendar } from "@/components/ui/calendar";
@@ -10,6 +10,7 @@ import { NfsCurrencySelector } from "./NfsCurrencySelector";
 import { NfsFavouritesDropdown } from "./NfsFavouritesDropdown";
 import { useAuth } from "@/hooks/useAuth";
 import { useWhiteLabel } from "@/contexts/WhiteLabelContext";
+import { useNfsPropertyCities } from "@/hooks/useNfsProperties";
 
 export function NfsMainNavbar() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -25,6 +26,9 @@ export function NfsMainNavbar() {
   const isHomePage = location.pathname === "/";
 
   const [navMode, setNavMode] = useState<"traveler" | "reservations">("traveler");
+  const [citiesOpen, setCitiesOpen] = useState(false);
+  const searchBoxRef = useRef<HTMLDivElement>(null);
+  const { data: allCities = [] } = useNfsPropertyCities();
   const [navDateRange, setNavDateRange] = useState<DateRange | undefined>();
   const [navAdults, setNavAdults] = useState(0);
   const [navChildren, setNavChildren] = useState(0);
@@ -37,6 +41,24 @@ export function NfsMainNavbar() {
       setNavMode("traveler");
     }
   }, [location.pathname]);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (searchBoxRef.current && !searchBoxRef.current.contains(e.target as Node)) {
+        setCitiesOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const filteredNavCities = query.trim().length === 0
+    ? allCities.slice(0, 6)
+    : allCities.filter(
+        (c) =>
+          c.city.toLowerCase().includes(query.toLowerCase()) ||
+          c.country.toLowerCase().includes(query.toLowerCase()),
+      ).slice(0, 6);
 
   const handleNavToggle = (mode: "traveler" | "reservations") => {
     if (mode === "reservations") {
@@ -139,18 +161,53 @@ export function NfsMainNavbar() {
             {/* CENTER: Search bar (search page only) */}
             {isSearchPage && (
               <div className="flex flex-1 justify-center w-full max-w-[800px] px-2 sm:px-4 min-w-0">
-                <div data-feature="NFSTAY__NAVBAR_SEARCH" className="flex items-center border border-gray-200 rounded-full bg-white px-2 py-1.5 shadow-sm w-full min-w-0">
+                <div
+                  ref={searchBoxRef}
+                  data-feature="NFSTAY__NAVBAR_SEARCH"
+                  className="relative flex items-center border border-gray-200 rounded-full bg-white px-2 py-1.5 shadow-sm w-full min-w-0"
+                >
                   <div className="flex items-center gap-2 flex-1 px-3 min-w-0">
                     <Search className="w-4 h-4 text-gray-400 shrink-0" />
                     <input
                       type="text"
                       value={query}
-                      onChange={(e) => setQuery(e.target.value)}
-                      onKeyDown={handleKeyDown}
+                      onChange={(e) => { setQuery(e.target.value); setCitiesOpen(true); }}
+                      onFocus={() => setCitiesOpen(true)}
+                      onKeyDown={(e) => { if (e.key === "Enter") { setCitiesOpen(false); handleSearch(); } if (e.key === "Escape") setCitiesOpen(false); else handleKeyDown(e); }}
                       placeholder="Where to?"
                       className="text-sm bg-transparent outline-none flex-1 placeholder:text-gray-400 min-w-0"
+                      autoComplete="off"
                     />
                   </div>
+
+                  {/* City autocomplete dropdown */}
+                  {citiesOpen && filteredNavCities.length > 0 && (
+                    <div className="absolute top-full left-0 mt-2 w-64 bg-white border border-gray-200 rounded-2xl shadow-lg z-50 overflow-hidden">
+                      <div className="px-3 pt-3 pb-1">
+                        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+                          {query.trim() ? "Matching destinations" : "Popular destinations"}
+                        </p>
+                      </div>
+                      {filteredNavCities.map((c) => (
+                        <button
+                          key={`${c.city}|${c.country}`}
+                          type="button"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => { setQuery(c.city); setCitiesOpen(false); }}
+                          className="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-gray-50 transition-colors"
+                        >
+                          <span className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                            <MapPin className="w-3.5 h-3.5 text-primary" />
+                          </span>
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-gray-900 truncate">{c.city}</p>
+                            <p className="text-xs text-gray-400 truncate">{c.country}</p>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
                   <div className="h-6 w-px bg-gray-200 hidden sm:block" />
                   {/* Date range picker */}
                   <Popover>
