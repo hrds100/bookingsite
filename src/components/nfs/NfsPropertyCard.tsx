@@ -2,18 +2,44 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Heart, ChevronLeft, ChevronRight, MapPin, Users, BedDouble, Bath, Star } from "lucide-react";
 import type { MockProperty } from "@/data/mock-properties";
+import type { OperatorDomainInfo } from "@/hooks/useNfsOperator";
 import { useCurrency } from "@/contexts/CurrencyContext";
-import { getPropertyRating } from "@/data/mock-reviews";
 
 interface NfsPropertyCardProps {
   property: MockProperty;
   onHover?: (id: string | null) => void;
+  /** Map of operatorId → domain info, used to route clicks to the operator's own site */
+  operatorDomains?: Record<string, OperatorDomainInfo>;
 }
 
-export function NfsPropertyCard({ property, onHover }: NfsPropertyCardProps) {
+/** Resolve where a card click should navigate.
+ *  - If the property's operator has a custom domain or subdomain → /forward?...
+ *  - Otherwise → /property/:slug (stays on nfstay.app)
+ */
+function resolveCardHref(property: MockProperty, operatorDomains?: Record<string, OperatorDomainInfo>): string {
+  const info = operatorDomains?.[property.operator_id];
+  if (!info) return `/property/${property.slug || property.id}`;
+
+  const { brand_name, subdomain, custom_domain, primary_domain_type } = info;
+
+  let operatorHost: string | null = null;
+  if (primary_domain_type === "custom" && custom_domain) {
+    operatorHost = custom_domain;
+  } else if (subdomain) {
+    operatorHost = `${subdomain}.nfstay.app`;
+  }
+
+  if (!operatorHost) return `/property/${property.slug || property.id}`;
+
+  const destination = `https://${operatorHost}/property/${property.slug || property.id}`;
+  return `/forward?redirect_uri=${encodeURIComponent(destination)}&brand=${encodeURIComponent(brand_name)}`;
+}
+
+export function NfsPropertyCard({ property, onHover, operatorDomains }: NfsPropertyCardProps) {
   const [currentImage, setCurrentImage] = useState(0);
   const [isFavourite, setIsFavourite] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+
   const sortedImages = [...property.images].sort((a, b) => {
     if (a.is_cover && !b.is_cover) return -1;
     if (!a.is_cover && b.is_cover) return 1;
@@ -22,6 +48,7 @@ export function NfsPropertyCard({ property, onHover }: NfsPropertyCardProps) {
 
   const isNew = Date.now() - new Date(property.created_at).getTime() < 7 * 24 * 60 * 60 * 1000;
   const { formatPrice } = useCurrency();
+  const cardHref = resolveCardHref(property, operatorDomains);
 
   useEffect(() => {
     const favs: string[] = JSON.parse(localStorage.getItem('nfs_favourites') || '[]');
@@ -36,12 +63,6 @@ export function NfsPropertyCard({ property, onHover }: NfsPropertyCardProps) {
     localStorage.setItem('nfs_favourites', JSON.stringify(next));
     setIsFavourite(!isFavourite);
   };
-
-  // External / partner listings → forward page instead of internal property page
-  const isExternal = !!property.external_url;
-  const cardHref = isExternal
-    ? `/forward?redirect_uri=${encodeURIComponent(property.external_url!)}&name=${encodeURIComponent(property.public_title)}&platform=${encodeURIComponent(property.external_platform || "partner site")}`
-    : `/property/${property.slug || property.id}`;
 
   return (
     <Link
@@ -67,18 +88,8 @@ export function NfsPropertyCard({ property, onHover }: NfsPropertyCardProps) {
           <Heart className={`w-4 h-4 ${isFavourite ? 'fill-destructive text-destructive' : 'text-foreground'}`} />
         </button>
 
-        {/* Partner badge (external listing) */}
-        {isExternal && (
-          <span className="absolute top-3 left-3 z-10 bg-black/70 text-white text-xs font-medium px-2.5 py-1 rounded-md flex items-center gap-1">
-            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-            </svg>
-            Partner
-          </span>
-        )}
-
         {/* New badge */}
-        {isNew && !isExternal && (
+        {isNew && (
           <span className="absolute top-3 left-3 z-10 bg-primary text-primary-foreground text-xs font-medium px-2.5 py-1 rounded-md">
             New
           </span>

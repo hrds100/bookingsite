@@ -1,30 +1,29 @@
 import { useEffect, useState, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
-import { ExternalLink, Home } from "lucide-react";
+import { ExternalLink } from "lucide-react";
 
 /**
- * /forward?redirect_uri=<encoded-url>&name=<property-name>&platform=<platform>
+ * /forward?redirect_uri=<encoded-url>&brand=<operator-brand-name>
  *
- * Shown when a user clicks an external/partner property listing.
- * Auto-redirects after a short delay, with NFStay branding.
+ * Shown when a traveler clicks a property on nfstay.app whose operator
+ * has a custom domain or subdomain. Redirects them to the operator's
+ * own branded booking site.
  */
 export default function ForwardPage() {
   const [params] = useSearchParams();
   const redirectUri = params.get("redirect_uri") || "";
-  const propertyName = params.get("name") || "this property";
-  const platform = params.get("platform") || "partner site";
+  const brand = params.get("brand") || "the operator's site";
 
   const [countdown, setCountdown] = useState(3);
   const [departed, setDeparted] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Validate URL — only allow http/https to prevent javascript: injection
+  // Only allow http / https — block javascript: and other schemes
   const isSafeUrl =
     redirectUri.startsWith("http://") || redirectUri.startsWith("https://");
 
   useEffect(() => {
     if (!isSafeUrl) return;
-
     timerRef.current = setInterval(() => {
       setCountdown((c) => {
         if (c <= 1) {
@@ -36,10 +35,7 @@ export default function ForwardPage() {
         return c - 1;
       });
     }, 1000);
-
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [isSafeUrl, redirectUri]);
 
   const handleGoNow = () => {
@@ -53,6 +49,7 @@ export default function ForwardPage() {
     <div className="min-h-screen bg-[#f5f5f5] flex flex-col items-center justify-center px-4">
       {/* Card */}
       <div className="bg-white rounded-2xl shadow-md px-10 py-10 flex flex-col items-center gap-6 w-full max-w-sm">
+
         {/* Logo transfer animation */}
         <div className="flex items-center gap-4">
           {/* NFStay logo mark */}
@@ -74,20 +71,22 @@ export default function ForwardPage() {
           </div>
 
           {/* Arrow */}
-          <div className="flex items-center gap-1 text-gray-400">
-            <span className="w-6 h-px bg-gray-300 block" />
+          <div className="flex items-center text-gray-400">
+            <span className="w-5 h-px bg-gray-300 block" />
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
             </svg>
           </div>
 
-          {/* External site icon */}
+          {/* Operator logo / initials */}
           <div className="w-14 h-14 rounded-full bg-gray-900 flex items-center justify-center shadow-sm flex-shrink-0">
-            <Home className="w-6 h-6 text-white" />
+            <span className="text-white text-sm font-bold uppercase">
+              {brand.slice(0, 2)}
+            </span>
           </div>
         </div>
 
-        {/* Spinner / departed state */}
+        {/* Spinner / departed */}
         {!departed ? (
           <div className="w-6 h-6 border-2 border-gray-200 border-t-primary rounded-full animate-spin" />
         ) : (
@@ -98,12 +97,12 @@ export default function ForwardPage() {
         <p className="text-sm text-gray-600 text-center leading-relaxed">
           {isSafeUrl ? (
             departed ? (
-              <>Redirecting you to <strong>{platform}</strong>…</>
+              <>Redirecting you to <strong>{brand}</strong>…</>
             ) : (
               <>
                 You are now leaving <strong>nfstay.app</strong> and will be
-                redirected to the partner booking page for{" "}
-                <strong>{propertyName}</strong> in{" "}
+                redirected to{" "}
+                <strong>{brand}</strong>'s direct booking site in{" "}
                 <span className="text-primary font-semibold">{countdown}</span>s…
               </>
             )
@@ -112,7 +111,6 @@ export default function ForwardPage() {
           )}
         </p>
 
-        {/* Actions */}
         {isSafeUrl && !departed && (
           <div className="flex flex-col gap-2 w-full">
             <button
@@ -131,9 +129,9 @@ export default function ForwardPage() {
         )}
       </div>
 
-      {/* Footer note */}
       <p className="mt-6 text-xs text-gray-400 text-center max-w-xs">
-        nfstay is not responsible for content or pricing on partner sites.
+        You are being redirected to a partner's direct booking site.
+        nfstay is not responsible for third-party content or pricing.
       </p>
     </div>
   );
