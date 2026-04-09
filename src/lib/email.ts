@@ -22,6 +22,7 @@ interface BookingNotification {
   children: number;
   total: number;
   currency: string;
+  operatorEmail?: string;
 }
 
 async function post(payload: Record<string, unknown>): Promise<void> {

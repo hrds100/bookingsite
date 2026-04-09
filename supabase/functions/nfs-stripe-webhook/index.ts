@@ -54,7 +54,7 @@ serve(async (req) => {
     // Find reservation by stripe_session_id
     const { data: reservation, error: findErr } = await supabase
       .from("nfs_reservations")
-      .select("*, nfs_properties!inner(operator_id, public_title)")
+      .select("*, nfs_properties!inner(operator_id, public_title, city, country)")
       .eq("stripe_session_id", sessionId)
       .single();
 
@@ -84,60 +84,33 @@ serve(async (req) => {
       console.log("Reservation updated:", reservation.id, "->", newStatus);
     }
 
-    // Fire notification webhooks (fire and forget)
-    const n8nBase = "https://n8n.srv886554.hstgr.cloud/webhook";
+    // Fire email notification directly to nfs-send-email (fire and forget)
+    const sendEmailUrl = `${SUPABASE_URL}/functions/v1/nfs-send-email`;
+    const guestName = `${reservation.guest_first_name || ""} ${reservation.guest_last_name || ""}`.trim();
+    const nights = Math.max(1, Math.round(
+      (new Date(reservation.check_out).getTime() - new Date(reservation.check_in).getTime())
+      / (1000 * 60 * 60 * 24)
+    ));
 
-    fetch(`${n8nBase}/nfstay-booking-enquiry`, {
+    fetch(sendEmailUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        emailType: newStatus === "confirmed" ? "booking_confirmed_operator" : "booking_request_operator",
-        operatorEmail: operator?.contact_email,
-        operatorName: operator?.brand_name,
-        guestName: `${reservation.guest_first_name || ""} ${reservation.guest_last_name || ""}`.trim(),
+        type: "booking_confirmed",
+        guestName,
         guestEmail: reservation.guest_email,
-        propertyName: reservation.nfs_properties?.public_title,
+        propertyTitle: reservation.nfs_properties?.public_title ?? "",
+        propertyCity: reservation.nfs_properties?.city ?? "",
+        propertyCountry: reservation.nfs_properties?.country ?? "",
         checkIn: reservation.check_in,
         checkOut: reservation.check_out,
-        totalAmount: reservation.total_amount,
-        status: newStatus,
+        nights,
+        adults: reservation.adults ?? 1,
+        children: reservation.children ?? 0,
+        total: reservation.total_amount,
+        currency: reservation.payment_currency ?? "GBP",
         reservationId: reservation.id,
-      }),
-    }).catch(() => {});
-
-    fetch(`${n8nBase}/nfstay-booking-confirmed`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        emailType: newStatus === "confirmed" ? "booking_confirmed" : "booking_request_sent",
-        guestName: `${reservation.guest_first_name || ""} ${reservation.guest_last_name || ""}`.trim(),
-        guestEmail: reservation.guest_email,
-        propertyName: reservation.nfs_properties?.public_title,
-        checkIn: reservation.check_in,
-        checkOut: reservation.check_out,
-        totalAmount: reservation.total_amount,
-        status: newStatus,
-        operatorName: operator?.brand_name,
-        reservationId: reservation.id,
-      }),
-    }).catch(() => {});
-
-    fetch(`${n8nBase}/nfstay-booking-enquiry`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        emailType: "admin_new_booking",
-        operatorEmail: "hugo@nfstay.com",
-        operatorName: "Admin",
-        guestName: `${reservation.guest_first_name || ""} ${reservation.guest_last_name || ""}`.trim(),
-        guestEmail: reservation.guest_email,
-        propertyName: reservation.nfs_properties?.public_title,
-        checkIn: reservation.check_in,
-        checkOut: reservation.check_out,
-        totalAmount: reservation.total_amount,
-        status: newStatus,
-        reservationId: reservation.id,
-        operatorBrand: operator?.brand_name,
+        operatorEmail: operator?.contact_email ?? null,
       }),
     }).catch(() => {});
 

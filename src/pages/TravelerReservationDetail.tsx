@@ -42,6 +42,7 @@ export default function TravelerReservationDetail() {
         children: res.children,
         total: res.total_amount,
         currency: res.payment_currency,
+        operatorEmail: propData?.nfs_operators?.contact_email,
       });
     } catch {
       toast({ title: "Error", description: "Could not cancel reservation. Try again.", variant: "destructive" });

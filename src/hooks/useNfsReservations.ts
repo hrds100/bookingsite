@@ -10,6 +10,8 @@ export interface ReservationPropertyJoin {
   images?: { url: string }[] | null;
   city?: string;
   country?: string;
+  operator_id?: string;
+  nfs_operators?: { contact_email?: string } | null;
 }
 
 /** Reservation with optional joined property data */
@@ -128,7 +130,7 @@ export function useNfsReservationWithProperty(id: string | undefined) {
 
       const { data, error } = await supabase
         .from("nfs_reservations")
-        .select("*, nfs_properties(public_title, images, city, country)")
+        .select("*, nfs_properties(public_title, images, city, country, operator_id, nfs_operators(contact_email))")
         .eq("id", id)
         .maybeSingle();
 
