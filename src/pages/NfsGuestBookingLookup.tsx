@@ -1,14 +1,50 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Search, MapPin, Calendar, AlertCircle } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { NfsStatusBadge } from "@/components/nfs/NfsStatusBadge";
 import { NfsEmptyState } from "@/components/nfs/NfsEmptyState";
-import { getReservationProperty } from "@/data/mock-reservations";
-import { useNfsReservations } from "@/hooks/useNfsReservations";
-import type { ReservationWithProperty } from "@/hooks/useNfsReservations";
+
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
+
+interface GuestReservation {
+  id: string;
+  status: string;
+  payment_status: string;
+  check_in: string;
+  check_out: string;
+  adults: number;
+  children: number;
+  total_amount: number;
+  payment_currency: string;
+  created_at: string;
+  nfs_properties?: {
+    public_title?: string;
+    city?: string;
+    country?: string;
+    images?: { url: string }[];
+  } | null;
+}
+
+function useGuestLookup(email: string | undefined) {
+  return useQuery({
+    queryKey: ["nfs-guest-lookup", email],
+    queryFn: async (): Promise<GuestReservation[]> => {
+      if (!email) return [];
+      const res = await fetch(
+        `${SUPABASE_URL}/functions/v1/nfs-guest-lookup?email=${encodeURIComponent(email)}`
+      );
+      if (!res.ok) return [];
+      const json = await res.json();
+      return json.reservations ?? [];
+    },
+    enabled: !!email,
+    staleTime: 30_000,
+  });
+}
 
 function BookingCardSkeleton() {
   return (
@@ -24,25 +60,22 @@ function BookingCardSkeleton() {
   );
 }
 
-function getPropertyDisplay(r: ReservationWithProperty) {
-  if (r.nfs_properties) {
-    const p = r.nfs_properties;
-    return {
-      title: p.public_title ?? "Unknown Property",
-      image: p.images?.[0]?.url ?? "",
-      city: p.city ?? "",
-      country: p.country ?? "",
-    };
-  }
-  return getReservationProperty(r);
-}
-
 export default function NfsGuestBookingLookup() {
   const [searchParams] = useSearchParams();
-  const [email, setEmail] = useState(searchParams.get("email") || "");
-  const [searchEmail, setSearchEmail] = useState<string | undefined>(undefined);
+  const urlEmail = searchParams.get("email") || "";
+  const [email, setEmail] = useState(urlEmail);
+  const [searchEmail, setSearchEmail] = useState<string | undefined>(
+    urlEmail ? urlEmail.trim().toLowerCase() : undefined
+  );
 
-  const { data: results, isLoading, error } = useNfsReservations(searchEmail);
+  // Auto-search when email comes from URL (e.g. clicked from confirmation email)
+  useEffect(() => {
+    if (urlEmail && !searchEmail) {
+      setSearchEmail(urlEmail.trim().toLowerCase());
+    }
+  }, [urlEmail]);
+
+  const { data: results, isLoading, error } = useGuestLookup(searchEmail);
 
   const handleSearch = () => {
     if (email.trim()) {
@@ -52,12 +85,15 @@ export default function NfsGuestBookingLookup() {
 
   const hasSearched = searchEmail !== undefined;
 
+  const currencySymbol = (c: string) =>
+    ({ GBP: "£", USD: "$", EUR: "€", AED: "AED ", SGD: "S$" }[c] ?? c);
+
   return (
     <div data-feature="NFSTAY__LOOKUP" className="max-w-lg mx-auto px-4 pt-16 pb-20">
       <div className="text-center mb-8">
         <h1 className="text-2xl font-bold tracking-tight">Find your booking</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Enter your email to see all reservations linked to it
+          Enter the email you used when booking to see your reservations
         </p>
       </div>
 
@@ -109,32 +145,43 @@ export default function NfsGuestBookingLookup() {
       {!isLoading && !error && hasSearched && results && results.length > 0 && (
         <div data-feature="NFSTAY__LOOKUP_RESULT" className="space-y-3">
           {results.map((r) => {
-            const prop = getPropertyDisplay(r);
+            const prop = r.nfs_properties;
+            const image = prop?.images?.[0]?.url ?? "";
+            const title = prop?.public_title ?? "Property";
+            const city = prop?.city ?? "";
+            const country = prop?.country ?? "";
             return (
               <div
                 key={r.id}
                 className="bg-card border border-border rounded-2xl p-4 flex gap-4 hover:shadow-md transition"
               >
-                <img
-                  src={prop.image}
-                  alt={prop.title}
-                  className="w-24 h-20 rounded-xl object-cover shrink-0"
-                />
+                {image && (
+                  <img
+                    src={image}
+                    alt={title}
+                    className="w-24 h-20 rounded-xl object-cover shrink-0"
+                  />
+                )}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2 mb-1">
-                    <h3 className="text-sm font-semibold truncate">{prop.title}</h3>
+                    <h3 className="text-sm font-semibold truncate">{title}</h3>
                     <NfsStatusBadge status={r.status} />
                   </div>
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground mb-1">
-                    <MapPin className="w-3 h-3" />
-                    {prop.city}, {prop.country}
-                  </div>
+                  {(city || country) && (
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground mb-1">
+                      <MapPin className="w-3 h-3" />
+                      {[city, country].filter(Boolean).join(", ")}
+                    </div>
+                  )}
                   <div className="flex items-center gap-1 text-xs text-muted-foreground">
                     <Calendar className="w-3 h-3" />
                     {r.check_in} → {r.check_out}
                   </div>
                   <p className="text-sm font-semibold mt-1">
-                    {r.payment_currency === "GBP" ? "\u00A3" : r.payment_currency}{r.total_amount}
+                    {currencySymbol(r.payment_currency)}{r.total_amount}
+                  </p>
+                  <p className="text-xs text-muted-foreground font-mono mt-0.5">
+                    Ref: {r.id.slice(0, 8).toUpperCase()}
                   </p>
                 </div>
               </div>

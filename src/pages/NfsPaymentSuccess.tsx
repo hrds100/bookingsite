@@ -1,8 +1,7 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { CheckCircle, Clock, MapPin, Calendar, Users, Loader2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { notifyBookingConfirmed } from "@/lib/email";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 
@@ -11,7 +10,6 @@ export default function NfsPaymentSuccess() {
   const [searchParams] = useSearchParams();
   const [reservation, setReservation] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const notified = useRef(false);
 
   useEffect(() => {
     const sessionId = searchParams.get("session_id");
@@ -69,26 +67,7 @@ export default function NfsPaymentSuccess() {
 
       if (data) {
         setReservation(data);
-
-        // Fire-and-forget n8n notification (once)
-        if (!notified.current && data.guestEmail) {
-          notified.current = true;
-          notifyBookingConfirmed({
-            reservationId: data.id || "",
-            guestName: `${data.guestFirstName || ""} ${data.guestLastName || ""}`.trim(),
-            guestEmail: data.guestEmail,
-            propertyTitle: data.propertyTitle || "",
-            propertyCity: data.propertyCity || "",
-            propertyCountry: data.propertyCountry || "",
-            checkIn: data.checkIn || "",
-            checkOut: data.checkOut || "",
-            nights: data.nights || 0,
-            adults: data.adults || 0,
-            children: data.children || 0,
-            total: data.total || 0,
-            currency: data.currency || "GBP",
-          });
-        }
+        // Email is sent by nfs-stripe-webhook — no duplicate send here
       }
 
       setLoading(false);

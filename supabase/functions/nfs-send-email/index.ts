@@ -66,7 +66,7 @@ Deno.serve(async (req: Request) => {
           <p class="lbl">Total paid</p><p class="big">${fmt(total, currency)}</p>
           ${reservationId ? `<p style="color:#999;font-size:12px;margin-top:12px">Reservation: ${String(reservationId).slice(0, 8).toUpperCase()}</p>` : ""}
           <hr>
-          <p style="color:#444;font-size:14px">View your booking at <a href="https://nfstay.app/traveler/reservations">nfstay.app/traveler/reservations</a> · Need help? Reply to this email.</p>
+          <p style="color:#444;font-size:14px">View your booking at <a href="https://nfstay.app/booking?email=${encodeURIComponent(guestEmail)}">nfstay.app/booking</a> · Need help? Reply to this email.</p>
         </div>`);
 
       const operatorHtml = wrap(`
