@@ -306,39 +306,14 @@ export function NfsMainNavbar() {
                 </div>
               </div>
 
-              {/* User menu or Sign In (sm+) */}
-              {user ? (
-                <button
-                  onClick={() => setDrawerOpen(!drawerOpen)}
-                  className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-full text-sm border shadow-sm hover:bg-gray-100"
-                >
-                  <User className="w-5 h-5" />
-                  <ChevronDown className="w-3 h-3" />
-                </button>
-              ) : (
-                <>
-                  <Link
-                    to="/signup"
-                    className="hidden sm:flex items-center whitespace-nowrap px-3 lg:px-4 py-1.5 lg:py-2 text-xs lg:text-sm font-medium border border-gray-300 rounded-full hover:bg-gray-50 transition-colors text-gray-700"
-                  >
-                    Sign up
-                  </Link>
-                  <Link
-                    to="/signin"
-                    className="hidden sm:flex items-center whitespace-nowrap px-3 lg:px-4 py-1.5 lg:py-2 text-xs lg:text-sm font-medium bg-primary-gradient text-white rounded-full hover:opacity-90 transition-opacity"
-                  >
-                    Sign In
-                  </Link>
-                </>
-              )}
-
-              {/* Mobile user icon */}
+              {/* User menu — only shown when logged in */}
               {user && (
                 <button
                   onClick={() => setDrawerOpen(!drawerOpen)}
-                  className="sm:hidden p-2 hover:bg-gray-100 rounded-full transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-full text-sm border shadow-sm hover:bg-gray-100"
                 >
-                  <User className="w-4 h-4" />
+                  <User className="w-5 h-5" />
+                  <ChevronDown className="w-3 h-3 hidden sm:block" />
                 </button>
               )}
 
@@ -365,11 +340,38 @@ export function NfsMainNavbar() {
           </div>
         </div>
         <div className="border-t border-gray-200" />
-        <div className="p-4 space-y-2">
-          <Link data-feature="NFSTAY__NAVBAR_LINK" to="/search" onClick={() => setSidebarOpen(false)} className="block p-2 rounded-lg hover:bg-[#f0f0ed] transition-colors">
-            <h3 className="font-semibold text-base">Traveler</h3>
-            <p className="text-[#737373] font-medium text-sm">Find Stays and manage bookings</p>
-          </Link>
+        <div className="p-4 space-y-2 flex flex-col h-[calc(100%-72px)]">
+          <div className="flex-1 space-y-1">
+            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-2 pb-1">Traveler</p>
+            <Link data-feature="NFSTAY__NAVBAR_LINK" to="/search" onClick={() => setSidebarOpen(false)} className="block p-2 rounded-lg hover:bg-[#f0f0ed] transition-colors">
+              <h3 className="font-semibold text-base">Find Stays</h3>
+              <p className="text-[#737373] font-medium text-sm">Browse and book properties</p>
+            </Link>
+            <Link to="/traveler/reservations" onClick={() => setSidebarOpen(false)} className="block p-2 rounded-lg hover:bg-[#f0f0ed] transition-colors">
+              <h3 className="font-semibold text-base">My Reservations</h3>
+              <p className="text-[#737373] font-medium text-sm">Manage your bookings</p>
+            </Link>
+          </div>
+
+          {/* Sign In / Create Account — only when logged out */}
+          {!user && (
+            <div className="border-t border-gray-100 pt-4 space-y-2">
+              <Link
+                to="/signin"
+                onClick={() => setSidebarOpen(false)}
+                className="block w-full px-4 py-3 text-center font-medium bg-primary-gradient text-white rounded-xl hover:opacity-90 transition-opacity text-sm"
+              >
+                Sign In
+              </Link>
+              <Link
+                to="/signup"
+                onClick={() => setSidebarOpen(false)}
+                className="block w-full px-4 py-3 text-center font-medium border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors text-sm text-gray-700"
+              >
+                Create Account
+              </Link>
+            </div>
+          )}
         </div>
       </div>
 

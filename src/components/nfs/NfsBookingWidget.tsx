@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { format, differenceInDays } from "date-fns";
+import { format, differenceInDays, startOfDay, addDays } from "date-fns";
 import { CalendarDays, Users, Minus, Plus, Lock, Clock, Car, Gift, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -28,6 +28,25 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
   const navigate = useNavigate();
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const { data: blockedRanges = [] } = useNfsPropertyBlockedDates(property.id);
+
+  // When check-in is selected but check-out isn't yet, find the earliest blocked
+  // date after check-in and disable everything from there onwards — prevents
+  // travellers from spanning a range over blocked/booked dates.
+  const dynamicDisabled = useMemo(() => {
+    const base: Parameters<typeof Calendar>[0]["disabled"] = [{ before: startOfDay(new Date()) }, ...blockedRanges];
+    if (!dateRange?.from || dateRange?.to) return base;
+
+    const from = startOfDay(dateRange.from);
+    const firstBlockedAfter = blockedRanges
+      .map((r) => startOfDay(r.from))
+      .filter((d) => d > from)
+      .sort((a, b) => a.getTime() - b.getTime())[0];
+
+    if (!firstBlockedAfter) return base;
+    // Allow check-out ON the first blocked day (guest leaves that morning),
+    // but disable the day after it and everything beyond.
+    return [...base, { from: addDays(firstBlockedAfter, 1), to: addDays(new Date(9999, 0, 1), 0) }];
+  }, [dateRange?.from, dateRange?.to, blockedRanges]);
   const [adults, setAdults] = useState(1);
   const [children, setChildren] = useState(0);
   const [promoCode, setPromoCode] = useState('');
@@ -186,7 +205,17 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
       </div>
 
       {/* Dates */}
-      <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+      <Popover
+        open={calendarOpen}
+        onOpenChange={(open) => {
+          setCalendarOpen(open);
+          // When reopening with both dates already set, reset for a fresh
+          // selection — first click = new check-in, second click = check-out
+          if (open && dateRange?.from && dateRange?.to) {
+            setDateRange(undefined);
+          }
+        }}
+      >
         <PopoverTrigger asChild>
           <button data-feature="NFSTAY__WIDGET_CHECKIN" className="w-full border border-border rounded-xl overflow-hidden mb-3">
             <div className="grid grid-cols-2 divide-x divide-border">
@@ -211,10 +240,11 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
             selected={dateRange}
             onSelect={(range) => {
               setDateRange(range);
+              // Auto-close only when both dates are fully selected
               if (range?.from && range?.to) setCalendarOpen(false);
             }}
             numberOfMonths={2}
-            disabled={[{ before: new Date() }, ...blockedRanges]}
+            disabled={dynamicDisabled}
             className="p-3 pointer-events-auto"
           />
         </PopoverContent>

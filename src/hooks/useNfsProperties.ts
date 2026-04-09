@@ -111,6 +111,46 @@ export function useNfsPropertySearch(filters: {
   });
 }
 
+/** Fetch distinct cities from listed properties — used for location autocomplete */
+export function useNfsPropertyCities() {
+  return useQuery({
+    queryKey: ["nfs-property-cities"],
+    queryFn: async (): Promise<{ city: string; country: string }[]> => {
+      if (SUPABASE_CONFIGURED) {
+        const { data } = await supabase
+          .from("nfs_properties")
+          .select("city, country")
+          .eq("listing_status", "listed")
+          .not("city", "is", null);
+
+        if (data && data.length > 0) {
+          // Deduplicate by city+country
+          const seen = new Set<string>();
+          return data
+            .filter((r) => {
+              const key = `${r.city}|${r.country}`;
+              if (seen.has(key)) return false;
+              seen.add(key);
+              return true;
+            })
+            .map((r) => ({ city: r.city as string, country: r.country as string }));
+        }
+      }
+      // Fallback to mock data cities
+      const seen = new Set<string>();
+      return mockProperties
+        .filter((p) => {
+          const key = `${p.city}|${p.country}`;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        })
+        .map((p) => ({ city: p.city ?? "", country: p.country ?? "" }));
+    },
+    staleTime: 5 * 60_000, // 5 min — cities rarely change
+  });
+}
+
 /** Fetch ALL properties for an operator (including unlisted) — for operator portal use */
 export function useNfsOperatorProperties(operatorId: string | null | undefined) {
   return useQuery({
