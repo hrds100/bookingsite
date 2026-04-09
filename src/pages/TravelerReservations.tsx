@@ -63,8 +63,11 @@ export default function TravelerReservations() {
   }
 
   const all: ReservationWithProperty[] = reservations ?? [];
+  // Running = already checked in, not yet checked out
+  const running = all.filter(r => !isFuture(parseISO(r.check_in)) && !isPast(parseISO(r.check_out)) && r.status !== 'cancelled');
+  // Upcoming = check-in is still in the future
   const upcoming = all.filter(r => isFuture(parseISO(r.check_in)) && r.status !== 'cancelled');
-  const past = all.filter(r => isPast(parseISO(r.check_out)) || r.status === 'completed');
+  const past = all.filter(r => isPast(parseISO(r.check_out)) && r.status !== 'cancelled');
   const cancelled = all.filter(r => r.status === 'cancelled');
 
   const renderList = (list: ReservationWithProperty[]) =>
@@ -78,11 +81,13 @@ export default function TravelerReservations() {
       <Tabs defaultValue="all">
         <TabsList className="mb-6">
           <TabsTrigger value="all">All ({all.length})</TabsTrigger>
+          <TabsTrigger value="running">Running ({running.length})</TabsTrigger>
           <TabsTrigger data-feature="NFSTAY__TRAVELER_UPCOMING" value="upcoming">Upcoming ({upcoming.length})</TabsTrigger>
           <TabsTrigger data-feature="NFSTAY__TRAVELER_PAST" value="past">Past ({past.length})</TabsTrigger>
           <TabsTrigger value="cancelled">Cancelled ({cancelled.length})</TabsTrigger>
         </TabsList>
         <TabsContent value="all">{renderList(all)}</TabsContent>
+        <TabsContent value="running">{renderList(running)}</TabsContent>
         <TabsContent value="upcoming">{renderList(upcoming)}</TabsContent>
         <TabsContent value="past">{renderList(past)}</TabsContent>
         <TabsContent value="cancelled">{renderList(cancelled)}</TabsContent>
