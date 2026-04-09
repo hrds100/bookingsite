@@ -61,8 +61,8 @@ export function NfsHeroSearch({ heading, subHeading, desc, btnText = "Explore" }
     navigate(`/search?${params.toString()}`);
   };
 
-  const handleSelectCity = (city: string, country: string) => {
-    setLocation(`${city}, ${country}`);
+  const handleSelectCity = (city: string) => {
+    setLocation(city);
     setLocationOpen(false);
   };
 
@@ -177,7 +177,7 @@ export function NfsHeroSearch({ heading, subHeading, desc, btnText = "Explore" }
                       key={`${c.city}|${c.country}`}
                       type="button"
                       onMouseDown={(e) => e.preventDefault()} // prevent blur before click
-                      onClick={() => handleSelectCity(c.city, c.country)}
+                      onClick={() => handleSelectCity(c.city)}
                       className="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-gray-50 transition-colors"
                     >
                       <span className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
