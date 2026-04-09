@@ -93,6 +93,9 @@ serve(async (req) => {
       console.log("Reservation updated:", reservation.id, "->", newStatus);
     }
 
+    // For request-to-book (pending_approval): send "request received" email, not "confirmed"
+    const emailType = newStatus === "pending_approval" ? "booking_request" : "booking_confirmed";
+
     // Fire email notification directly to nfs-send-email (fire and forget)
     const sendEmailUrl = `${SUPABASE_URL}/functions/v1/nfs-send-email`;
     const guestName = `${reservation.guest_first_name || ""} ${reservation.guest_last_name || ""}`.trim();
@@ -105,7 +108,7 @@ serve(async (req) => {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        type: "booking_confirmed",
+        type: emailType,
         guestName,
         guestEmail: reservation.guest_email,
         propertyTitle: reservation.nfs_properties?.public_title ?? "",

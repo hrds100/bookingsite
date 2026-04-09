@@ -181,7 +181,7 @@ export function useNfsUpdateReservation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+    mutationFn: async ({ id, status, payment_status }: { id: string; status: string; payment_status?: string }) => {
       // Mock reservation — update in-memory
       if (id.startsWith("res-")) {
         updateMockReservationStatus(id, status);
@@ -193,9 +193,12 @@ export function useNfsUpdateReservation() {
         return { id, status };
       }
 
+      const patch: Record<string, string> = { status };
+      if (payment_status) patch.payment_status = payment_status;
+
       const { error } = await supabase
         .from("nfs_reservations")
-        .update({ status })
+        .update(patch)
         .eq("id", id);
 
       if (error) throw new Error(error.message);

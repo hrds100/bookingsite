@@ -44,6 +44,70 @@ Deno.serve(async (req: Request) => {
     const body = await req.json();
     const { type } = body;
 
+    /* ── booking_request ────────────────────────────────── */
+    if (type === "booking_request") {
+      const {
+        guestName, guestEmail, propertyTitle, propertyCity, propertyCountry,
+        checkIn, checkOut, nights, adults, children, total, currency, reservationId,
+        operatorEmail,
+      } = body;
+
+      const guestHtml = wrap(`
+        <div class="hd"><h1>Booking Request Received 📋</h1></div>
+        <div class="bd">
+          <p style="color:#444;margin:0 0 20px">Hi ${guestName}, your booking request has been received and your payment is held. The host will review and confirm shortly.</p>
+          <p class="lbl">Property</p><p class="val">${propertyTitle}</p>
+          <p class="lbl">Location</p><p class="val">${propertyCity}, ${propertyCountry}</p>
+          <p class="lbl">Check-in</p><p class="val">${checkIn}</p>
+          <p class="lbl">Check-out</p><p class="val">${checkOut}</p>
+          <p class="lbl">Duration</p><p class="val">${nights} night${nights !== 1 ? "s" : ""}</p>
+          <p class="lbl">Guests</p><p class="val">${adults} adult${adults !== 1 ? "s" : ""}${children > 0 ? `, ${children} children` : ""}</p>
+          <hr>
+          <p class="lbl">Amount held</p><p class="big">${fmt(total, currency)}</p>
+          ${reservationId ? `<p style="color:#999;font-size:12px;margin-top:12px">Reservation: ${String(reservationId).slice(0, 8).toUpperCase()}</p>` : ""}
+          <hr>
+          <p style="color:#444;font-size:14px">You'll receive a confirmation email once the host approves. View your request at <a href="https://nfstay.app/booking?email=${encodeURIComponent(guestEmail)}">nfstay.app/booking</a></p>
+        </div>`);
+
+      const operatorHtml = wrap(`
+        <div class="hd"><h1>New Booking Request 📋</h1></div>
+        <div class="bd">
+          <p style="color:#444;margin:0 0 20px">You have a new booking request awaiting your approval!</p>
+          <p class="lbl">Guest</p><p class="val">${guestName} &lt;${guestEmail}&gt;</p>
+          <p class="lbl">Property</p><p class="val">${propertyTitle}</p>
+          <p class="lbl">Check-in</p><p class="val">${checkIn}</p>
+          <p class="lbl">Check-out</p><p class="val">${checkOut}</p>
+          <p class="lbl">Duration</p><p class="val">${nights} night${nights !== 1 ? "s" : ""}</p>
+          <p class="lbl">Guests</p><p class="val">${adults} adult${adults !== 1 ? "s" : ""}${children > 0 ? `, ${children} children` : ""}</p>
+          <hr>
+          <p class="lbl">Amount held</p><p class="big">${fmt(total, currency)}</p>
+          ${reservationId ? `<p style="color:#999;font-size:12px;margin-top:12px">Reservation: ${String(reservationId).slice(0, 8).toUpperCase()}</p>` : ""}
+          <hr>
+          <p style="color:#444;font-size:14px">Review and approve at <a href="https://nfstay.app/nfstay/reservations">nfstay.app/nfstay/reservations</a></p>
+        </div>`);
+
+      const adminHtml = wrap(`
+        <div class="hd"><h1>New Booking Request 📋</h1></div>
+        <div class="bd">
+          <p class="lbl">Guest</p><p class="val">${guestName} &lt;${guestEmail}&gt;</p>
+          <p class="lbl">Property</p><p class="val">${propertyTitle} — ${propertyCity}, ${propertyCountry}</p>
+          <p class="lbl">Check-in</p><p class="val">${checkIn}</p>
+          <p class="lbl">Check-out</p><p class="val">${checkOut}</p>
+          <p class="lbl">Nights / Guests</p><p class="val">${nights}n · ${adults} adults${children > 0 ? `, ${children} children` : ""}</p>
+          <hr>
+          <p class="lbl">Amount held</p><p class="big">${fmt(total, currency)}</p>
+        </div>`);
+
+      const gNorm = guestEmail.trim().toLowerCase();
+      const aNorm = ADMIN_EMAIL.trim().toLowerCase();
+      const oNorm = operatorEmail ? operatorEmail.trim().toLowerCase() : null;
+
+      const sendsReq = [sendEmail(guestEmail, `Booking Request Received — ${propertyTitle}`, guestHtml)];
+      if (aNorm !== gNorm) sendsReq.push(sendEmail(ADMIN_EMAIL, `New Booking Request: ${propertyTitle} — ${guestName}`, adminHtml));
+      if (oNorm && oNorm !== aNorm && oNorm !== gNorm) sendsReq.push(sendEmail(operatorEmail, `New Booking Request: ${propertyTitle} — ${guestName}`, operatorHtml));
+      await Promise.all(sendsReq);
+    }
+
     /* ── booking_confirmed ──────────────────────────────── */
     if (type === "booking_confirmed") {
       const {
@@ -135,7 +199,7 @@ Deno.serve(async (req: Request) => {
           <p style="color:#444;font-size:14px">Allow 5–10 business days for any refund. Questions? Contact <a href="mailto:support@nfstay.app">support@nfstay.app</a></p>
         </div>`);
 
-      const operatorHtml = wrap(`
+      const cancelledStaffHtml = wrap(`
         <div class="hd" style="background:#ef4444"><h1>Booking Cancelled</h1></div>
         <div class="bd">
           <p style="color:#444;margin:0 0 20px">A guest has cancelled their reservation.</p>
@@ -157,10 +221,10 @@ Deno.serve(async (req: Request) => {
         sendEmail(guestEmail, `Booking Cancelled — ${propertyTitle}`, guestHtml),
       ];
       if (adminNormC !== guestNormC) {
-        sends.push(sendEmail(ADMIN_EMAIL, `Cancelled: ${propertyTitle} (${guestName})`, adminHtml));
+        sends.push(sendEmail(ADMIN_EMAIL, `Cancelled: ${propertyTitle} (${guestName})`, cancelledStaffHtml));
       }
       if (opNormC && opNormC !== adminNormC && opNormC !== guestNormC) {
-        sends.push(sendEmail(operatorEmail, `Booking Cancelled: ${propertyTitle} — ${guestName}`, operatorHtml));
+        sends.push(sendEmail(operatorEmail, `Booking Cancelled: ${propertyTitle} — ${guestName}`, cancelledStaffHtml));
       }
       await Promise.all(sends);
     }

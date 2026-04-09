@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { NfsStatusBadge } from "@/components/nfs/NfsStatusBadge";
 import { NfsEmptyState } from "@/components/nfs/NfsEmptyState";
-import { useNfsReservation, useNfsUpdateReservation } from "@/hooks/useNfsReservations";
+import { useNfsReservationWithProperty, useNfsUpdateReservation } from "@/hooks/useNfsReservations";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { toast } from "@/hooks/use-toast";
 import { notifyBookingConfirmed, notifyBookingCancelled } from "@/lib/email";
@@ -15,7 +15,7 @@ export default function OperatorReservationDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { formatPrice } = useCurrency();
-  const { data: res, isLoading, error } = useNfsReservation(id);
+  const { data: res, isLoading, error } = useNfsReservationWithProperty(id);
   const updateReservation = useNfsUpdateReservation();
   const [rejectReason, setRejectReason] = useState("");
   const [showRejectForm, setShowRejectForm] = useState(false);
@@ -39,18 +39,23 @@ export default function OperatorReservationDetail() {
   const nights = differenceInDays(parseISO(res.check_out), parseISO(res.check_in));
   const isPendingApproval = res.status === 'pending_approval' || res.status === 'pending';
 
+  const propertyTitle = res.nfs_properties?.public_title ?? res.property_id ?? "Property";
+  const propertyCity = res.nfs_properties?.city ?? "";
+  const propertyCountry = res.nfs_properties?.country ?? "";
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const operatorEmail: string | undefined = (res.nfs_properties as any)?.nfs_operators?.contact_email ?? undefined;
+
   const handleAccept = async () => {
     try {
-      await updateReservation.mutateAsync({ id: res.id, status: "confirmed" });
+      await updateReservation.mutateAsync({ id: res.id, status: "confirmed", payment_status: "paid" });
       toast({ title: "Reservation accepted", description: "The guest has been notified." });
-      // Fire n8n notification to guest
       notifyBookingConfirmed({
         reservationId: res.id,
         guestName: `${res.guest_first_name} ${res.guest_last_name}`,
         guestEmail: res.guest_email,
-        propertyTitle: res.property_id,
-        propertyCity: "",
-        propertyCountry: "",
+        propertyTitle,
+        propertyCity,
+        propertyCountry,
         checkIn: res.check_in,
         checkOut: res.check_out,
         nights,
@@ -58,6 +63,7 @@ export default function OperatorReservationDetail() {
         children: res.children,
         total: res.total_amount,
         currency: res.payment_currency,
+        operatorEmail,
       });
     } catch {
       toast({ title: "Error", description: "Could not accept reservation. Try again.", variant: "destructive" });
@@ -68,14 +74,13 @@ export default function OperatorReservationDetail() {
     try {
       await updateReservation.mutateAsync({ id: res.id, status: "rejected" });
       toast({ title: "Reservation rejected", description: rejectReason ? `Reason: ${rejectReason}` : "The guest has been notified." });
-      // Notify guest of rejection via nfs-send-email
       notifyBookingCancelled({
         reservationId: res.id,
         guestName: `${res.guest_first_name} ${res.guest_last_name}`,
         guestEmail: res.guest_email,
-        propertyTitle: res.property_id,
-        propertyCity: "",
-        propertyCountry: "",
+        propertyTitle,
+        propertyCity,
+        propertyCountry,
         checkIn: res.check_in,
         checkOut: res.check_out,
         nights,
@@ -83,6 +88,7 @@ export default function OperatorReservationDetail() {
         children: res.children,
         total: res.total_amount,
         currency: res.payment_currency,
+        operatorEmail,
       });
       setShowRejectForm(false);
     } catch {
