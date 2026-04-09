@@ -7,6 +7,7 @@
  */
 
 const EDGE_FN_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/nfs-send-email`;
+const ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY ?? "";
 
 interface BookingNotification {
   reservationId: string;
@@ -29,7 +30,11 @@ async function post(payload: Record<string, unknown>): Promise<void> {
   try {
     await fetch(EDGE_FN_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${ANON_KEY}`,
+        "apikey": ANON_KEY,
+      },
       body: JSON.stringify(payload),
     });
   } catch (err) {
