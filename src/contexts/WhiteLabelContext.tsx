@@ -120,21 +120,55 @@ export function WhiteLabelProvider({ children }: { children: ReactNode }) {
     }
   }, [state.isWhiteLabel, state.operator]);
 
-  // Update page title and OG tags for white-label operators
+  // Update page title, OG tags, og:image and favicon for white-label operators
   useEffect(() => {
     if (state.isWhiteLabel && state.operator) {
-      const brand = state.operator.brand_name || '';
-      const title = brand ? `${brand} - Find Stays, Book Directly` : 'Find Stays, Book Directly';
+      const op = state.operator;
+      const brand = op.brand_name || '';
+
+      // Title
+      const title = op.meta_title || (brand ? `${brand} - Find Stays, Book Directly` : 'Find Stays, Book Directly');
       document.title = title;
-      const ogTitle = document.querySelector('meta[property="og:title"]');
-      if (ogTitle) ogTitle.setAttribute('content', title);
-      const twTitle = document.querySelector('meta[name="twitter:title"]');
-      if (twTitle) twTitle.setAttribute('content', title);
-      const ogDesc = document.querySelector('meta[property="og:description"]');
-      const desc = `Book unique stays directly with ${brand || 'us'}. No middleman fees.`;
-      if (ogDesc) ogDesc.setAttribute('content', desc);
-      const twDesc = document.querySelector('meta[name="twitter:description"]');
-      if (twDesc) twDesc.setAttribute('content', desc);
+
+      // Description
+      const desc = op.meta_description || `Book unique stays directly with ${brand || 'us'}. No middleman fees.`;
+
+      // Helper: set or create a <meta> tag
+      const setMeta = (selector: string, attr: string, value: string) => {
+        let el = document.querySelector(selector) as HTMLMetaElement | null;
+        if (!el) {
+          el = document.createElement('meta');
+          const [attrName, attrValue] = selector.replace('meta[', '').replace(']', '').split('=');
+          el.setAttribute(attrName, attrValue.replace(/"/g, ''));
+          document.head.appendChild(el);
+        }
+        el.setAttribute(attr, value);
+      };
+
+      setMeta('meta[property="og:title"]', 'content', title);
+      setMeta('meta[name="twitter:title"]', 'content', title);
+      setMeta('meta[property="og:description"]', 'content', desc);
+      setMeta('meta[name="twitter:description"]', 'content', desc);
+      setMeta('meta[name="description"]', 'content', desc);
+
+      // OG image — use operator's dedicated og_image_url, fall back to hero_photo
+      const ogImage = op.og_image_url || op.hero_photo;
+      if (ogImage) {
+        setMeta('meta[property="og:image"]', 'content', ogImage);
+        setMeta('meta[name="twitter:image"]', 'content', ogImage);
+        setMeta('meta[property="twitter:card"]', 'content', 'summary_large_image');
+      }
+
+      // Favicon
+      if (op.favicon_url) {
+        let favicon = document.querySelector('link[rel="icon"]') as HTMLLinkElement | null;
+        if (!favicon) {
+          favicon = document.createElement('link');
+          favicon.rel = 'icon';
+          document.head.appendChild(favicon);
+        }
+        favicon.href = op.favicon_url;
+      }
     } else {
       document.title = 'Find Stays, Book Directly';
     }
