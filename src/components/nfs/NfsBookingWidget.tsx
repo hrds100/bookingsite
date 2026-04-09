@@ -34,6 +34,7 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
   const [promoApplied, setPromoApplied] = useState<{ code: string; discount: number; label: string } | null>(null);
   const [promoError, setPromoError] = useState('');
   const [promoLoading, setPromoLoading] = useState(false);
+  const [calendarOpen, setCalendarOpen] = useState(false);
   const [guestsOpen, setGuestsOpen] = useState(false);
   const [selectedAddons, setSelectedAddons] = useState<string[]>([]);
 
@@ -185,7 +186,7 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
       </div>
 
       {/* Dates */}
-      <Popover>
+      <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
         <PopoverTrigger asChild>
           <button data-feature="NFSTAY__WIDGET_CHECKIN" className="w-full border border-border rounded-xl overflow-hidden mb-3">
             <div className="grid grid-cols-2 divide-x divide-border">
@@ -208,7 +209,10 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
           <Calendar
             mode="range"
             selected={dateRange}
-            onSelect={setDateRange}
+            onSelect={(range) => {
+              setDateRange(range);
+              if (range?.from && range?.to) setCalendarOpen(false);
+            }}
             numberOfMonths={2}
             disabled={[{ before: new Date() }, ...blockedRanges]}
             className="p-3 pointer-events-auto"
