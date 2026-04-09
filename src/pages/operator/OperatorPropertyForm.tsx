@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Upload, X, Loader2, Plus, Trash2, Wifi, WifiOff, RefreshCw, CheckCircle, AlertCircle } from "lucide-react";
+import { ArrowLeft, Upload, X, Loader2, Plus, Trash2, Wifi, WifiOff, RefreshCw, CheckCircle, AlertCircle, CalendarRange, Ban } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,6 +8,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
+import { Calendar as DayCalendar } from "@/components/ui/calendar";
+import { format as fmtDate, parseISO as parseDateISO, startOfDay } from "date-fns";
 import { CANCELLATION_POLICIES } from "@/lib/constants";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -16,6 +18,7 @@ import { useNfsImageUpload } from "@/hooks/useNfsImageUpload";
 import NfsPlacesAutocomplete, { type PlaceResult } from "@/components/nfs/NfsPlacesAutocomplete";
 import { supabase } from "@/lib/supabase";
 import { notifyNewProperty } from "@/lib/email";
+import { useNfsPropertyBlockedDatesList, useNfsBlockDateRange } from "@/hooks/useNfsBlockedDates";
 import {
   useNfsHospitableConnection,
   useNfsHospitableSyncedProperties,
@@ -204,6 +207,13 @@ export default function OperatorPropertyForm() {
   const [rules, setRules] = useState("");
   const [propertyAddons, setPropertyAddons] = useState<{ id: string; name: string; price: number; description: string }[]>([]);
   const [loadingProperty, setLoadingProperty] = useState(false);
+
+  // Availability pre-blocking (new properties) — stores "YYYY-MM-DD" strings
+  const [pendingBlockedDates, setPendingBlockedDates] = useState<string[]>([]);
+  const blockDateRange = useNfsBlockDateRange();
+
+  // For edit mode: fetch existing blocked dates
+  const { data: existingBlockedDates = [] } = useNfsPropertyBlockedDatesList(isEdit ? id : undefined);
 
   const saving = createMutation.isPending || updateMutation.isPending;
 
@@ -433,7 +443,16 @@ export default function OperatorPropertyForm() {
         await updateMutation.mutateAsync({ id, fields });
         toast({ title: "Property updated", description: "Your property has been updated successfully." });
       } else {
-        await createMutation.mutateAsync(fields);
+        const created = await createMutation.mutateAsync(fields);
+        // Save any pre-blocked dates after the property is created
+        const newId = (created as any)?.id;
+        if (newId && pendingBlockedDates.length > 0) {
+          try {
+            await blockDateRange.mutateAsync({ propertyId: newId, dates: pendingBlockedDates, block: true });
+          } catch {
+            // non-blocking — operator can manage via Calendar
+          }
+        }
         toast({ title: "Property created", description: "Your property has been created successfully." });
         // Notify admin about new property listing
         notifyNewProperty({
@@ -1183,6 +1202,87 @@ export default function OperatorPropertyForm() {
               onChange={(e) => setRules(e.target.value)}
             />
           </div>
+        </section>
+
+        {/* Availability */}
+        <section className="bg-card border border-border rounded-2xl p-4 md:p-6 space-y-4">
+          <div className="flex items-center gap-2">
+            <CalendarRange className="w-5 h-5 text-primary" />
+            <h2 className="text-lg font-semibold">Availability</h2>
+          </div>
+
+          {isEdit ? (
+            /* Edit mode: show existing blocked dates + link to Calendar */
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                {existingBlockedDates.length > 0
+                  ? `${existingBlockedDates.length} date${existingBlockedDates.length !== 1 ? "s" : ""} currently blocked for this property.`
+                  : "No dates are currently blocked for this property."}
+              </p>
+              {existingBlockedDates.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {existingBlockedDates.slice(0, 12).map((d) => (
+                    <span key={d} className="inline-flex items-center gap-1 text-xs bg-rose-50 text-rose-600 border border-rose-200 rounded-md px-2 py-0.5">
+                      <Ban className="w-2.5 h-2.5" />
+                      {fmtDate(parseDateISO(d), "MMM d, yyyy")}
+                    </span>
+                  ))}
+                  {existingBlockedDates.length > 12 && (
+                    <span className="text-xs text-muted-foreground">+{existingBlockedDates.length - 12} more</span>
+                  )}
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground">
+                To add or remove blocked dates, use the{" "}
+                <a href="/nfstay/calendar" className="text-primary underline underline-offset-2">Calendar</a>{" "}
+                page where you can click individual dates on the multi-property calendar.
+              </p>
+            </div>
+          ) : (
+            /* Create mode: pre-block dates before publishing */
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Select dates to block before publishing. Blocked dates will be unavailable for booking.
+              </p>
+              <DayCalendar
+                mode="multiple"
+                selected={pendingBlockedDates.map((d) => parseDateISO(d))}
+                onSelect={(days) => {
+                  setPendingBlockedDates(
+                    (days ?? [])
+                      .filter((d) => d >= startOfDay(new Date()))
+                      .map((d) => fmtDate(d, "yyyy-MM-dd")),
+                  );
+                }}
+                disabled={[{ before: new Date() }]}
+                numberOfMonths={2}
+                className="rounded-xl border border-border p-3 w-fit"
+              />
+              {pendingBlockedDates.length > 0 && (
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs text-muted-foreground">
+                    {pendingBlockedDates.length} date{pendingBlockedDates.length !== 1 ? "s" : ""} selected to block:
+                  </span>
+                  {pendingBlockedDates.slice(0, 8).map((d) => (
+                    <span key={d} className="inline-flex items-center gap-1 text-xs bg-rose-50 text-rose-600 border border-rose-200 rounded-md px-2 py-0.5">
+                      <Ban className="w-2.5 h-2.5" />
+                      {fmtDate(parseDateISO(d), "MMM d")}
+                    </span>
+                  ))}
+                  {pendingBlockedDates.length > 8 && (
+                    <span className="text-xs text-muted-foreground">+{pendingBlockedDates.length - 8} more</span>
+                  )}
+                  <button
+                    type="button"
+                    className="text-xs text-destructive hover:underline"
+                    onClick={() => setPendingBlockedDates([])}
+                  >
+                    Clear all
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </section>
 
         {/* Submit */}

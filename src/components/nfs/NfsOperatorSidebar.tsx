@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { LayoutDashboard, Building2, CalendarDays, BarChart3, Settings, Plus, LogOut, ExternalLink } from "lucide-react";
+import { LayoutDashboard, Building2, CalendarDays, CalendarRange, BarChart3, Settings, Plus, LogOut, ExternalLink } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { NfsLogo } from "./NfsLogo";
 import { useLocation } from "react-router-dom";
@@ -24,6 +24,7 @@ const navItems = [
   { title: "Dashboard", url: "/nfstay", icon: LayoutDashboard },
   { title: "Properties", url: "/nfstay/properties", icon: Building2 },
   { title: "Reservations", url: "/nfstay/reservations", icon: CalendarDays },
+  { title: "Calendar", url: "/nfstay/calendar", icon: CalendarRange },
   { title: "Analytics", url: "/nfstay/analytics", icon: BarChart3 },
   { title: "Settings", url: "/nfstay/settings", icon: Settings },
 ];
