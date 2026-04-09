@@ -62,9 +62,10 @@ export function NfsLegalPageLayout({ title, updatedAt, content, protectedBlock, 
           <div className="prose prose-sm max-w-none text-foreground [&_h2]:text-xl [&_h2]:font-semibold [&_h2]:mt-8 [&_h2]:mb-3 [&_p]:text-sm [&_p]:text-muted-foreground [&_p]:leading-relaxed [&_ul]:text-sm [&_ul]:text-muted-foreground [&_li]:mt-1 [&_a]:text-primary [&_a]:underline [&_strong]:text-foreground">
             <ReactMarkdown>{resolvedContent}</ReactMarkdown>
 
-            {/* Admin-injected protected block — visually separated */}
-            {resolvedProtectedBlock && (
+            {/* Disclaimer — only on operator white-label sites, never on nfstay.app */}
+            {isWhiteLabel && resolvedProtectedBlock && (
               <div className="mt-10 pt-8 border-t border-border">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">Disclaimer</p>
                 <ReactMarkdown>{resolvedProtectedBlock}</ReactMarkdown>
               </div>
             )}
