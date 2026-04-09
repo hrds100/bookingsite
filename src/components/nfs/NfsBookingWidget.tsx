@@ -54,6 +54,8 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
   const [promoError, setPromoError] = useState('');
   const [promoLoading, setPromoLoading] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
+  // "from" = picking check-in, "to" = picking check-out
+  const [calPhase, setCalPhase] = useState<"from" | "to">("from");
   const [guestsOpen, setGuestsOpen] = useState(false);
   const [selectedAddons, setSelectedAddons] = useState<string[]>([]);
 
@@ -209,25 +211,25 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
         open={calendarOpen}
         onOpenChange={(open) => {
           setCalendarOpen(open);
-          // When reopening with both dates already set, reset for a fresh
-          // selection — first click = new check-in, second click = check-out
-          if (open && dateRange?.from && dateRange?.to) {
-            setDateRange(undefined);
+          // On open: if both dates are set, next click should pick new check-in
+          // If only from is set, continue picking check-out
+          if (open) {
+            setCalPhase(dateRange?.from && !dateRange?.to ? "to" : "from");
           }
         }}
       >
         <PopoverTrigger asChild>
           <button data-feature="NFSTAY__WIDGET_CHECKIN" className="w-full border border-border rounded-xl overflow-hidden mb-3">
             <div className="grid grid-cols-2 divide-x divide-border">
-              <div className="p-3 text-left">
+              <div className={cn("p-3 text-left", calendarOpen && calPhase === "from" && "bg-muted/40")}>
                 <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground block">Check in</label>
-                <span className={cn("text-sm", dateRange?.from ? "text-foreground" : "text-muted-foreground")}>
+                <span className={cn("text-sm", dateRange?.from ? "text-foreground font-medium" : "text-muted-foreground")}>
                   {dateRange?.from ? format(dateRange.from, 'MMM d, yyyy') : 'Add date'}
                 </span>
               </div>
-              <div className="p-3 text-left">
+              <div className={cn("p-3 text-left", calendarOpen && calPhase === "to" && "bg-muted/40")}>
                 <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground block">Check out</label>
-                <span className={cn("text-sm", dateRange?.to ? "text-foreground" : "text-muted-foreground")}>
+                <span className={cn("text-sm", dateRange?.to ? "text-foreground font-medium" : "text-muted-foreground")}>
                   {dateRange?.to ? format(dateRange.to, 'MMM d, yyyy') : 'Add date'}
                 </span>
               </div>
@@ -235,18 +237,72 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
           </button>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0" align="center" side="bottom">
+          {/* Header — Airbnb style */}
+          <div className="px-4 pt-4 pb-2 border-b border-border">
+            {dateRange?.from && dateRange?.to ? (
+              <>
+                <p className="text-base font-bold">{nights} night{nights !== 1 ? "s" : ""}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {format(dateRange.from, "d MMM yyyy")} – {format(dateRange.to, "d MMM yyyy")}
+                </p>
+              </>
+            ) : (
+              <p className="text-base font-semibold">
+                {calPhase === "from" ? "Select check-in date" : "Select check-out date"}
+              </p>
+            )}
+          </div>
+
           <Calendar
             mode="range"
             selected={dateRange}
-            onSelect={(range) => {
-              setDateRange(range);
-              // Auto-close only when both dates are fully selected
-              if (range?.from && range?.to) setCalendarOpen(false);
+            onDayClick={(day) => {
+              // Ignore disabled days
+              const isDisabled = (dynamicDisabled as any[]).some((d) => {
+                if (d instanceof Date) return d.toDateString() === day.toDateString();
+                if (d?.before) return day < d.before;
+                if (d?.from && d?.to) return day >= d.from && day <= d.to;
+                return false;
+              });
+              if (isDisabled) return;
+
+              if (calPhase === "from") {
+                setDateRange({ from: day, to: undefined });
+                setCalPhase("to");
+              } else {
+                // to phase
+                if (dateRange?.from && day > dateRange.from) {
+                  setDateRange({ from: dateRange.from, to: day });
+                  setCalendarOpen(false);
+                  setCalPhase("from");
+                } else {
+                  // clicked same or before from — restart check-in
+                  setDateRange({ from: day, to: undefined });
+                }
+              }
             }}
             numberOfMonths={2}
             disabled={dynamicDisabled}
             className="p-3 pointer-events-auto"
           />
+
+          {/* Footer — Clear + Close */}
+          <div className="flex items-center justify-between px-4 py-3 border-t border-border">
+            <button
+              type="button"
+              onClick={() => { setDateRange(undefined); setCalPhase("from"); }}
+              className="text-sm font-semibold underline underline-offset-2 text-foreground hover:text-primary transition-colors"
+            >
+              Clear dates
+            </button>
+            <button
+              type="button"
+              onClick={() => setCalendarOpen(false)}
+              className="px-5 py-2 bg-foreground text-background text-sm font-semibold rounded-lg hover:opacity-80 transition-opacity"
+            >
+              Close
+            </button>
+          </div>
         </PopoverContent>
       </Popover>
 
