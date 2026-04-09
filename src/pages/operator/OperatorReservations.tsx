@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { useAuth } from "@/hooks/useAuth";
 import { useNfsOperatorReservations, type ReservationWithProperty } from "@/hooks/useNfsReservations";
-import { format, parseISO, isPast } from "date-fns";
+import { format, parseISO, isFuture, isPast } from "date-fns";
 
 function exportToCsv(reservations: ReservationWithProperty[]) {
   const headers = ["ID", "Guest Name", "Guest Email", "Guest Phone", "Property", "Check-in", "Check-out", "Nights", "Adults", "Children", "Total Amount", "Currency", "Status", "Payment Status", "Booked At"];
@@ -53,11 +53,13 @@ export default function OperatorReservations() {
   // Show operator's real reservations only — no mock fallback
   const all: ReservationWithProperty[] = realReservations ?? [];
 
-  // Upcoming = not yet checked out (includes today's check-ins and active stays)
-  const upcoming = all.filter(r => !isPast(parseISO(r.check_out)) && r.status !== 'cancelled' && r.status !== 'pending' && r.status !== 'pending_approval');
+  const pending = all.filter(r => r.status === 'pending' || r.status === 'pending_approval');
+  // Running = already checked in, not yet checked out
+  const running = all.filter(r => !isFuture(parseISO(r.check_in)) && !isPast(parseISO(r.check_out)) && r.status !== 'cancelled');
+  // Upcoming = check-in is still in the future
+  const upcoming = all.filter(r => isFuture(parseISO(r.check_in)) && r.status !== 'cancelled' && r.status !== 'pending' && r.status !== 'pending_approval');
   const past = all.filter(r => isPast(parseISO(r.check_out)) && r.status !== 'cancelled');
   const cancelled = all.filter(r => r.status === 'cancelled');
-  const pending = all.filter(r => r.status === 'pending' || r.status === 'pending_approval');
 
   const filterList = (list: ReservationWithProperty[]) =>
     list.filter(r => {
@@ -150,11 +152,13 @@ export default function OperatorReservations() {
         <TabsList data-feature="NFSTAY__OP_RESERVATIONS_FILTER">
           <TabsTrigger value="all">All ({all.length})</TabsTrigger>
           <TabsTrigger value="pending">Pending ({pending.length})</TabsTrigger>
+          <TabsTrigger value="running">Running ({running.length})</TabsTrigger>
           <TabsTrigger value="upcoming">Upcoming ({upcoming.length})</TabsTrigger>
           <TabsTrigger value="past">Past ({past.length})</TabsTrigger>
           <TabsTrigger value="cancelled">Cancelled ({cancelled.length})</TabsTrigger>
         </TabsList>
         <TabsContent value="all" className="mt-4"><ReservationTable data={all} /></TabsContent>
+        <TabsContent value="running" className="mt-4"><ReservationTable data={running} /></TabsContent>
         <TabsContent value="pending" className="mt-4"><ReservationTable data={pending} /></TabsContent>
         <TabsContent value="upcoming" className="mt-4"><ReservationTable data={upcoming} /></TabsContent>
         <TabsContent value="past" className="mt-4"><ReservationTable data={past} /></TabsContent>
