@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, Home } from "lucide-react";
 
 /**
  * /forward?redirect_uri=<encoded-url>&brand=<operator-brand-name>
@@ -51,18 +51,19 @@ export default function ForwardPage() {
       <div className="bg-white rounded-2xl shadow-md px-10 py-10 flex flex-col items-center gap-6 w-full max-w-sm">
 
         {/* Logo transfer animation */}
-        <div className="flex items-center gap-4">
-          {/* NFStay logo mark */}
+        <div className="flex items-center gap-3">
+
+          {/* NFStay logo mark — bordered square matching NfsLogo */}
           <div
-            className="w-14 h-14 rounded-full flex items-center justify-center shadow-sm flex-shrink-0"
-            style={{ background: "linear-gradient(270deg, #27dea0 0%, #1E9A80 100%)" }}
+            className="w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0"
+            style={{ border: "2.5px solid #0a0a0a" }}
           >
             <span
               style={{
                 fontFamily: "'Sora', sans-serif",
                 fontWeight: 700,
-                fontSize: 14,
-                color: "#fff",
+                fontSize: 16,
+                color: "#0a0a0a",
                 letterSpacing: 0.5,
               }}
             >
@@ -78,19 +79,17 @@ export default function ForwardPage() {
             </svg>
           </div>
 
-          {/* Operator logo / initials */}
-          <div className="w-14 h-14 rounded-full bg-gray-900 flex items-center justify-center shadow-sm flex-shrink-0">
-            <span className="text-white text-sm font-bold uppercase">
-              {brand.slice(0, 2)}
-            </span>
+          {/* Operator — Home icon in dark circle, matching Dtravel style */}
+          <div className="w-14 h-14 rounded-full bg-gray-900 flex items-center justify-center flex-shrink-0">
+            <Home className="w-6 h-6 text-white" />
           </div>
         </div>
 
         {/* Spinner / departed */}
         {!departed ? (
-          <div className="w-6 h-6 border-2 border-gray-200 border-t-primary rounded-full animate-spin" />
+          <div className="w-6 h-6 border-2 border-gray-200 border-t-gray-800 rounded-full animate-spin" />
         ) : (
-          <ExternalLink className="w-6 h-6 text-primary" />
+          <ExternalLink className="w-6 h-6 text-gray-700" />
         )}
 
         {/* Message */}
@@ -101,9 +100,7 @@ export default function ForwardPage() {
             ) : (
               <>
                 You are now leaving <strong>nfstay.app</strong> and will be
-                redirected to{" "}
-                <strong>{brand}</strong>'s direct booking site in{" "}
-                <span className="text-primary font-semibold">{countdown}</span>s…
+                redirected to a direct booking site…
               </>
             )
           ) : (
@@ -131,7 +128,6 @@ export default function ForwardPage() {
 
       <p className="mt-6 text-xs text-gray-400 text-center max-w-xs">
         You are being redirected to a partner's direct booking site.
-        nfstay is not responsible for third-party content or pricing.
       </p>
     </div>
   );
