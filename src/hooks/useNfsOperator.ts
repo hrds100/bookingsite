@@ -137,6 +137,40 @@ export function useNfsOperatorUpdate() {
   });
 }
 
+/** Delete a property by ID */
+export function useNfsDeleteProperty() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (propertyId: string) => {
+      const { error } = await supabase
+        .from("nfs_properties")
+        .delete()
+        .eq("id", propertyId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["nfs-operator-properties"] });
+    },
+  });
+}
+
+/** Update listing_status of a property */
+export function useNfsUpdatePropertyStatus() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ propertyId, status }: { propertyId: string; status: "draft" | "listed" }) => {
+      const { error } = await supabase
+        .from("nfs_properties")
+        .update({ listing_status: status })
+        .eq("id", propertyId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["nfs-operator-properties"] });
+    },
+  });
+}
+
 /** Fetch operator's own properties */
 export function useNfsOperatorProperties(operatorId?: string | null) {
   return useQuery({

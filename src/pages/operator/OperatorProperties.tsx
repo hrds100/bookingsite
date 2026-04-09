@@ -1,35 +1,76 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Plus, Search, MoreHorizontal, Eye, Pencil, Trash2, LayoutGrid, List } from "lucide-react";
+import { Plus, Search, MoreHorizontal, Eye, Pencil, Trash2, LayoutGrid, List, EyeOff, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NfsStatusBadge } from "@/components/nfs/NfsStatusBadge";
 import { NfsPropertyCard } from "@/components/nfs/NfsPropertyCard";
 import { NfsEmptyState } from "@/components/nfs/NfsEmptyState";
-import { mockProperties } from "@/data/mock-properties";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { useAuth } from "@/hooks/useAuth";
-import { useNfsOperatorProperties } from "@/hooks/useNfsOperator";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { useNfsOperatorProperties, useNfsDeleteProperty, useNfsUpdatePropertyStatus } from "@/hooks/useNfsOperator";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { toast } from "@/hooks/use-toast";
 
 export default function OperatorProperties() {
   const { formatPrice } = useCurrency();
   const { operatorId } = useAuth();
   const { data: realProperties, isLoading } = useNfsOperatorProperties(operatorId);
+  const deleteProperty = useNfsDeleteProperty();
+  const updateStatus = useNfsUpdatePropertyStatus();
+
   const [search, setSearch] = useState("");
   const [view, setView] = useState<"table" | "grid">("table");
+  const [confirmDelete, setConfirmDelete] = useState<{ id: string; title: string } | null>(null);
 
-  // Show operator's real properties only — no mock fallback for real operators
   const operatorProps = realProperties ?? [];
 
   const filtered = operatorProps.filter((p: any) => {
-    if (!search) return true; // no filter → show all, including drafts with no title/city
+    if (!search) return true;
     const term = search.toLowerCase();
     return (
       (p.public_title?.toLowerCase().includes(term) ?? false) ||
       (p.city?.toLowerCase().includes(term) ?? false)
     );
   });
+
+  const handleDelete = async () => {
+    if (!confirmDelete) return;
+    try {
+      await deleteProperty.mutateAsync(confirmDelete.id);
+      toast({ title: "Property deleted", description: `"${confirmDelete.title}" has been permanently deleted.` });
+    } catch {
+      toast({ title: "Delete failed", description: "Could not delete the property. Try again.", variant: "destructive" });
+    } finally {
+      setConfirmDelete(null);
+    }
+  };
+
+  const handleStatusChange = async (propertyId: string, status: "draft" | "listed", title: string) => {
+    try {
+      await updateStatus.mutateAsync({ propertyId, status });
+      toast({
+        title: status === "listed" ? "Property published" : "Moved to draft",
+        description: status === "listed"
+          ? `"${title}" is now live.`
+          : `"${title}" is now hidden from guests.`,
+      });
+    } catch {
+      toast({ title: "Update failed", description: "Could not update property status. Try again.", variant: "destructive" });
+    }
+  };
+
+  const propTitle = (p: any) => p.public_title?.trim() || "Untitled draft";
 
   return (
     <div data-feature="NFSTAY__OP_PROPERTIES" className="p-6 max-w-7xl space-y-6">
@@ -113,10 +154,47 @@ export default function OperatorProperties() {
                         <DropdownMenuTrigger asChild>
                           <button className="p-1.5 rounded-lg hover:bg-secondary"><MoreHorizontal className="w-4 h-4" /></button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem asChild><Link to={`/property/${(p as any).slug || p.id}`} className="gap-2"><Eye className="w-4 h-4" /> View listing</Link></DropdownMenuItem>
-                          <DropdownMenuItem asChild><Link to={`/nfstay/properties/${p.id}`} className="gap-2"><Pencil className="w-4 h-4" /> Edit</Link></DropdownMenuItem>
-                          <DropdownMenuItem className="text-destructive gap-2"><Trash2 className="w-4 h-4" /> Delete</DropdownMenuItem>
+                        <DropdownMenuContent align="end" className="w-44">
+                          {/* View listing — only if published */}
+                          {p.listing_status === "listed" && (
+                            <DropdownMenuItem asChild>
+                              <Link to={`/property/${p.slug || p.id}`} className="gap-2 flex items-center">
+                                <Eye className="w-4 h-4" /> View listing
+                              </Link>
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuItem asChild>
+                            <Link to={`/nfstay/properties/${p.id}`} className="gap-2 flex items-center">
+                              <Pencil className="w-4 h-4" /> Edit
+                            </Link>
+                          </DropdownMenuItem>
+
+                          {/* Status toggle */}
+                          {p.listing_status === "listed" ? (
+                            <DropdownMenuItem
+                              className="gap-2"
+                              onClick={() => handleStatusChange(p.id, "draft", propTitle(p))}
+                              disabled={updateStatus.isPending}
+                            >
+                              <EyeOff className="w-4 h-4" /> Move to draft
+                            </DropdownMenuItem>
+                          ) : (
+                            <DropdownMenuItem
+                              className="gap-2"
+                              onClick={() => handleStatusChange(p.id, "listed", propTitle(p))}
+                              disabled={updateStatus.isPending}
+                            >
+                              <FileText className="w-4 h-4" /> Publish
+                            </DropdownMenuItem>
+                          )}
+
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            className="text-destructive gap-2 focus:text-destructive"
+                            onClick={() => setConfirmDelete({ id: p.id, title: propTitle(p) })}
+                          >
+                            <Trash2 className="w-4 h-4" /> Delete
+                          </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </td>
@@ -133,6 +211,28 @@ export default function OperatorProperties() {
           ))}
         </div>
       )}
+
+      {/* Delete confirmation dialog */}
+      <AlertDialog open={!!confirmDelete} onOpenChange={open => { if (!open) setConfirmDelete(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete property?</AlertDialogTitle>
+            <AlertDialogDescription>
+              <strong>"{confirmDelete?.title}"</strong> will be permanently deleted. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleteProperty.isPending}
+            >
+              {deleteProperty.isPending ? "Deleting…" : "Delete permanently"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
