@@ -8,6 +8,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { validatePromoCode as validatePromoCodeReal } from "@/lib/promo-codes";
+import { useNfsPropertyBlockedDates } from "@/hooks/useNfsReservations";
 import type { MockProperty } from "@/data/mock-properties";
 import type { DateRange } from "react-day-picker";
 
@@ -26,6 +27,7 @@ interface NfsBookingWidgetProps {
 export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
   const navigate = useNavigate();
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
+  const { data: blockedRanges = [] } = useNfsPropertyBlockedDates(property.id);
   const [adults, setAdults] = useState(1);
   const [children, setChildren] = useState(0);
   const [promoCode, setPromoCode] = useState('');
@@ -208,7 +210,7 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
             selected={dateRange}
             onSelect={setDateRange}
             numberOfMonths={2}
-            disabled={{ before: new Date() }}
+            disabled={[{ before: new Date() }, ...blockedRanges]}
             className="p-3 pointer-events-auto"
           />
         </PopoverContent>
