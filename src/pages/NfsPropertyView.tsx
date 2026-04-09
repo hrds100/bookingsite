@@ -82,7 +82,6 @@ export default function NfsPropertyView() {
       <div className="sticky top-0 z-40 bg-background/80 backdrop-blur border-b border-border">
         <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <button onClick={() => navigate(-1)} className="p-2 rounded-lg hover:bg-secondary"><ArrowLeft className="w-4 h-4" /></button>
             <span className="text-sm font-medium truncate max-w-[200px] md:max-w-md">{property.public_title}</span>
           </div>
           <div className="flex items-center gap-2">
