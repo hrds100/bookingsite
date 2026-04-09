@@ -63,6 +63,15 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "Reservation not found" }), { status: 404 });
     }
 
+    // Idempotency: if already processed, return success without re-sending email
+    if (reservation.payment_status === "paid") {
+      console.log("Already processed, skipping:", reservation.id);
+      return new Response(JSON.stringify({ received: true, status: reservation.status }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
     // Check operator's booking_mode
     const { data: operator } = await supabase
       .from("nfs_operators")
