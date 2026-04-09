@@ -63,6 +63,8 @@ interface AnalyticsForm {
   meta_pixel_id: string;
   meta_title: string;
   meta_description: string;
+  og_image_url: string;
+  favicon_url: string;
 }
 
 interface NotificationsForm {
@@ -117,6 +119,8 @@ const EMPTY_ANALYTICS: AnalyticsForm = {
   meta_pixel_id: "",
   meta_title: "",
   meta_description: "",
+  og_image_url: "",
+  favicon_url: "",
 };
 
 const EMPTY_NOTIFICATIONS: NotificationsForm = {
@@ -146,6 +150,12 @@ export default function OperatorSettings() {
   // Logo upload state
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
+
+  // OG image + favicon upload state
+  const [uploadingOgImage, setUploadingOgImage] = useState(false);
+  const [uploadingFavicon, setUploadingFavicon] = useState(false);
+  const ogImageInputRef = useRef<HTMLInputElement>(null);
+  const faviconInputRef = useRef<HTMLInputElement>(null);
 
   // Sync from real operator data — only runs once when data arrives
   useEffect(() => {
@@ -190,6 +200,8 @@ export default function OperatorSettings() {
         meta_pixel_id: operator.meta_pixel_id || "",
         meta_title: operator.meta_title || "",
         meta_description: operator.meta_description || "",
+        og_image_url: operator.og_image_url || "",
+        favicon_url: operator.favicon_url || "",
       });
       setSynced(true);
     }
@@ -293,6 +305,8 @@ export default function OperatorSettings() {
       meta_pixel_id: analyticsForm.meta_pixel_id || null,
       meta_title: analyticsForm.meta_title || null,
       meta_description: analyticsForm.meta_description || null,
+      og_image_url: analyticsForm.og_image_url || null,
+      favicon_url: analyticsForm.favicon_url || null,
     });
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -330,6 +344,48 @@ export default function OperatorSettings() {
       setUploadingLogo(false);
       // Reset file input so re-selecting same file triggers change
       if (logoInputRef.current) logoInputRef.current.value = "";
+    }
+  };
+
+  const handleOgImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !operatorId) return;
+    setUploadingOgImage(true);
+    try {
+      const path = `${operatorId}/og/${Date.now()}_${file.name}`;
+      const { error: uploadError } = await supabase.storage.from("nfs-images").upload(path, file);
+      if (uploadError) throw uploadError;
+      const { data: urlData } = supabase.storage.from("nfs-images").getPublicUrl(path);
+      const publicUrl = urlData.publicUrl;
+      await updateOperator.mutateAsync({ og_image_url: publicUrl });
+      setAnalyticsForm(prev => ({ ...prev, og_image_url: publicUrl }));
+      toast({ title: "OG image uploaded", description: "Your sharing image has been saved." });
+    } catch (err) {
+      toast({ title: "Upload error", description: err instanceof Error ? err.message : "Upload failed", variant: "destructive" });
+    } finally {
+      setUploadingOgImage(false);
+      if (ogImageInputRef.current) ogImageInputRef.current.value = "";
+    }
+  };
+
+  const handleFaviconUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !operatorId) return;
+    setUploadingFavicon(true);
+    try {
+      const path = `${operatorId}/favicon/${Date.now()}_${file.name}`;
+      const { error: uploadError } = await supabase.storage.from("nfs-images").upload(path, file);
+      if (uploadError) throw uploadError;
+      const { data: urlData } = supabase.storage.from("nfs-images").getPublicUrl(path);
+      const publicUrl = urlData.publicUrl;
+      await updateOperator.mutateAsync({ favicon_url: publicUrl });
+      setAnalyticsForm(prev => ({ ...prev, favicon_url: publicUrl }));
+      toast({ title: "Favicon uploaded", description: "Your favicon has been saved." });
+    } catch (err) {
+      toast({ title: "Upload error", description: err instanceof Error ? err.message : "Upload failed", variant: "destructive" });
+    } finally {
+      setUploadingFavicon(false);
+      if (faviconInputRef.current) faviconInputRef.current.value = "";
     }
   };
 
@@ -796,9 +852,75 @@ export default function OperatorSettings() {
             </div>
           </section>
 
-          <section className="bg-card border border-border rounded-2xl p-6 space-y-4">
-            <h2 className="text-lg font-semibold">SEO</h2>
-            <div className="space-y-4">
+          <section className="bg-card border border-border rounded-2xl p-6 space-y-5">
+            <div>
+              <h2 className="text-lg font-semibold">SEO & Sharing</h2>
+              <p className="text-sm text-muted-foreground mt-0.5">Controls how your site appears in search results and when shared on social media.</p>
+            </div>
+            <div className="space-y-5">
+              {/* OG Image */}
+              <div>
+                <Label>Social Share Image (OG Image)</Label>
+                <p className="text-xs text-muted-foreground mt-0.5 mb-2">
+                  Shown when your site URL is shared on WhatsApp, Telegram, Twitter, etc. Recommended: 1200×630px.
+                </p>
+                {analyticsForm.og_image_url && (
+                  <div className="relative mb-2 w-full max-w-sm">
+                    <img src={analyticsForm.og_image_url} alt="OG preview" className="w-full rounded-lg border border-border object-cover aspect-[1200/630]" />
+                    <button
+                      type="button"
+                      onClick={() => { setAnalyticsForm(p => ({ ...p, og_image_url: "" })); updateOperator.mutateAsync({ og_image_url: null }); }}
+                      className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-0.5 rounded hover:bg-black/80"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                )}
+                <input ref={ogImageInputRef} type="file" accept="image/*" className="hidden" onChange={handleOgImageUpload} />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="rounded-lg"
+                  disabled={uploadingOgImage}
+                  onClick={() => ogImageInputRef.current?.click()}
+                >
+                  {uploadingOgImage ? <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />Uploading…</> : analyticsForm.og_image_url ? "Replace image" : "Upload image"}
+                </Button>
+              </div>
+
+              {/* Favicon */}
+              <div>
+                <Label>Favicon</Label>
+                <p className="text-xs text-muted-foreground mt-0.5 mb-2">
+                  Shown in browser tabs and bookmarks. Use a square PNG or ICO, at least 32×32px.
+                </p>
+                {analyticsForm.favicon_url && (
+                  <div className="flex items-center gap-3 mb-2">
+                    <img src={analyticsForm.favicon_url} alt="Favicon preview" className="w-8 h-8 rounded border border-border object-contain" />
+                    <button
+                      type="button"
+                      onClick={() => { setAnalyticsForm(p => ({ ...p, favicon_url: "" })); updateOperator.mutateAsync({ favicon_url: null }); }}
+                      className="text-xs text-muted-foreground hover:text-destructive"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                )}
+                <input ref={faviconInputRef} type="file" accept="image/*" className="hidden" onChange={handleFaviconUpload} />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="rounded-lg"
+                  disabled={uploadingFavicon}
+                  onClick={() => faviconInputRef.current?.click()}
+                >
+                  {uploadingFavicon ? <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />Uploading…</> : analyticsForm.favicon_url ? "Replace favicon" : "Upload favicon"}
+                </Button>
+              </div>
+
+              {/* Page title */}
               <div>
                 <Label>Page Title</Label>
                 <Input
@@ -811,6 +933,8 @@ export default function OperatorSettings() {
                   Shown in browser tabs and search results. Keep under 60 characters.
                 </p>
               </div>
+
+              {/* Meta description */}
               <div>
                 <Label>Meta Description</Label>
                 <Textarea
@@ -821,7 +945,7 @@ export default function OperatorSettings() {
                   placeholder="Book unique vacation rentals with..."
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  Shown in search results. Keep under 160 characters.
+                  Shown in search results and social share previews. Keep under 160 characters.
                 </p>
               </div>
             </div>
