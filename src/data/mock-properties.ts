@@ -28,6 +28,10 @@ export interface MockProperty {
   created_at: string;
   minimum_stay: number;
   slug?: string;
+  /** If set, this is a partner/external listing — clicking redirects here instead of the internal property page */
+  external_url?: string;
+  /** Display name of the partner platform (e.g. "Airbnb", "Booking.com") */
+  external_platform?: string;
 }
 
 export const mockProperties: MockProperty[] = [

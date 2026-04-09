@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { Heart, ChevronLeft, ChevronRight, MapPin, Users, BedDouble, Bath, Star } from "lucide-react";
 import type { MockProperty } from "@/data/mock-properties";
 import { useCurrency } from "@/contexts/CurrencyContext";
@@ -14,8 +14,6 @@ export function NfsPropertyCard({ property, onHover }: NfsPropertyCardProps) {
   const [currentImage, setCurrentImage] = useState(0);
   const [isFavourite, setIsFavourite] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
-  const navigate = useNavigate();
-
   const sortedImages = [...property.images].sort((a, b) => {
     if (a.is_cover && !b.is_cover) return -1;
     if (!a.is_cover && b.is_cover) return 1;
@@ -39,9 +37,15 @@ export function NfsPropertyCard({ property, onHover }: NfsPropertyCardProps) {
     setIsFavourite(!isFavourite);
   };
 
+  // External / partner listings → forward page instead of internal property page
+  const isExternal = !!property.external_url;
+  const cardHref = isExternal
+    ? `/forward?redirect_uri=${encodeURIComponent(property.external_url!)}&name=${encodeURIComponent(property.public_title)}&platform=${encodeURIComponent(property.external_platform || "partner site")}`
+    : `/property/${property.slug || property.id}`;
+
   return (
     <Link
-      to={`/property/${property.slug || property.id}`}
+      to={cardHref}
       className="group block"
       onMouseEnter={() => { setIsHovered(true); onHover?.(property.id); }}
       onMouseLeave={() => { setIsHovered(false); onHover?.(null); }}
@@ -63,8 +67,18 @@ export function NfsPropertyCard({ property, onHover }: NfsPropertyCardProps) {
           <Heart className={`w-4 h-4 ${isFavourite ? 'fill-destructive text-destructive' : 'text-foreground'}`} />
         </button>
 
+        {/* Partner badge (external listing) */}
+        {isExternal && (
+          <span className="absolute top-3 left-3 z-10 bg-black/70 text-white text-xs font-medium px-2.5 py-1 rounded-md flex items-center gap-1">
+            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            </svg>
+            Partner
+          </span>
+        )}
+
         {/* New badge */}
-        {isNew && (
+        {isNew && !isExternal && (
           <span className="absolute top-3 left-3 z-10 bg-primary text-primary-foreground text-xs font-medium px-2.5 py-1 rounded-md">
             New
           </span>
