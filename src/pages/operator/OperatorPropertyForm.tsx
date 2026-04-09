@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Upload, X, Loader2, Plus, Trash2, Wifi, WifiOff, RefreshCw, CheckCircle, AlertCircle, CalendarRange, Ban } from "lucide-react";
+import { ArrowLeft, Upload, X, Loader2, Plus, Trash2, Wifi, WifiOff, RefreshCw, CheckCircle, AlertCircle, CalendarRange, Ban, Unlock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,7 +9,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { Calendar as DayCalendar } from "@/components/ui/calendar";
-import { format as fmtDate, parseISO as parseDateISO, startOfDay } from "date-fns";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle,
+  DialogDescription, DialogFooter,
+} from "@/components/ui/dialog";
+import type { DateRange } from "react-day-picker";
+import {
+  format as fmtDate, parseISO as parseDateISO, startOfDay,
+  eachDayOfInterval, differenceInDays, addDays,
+} from "date-fns";
 import { CANCELLATION_POLICIES } from "@/lib/constants";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -214,6 +222,11 @@ export default function OperatorPropertyForm() {
 
   // For edit mode: fetch existing blocked dates
   const { data: existingBlockedDates = [] } = useNfsPropertyBlockedDatesList(isEdit ? id : undefined);
+
+  // Availability modal state (used for both create + edit modes)
+  const [availModalOpen, setAvailModalOpen] = useState(false);
+  const [availRange, setAvailRange] = useState<DateRange | undefined>(undefined);
+  const [availSubmitting, setAvailSubmitting] = useState(false);
 
   const saving = createMutation.isPending || updateMutation.isPending;
 
@@ -468,6 +481,89 @@ export default function OperatorPropertyForm() {
       toast({ title: "Save failed", description: msg, variant: "destructive" });
     }
   };
+
+  // --- Availability helpers ---
+
+  /** Group sorted "YYYY-MM-DD" strings into consecutive ranges */
+  function groupDatesIntoRanges(dates: string[]): { from: string; to: string }[] {
+    if (dates.length === 0) return [];
+    const sorted = [...dates].sort();
+    const ranges: { from: string; to: string }[] = [];
+    let start = sorted[0];
+    let prev = sorted[0];
+    for (let i = 1; i < sorted.length; i++) {
+      const prevDate = parseDateISO(prev);
+      const currDate = parseDateISO(sorted[i]);
+      if (differenceInDays(currDate, prevDate) === 1) {
+        prev = sorted[i];
+      } else {
+        ranges.push({ from: start, to: prev });
+        start = sorted[i];
+        prev = sorted[i];
+      }
+    }
+    ranges.push({ from: start, to: prev });
+    return ranges;
+  }
+
+  function fmtRange(from: string, to: string) {
+    const f = parseDateISO(from);
+    const t = parseDateISO(to);
+    if (from === to) return fmtDate(f, "MMM d, yyyy");
+    if (f.getFullYear() === t.getFullYear())
+      return `${fmtDate(f, "MMM d")} – ${fmtDate(t, "MMM d, yyyy")}`;
+    return `${fmtDate(f, "MMM d, yyyy")} – ${fmtDate(t, "MMM d, yyyy")}`;
+  }
+
+  /** Handle block/unblock from the modal — edit mode */
+  const handleAvailEditConfirm = async (block: boolean) => {
+    if (!availRange?.from || !id) return;
+    const from = availRange.from;
+    const to = availRange.to ?? availRange.from;
+    const dates = eachDayOfInterval({ start: from, end: to }).map((d) =>
+      fmtDate(d, "yyyy-MM-dd"),
+    );
+    setAvailSubmitting(true);
+    try {
+      await blockDateRange.mutateAsync({ propertyId: id, dates, block });
+      toast({
+        title: block ? "Dates blocked" : "Dates unblocked",
+        description: `${dates.length} date${dates.length !== 1 ? "s" : ""} updated.`,
+      });
+      setAvailModalOpen(false);
+      setAvailRange(undefined);
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "Failed to update availability.",
+        variant: "destructive",
+      });
+    } finally {
+      setAvailSubmitting(false);
+    }
+  };
+
+  /** Handle block confirmation — create mode (accumulates into pendingBlockedDates) */
+  const handleAvailCreateConfirm = () => {
+    if (!availRange?.from) return;
+    const from = availRange.from;
+    const to = availRange.to ?? availRange.from;
+    const newDates = eachDayOfInterval({ start: from, end: to }).map((d) =>
+      fmtDate(d, "yyyy-MM-dd"),
+    );
+    setPendingBlockedDates((prev) => {
+      const set = new Set(prev);
+      newDates.forEach((d) => set.add(d));
+      return Array.from(set).sort();
+    });
+    setAvailModalOpen(false);
+    setAvailRange(undefined);
+  };
+
+  const availDayCount =
+    availRange?.from
+      ? differenceInDays(availRange.to ?? availRange.from, availRange.from) + 1
+      : 0;
 
   // --- Loading state ---
 
@@ -1206,84 +1302,192 @@ export default function OperatorPropertyForm() {
 
         {/* Availability */}
         <section className="bg-card border border-border rounded-2xl p-4 md:p-6 space-y-4">
-          <div className="flex items-center gap-2">
-            <CalendarRange className="w-5 h-5 text-primary" />
-            <h2 className="text-lg font-semibold">Availability</h2>
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <CalendarRange className="w-5 h-5 text-primary" />
+              <h2 className="text-lg font-semibold">Availability</h2>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="rounded-full gap-1.5"
+              onClick={() => { setAvailRange(undefined); setAvailModalOpen(true); }}
+            >
+              <CalendarRange className="w-3.5 h-3.5" />
+              {isEdit ? "Manage Availability" : "Block Dates"}
+            </Button>
           </div>
 
           {isEdit ? (
-            /* Edit mode: show existing blocked dates + link to Calendar */
-            <div className="space-y-3">
-              <p className="text-sm text-muted-foreground">
-                {existingBlockedDates.length > 0
-                  ? `${existingBlockedDates.length} date${existingBlockedDates.length !== 1 ? "s" : ""} currently blocked for this property.`
-                  : "No dates are currently blocked for this property."}
-              </p>
-              {existingBlockedDates.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {existingBlockedDates.slice(0, 12).map((d) => (
-                    <span key={d} className="inline-flex items-center gap-1 text-xs bg-rose-50 text-rose-600 border border-rose-200 rounded-md px-2 py-0.5">
-                      <Ban className="w-2.5 h-2.5" />
-                      {fmtDate(parseDateISO(d), "MMM d, yyyy")}
-                    </span>
-                  ))}
-                  {existingBlockedDates.length > 12 && (
-                    <span className="text-xs text-muted-foreground">+{existingBlockedDates.length - 12} more</span>
+            /* Edit mode: grouped range display */
+            (() => {
+              const ranges = groupDatesIntoRanges(existingBlockedDates);
+              return (
+                <div className="space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    {existingBlockedDates.length > 0
+                      ? `${existingBlockedDates.length} date${existingBlockedDates.length !== 1 ? "s" : ""} blocked across ${ranges.length} range${ranges.length !== 1 ? "s" : ""}.`
+                      : "No dates are currently blocked for this property."}
+                  </p>
+                  {ranges.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {ranges.map((r) => (
+                        <span
+                          key={`${r.from}-${r.to}`}
+                          className="inline-flex items-center gap-1 text-xs bg-rose-50 text-rose-600 border border-rose-200 rounded-md px-2.5 py-1"
+                        >
+                          <Ban className="w-2.5 h-2.5 flex-shrink-0" />
+                          {fmtRange(r.from, r.to)}
+                        </span>
+                      ))}
+                    </div>
                   )}
                 </div>
-              )}
-              <p className="text-xs text-muted-foreground">
-                To add or remove blocked dates, use the{" "}
-                <a href="/nfstay/calendar" className="text-primary underline underline-offset-2">Calendar</a>{" "}
-                page where you can click individual dates on the multi-property calendar.
-              </p>
-            </div>
+              );
+            })()
           ) : (
-            /* Create mode: pre-block dates before publishing */
-            <div className="space-y-3">
-              <p className="text-sm text-muted-foreground">
-                Select dates to block before publishing. Blocked dates will be unavailable for booking.
-              </p>
-              <DayCalendar
-                mode="multiple"
-                selected={pendingBlockedDates.map((d) => parseDateISO(d))}
-                onSelect={(days) => {
-                  setPendingBlockedDates(
-                    (days ?? [])
-                      .filter((d) => d >= startOfDay(new Date()))
-                      .map((d) => fmtDate(d, "yyyy-MM-dd")),
-                  );
-                }}
-                disabled={[{ before: new Date() }]}
-                numberOfMonths={2}
-                className="rounded-xl border border-border p-3 w-fit"
-              />
-              {pendingBlockedDates.length > 0 && (
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-xs text-muted-foreground">
-                    {pendingBlockedDates.length} date{pendingBlockedDates.length !== 1 ? "s" : ""} selected to block:
-                  </span>
-                  {pendingBlockedDates.slice(0, 8).map((d) => (
-                    <span key={d} className="inline-flex items-center gap-1 text-xs bg-rose-50 text-rose-600 border border-rose-200 rounded-md px-2 py-0.5">
-                      <Ban className="w-2.5 h-2.5" />
-                      {fmtDate(parseDateISO(d), "MMM d")}
-                    </span>
-                  ))}
-                  {pendingBlockedDates.length > 8 && (
-                    <span className="text-xs text-muted-foreground">+{pendingBlockedDates.length - 8} more</span>
+            /* Create mode: pending blocked ranges */
+            (() => {
+              const pendingRanges = groupDatesIntoRanges(pendingBlockedDates);
+              return (
+                <div className="space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    {pendingBlockedDates.length > 0
+                      ? `${pendingBlockedDates.length} date${pendingBlockedDates.length !== 1 ? "s" : ""} selected to block before publishing.`
+                      : "Optionally block dates before publishing. Blocked dates will be unavailable for booking."}
+                  </p>
+                  {pendingRanges.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {pendingRanges.map((r) => (
+                        <span
+                          key={`${r.from}-${r.to}`}
+                          className="inline-flex items-center gap-1.5 text-xs bg-rose-50 text-rose-600 border border-rose-200 rounded-md px-2.5 py-1"
+                        >
+                          <Ban className="w-2.5 h-2.5 flex-shrink-0" />
+                          {fmtRange(r.from, r.to)}
+                          <button
+                            type="button"
+                            className="ml-0.5 hover:text-rose-800"
+                            title="Remove this range"
+                            onClick={() => {
+                              const from = parseDateISO(r.from);
+                              const to = parseDateISO(r.to);
+                              const toRemove = new Set(
+                                eachDayOfInterval({ start: from, end: to }).map((d) =>
+                                  fmtDate(d, "yyyy-MM-dd"),
+                                ),
+                              );
+                              setPendingBlockedDates((prev) =>
+                                prev.filter((d) => !toRemove.has(d)),
+                              );
+                            }}
+                          >
+                            <X className="w-2.5 h-2.5" />
+                          </button>
+                        </span>
+                      ))}
+                      <button
+                        type="button"
+                        className="text-xs text-destructive hover:underline"
+                        onClick={() => setPendingBlockedDates([])}
+                      >
+                        Clear all
+                      </button>
+                    </div>
                   )}
-                  <button
-                    type="button"
-                    className="text-xs text-destructive hover:underline"
-                    onClick={() => setPendingBlockedDates([])}
-                  >
-                    Clear all
-                  </button>
                 </div>
-              )}
-            </div>
+              );
+            })()
           )}
         </section>
+
+        {/* Availability modal */}
+        <Dialog
+          open={availModalOpen}
+          onOpenChange={(open) => {
+            if (!open && !availSubmitting) {
+              setAvailModalOpen(false);
+              setAvailRange(undefined);
+            }
+          }}
+        >
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>
+                {isEdit ? "Manage Availability" : "Block Date Range"}
+              </DialogTitle>
+              <DialogDescription>
+                {isEdit
+                  ? "Select a date range to block or unblock for this property."
+                  : "Select a date range to mark as unavailable before publishing."}
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="flex flex-col items-center gap-3 py-2">
+              <DayCalendar
+                mode="range"
+                selected={availRange}
+                onSelect={setAvailRange}
+                numberOfMonths={1}
+                disabled={{ before: startOfDay(new Date()) }}
+                className="rounded-md border"
+              />
+              {availRange?.from && (
+                <p className="text-sm text-muted-foreground">
+                  {availDayCount === 1
+                    ? `1 day: ${fmtDate(availRange.from, "MMM d, yyyy")}`
+                    : `${availDayCount} days: ${fmtDate(availRange.from, "MMM d")} – ${fmtDate(availRange.to ?? availRange.from, "MMM d, yyyy")}`}
+                </p>
+              )}
+            </div>
+
+            <DialogFooter className="flex-col sm:flex-row gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => { setAvailModalOpen(false); setAvailRange(undefined); }}
+                disabled={availSubmitting}
+                className="rounded-full"
+              >
+                Cancel
+              </Button>
+              {isEdit ? (
+                <>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => handleAvailEditConfirm(false)}
+                    disabled={availSubmitting || !availRange?.from}
+                    className="rounded-full border-primary text-primary hover:bg-primary/10"
+                  >
+                    {availSubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Unlock className="w-4 h-4 mr-2" />}
+                    Unblock Range
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={() => handleAvailEditConfirm(true)}
+                    disabled={availSubmitting || !availRange?.from}
+                    className="rounded-full"
+                  >
+                    {availSubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Ban className="w-4 h-4 mr-2" />}
+                    Block Range
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  type="button"
+                  onClick={handleAvailCreateConfirm}
+                  disabled={!availRange?.from}
+                  className="rounded-full"
+                >
+                  <Ban className="w-4 h-4 mr-2" />
+                  Add to Block List
+                </Button>
+              )}
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* Submit */}
         <div className="flex gap-3 justify-end pb-8">
