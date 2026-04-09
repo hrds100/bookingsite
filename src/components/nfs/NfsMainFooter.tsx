@@ -26,7 +26,7 @@ export function NfsMainFooter() {
     : [];
 
   return (
-    <footer data-feature="NFSTAY__FOOTER" className={isWhiteLabel ? "bg-gray-900 text-gray-300" : "bg-[#f0f3f7] mt-8"}>
+    <footer data-feature="NFSTAY__FOOTER" className={isWhiteLabel ? "bg-white text-gray-700 border-t border-gray-200" : "bg-[#f0f3f7] mt-8"}>
       <div className="max-w-7xl mx-auto px-4 py-12">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
           {/* About */}
@@ -81,7 +81,7 @@ export function NfsMainFooter() {
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label={s.label}
-                    className="w-10 h-10 rounded-full border border-gray-600 flex items-center justify-center text-gray-400 hover:text-white hover:border-gray-400 transition-colors"
+                    className="w-10 h-10 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary transition-colors"
                   >
                     {s.icon}
                   </a>
