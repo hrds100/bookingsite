@@ -1,7 +1,16 @@
 import { Link } from "react-router-dom";
 import { NfsLogo } from "./NfsLogo";
 import { useWhiteLabel } from "@/contexts/WhiteLabelContext";
-import { Phone, Mail, MessageCircle } from "lucide-react";
+import { Phone, Mail, MessageCircle, Instagram, Facebook, Linkedin } from "lucide-react";
+
+/* X (Twitter) SVG — Lucide's Twitter icon is the old bird; use the X mark */
+function XIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.746l7.73-8.835L1.254 2.25H8.08l4.253 5.622 5.911-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+    </svg>
+  );
+}
 
 export function NfsMainFooter() {
   const { operator, isWhiteLabel } = useWhiteLabel();
@@ -41,9 +50,23 @@ export function NfsMainFooter() {
             </p>
             {/* Social links — main site */}
             {!isWhiteLabel && (
-              <div data-feature="NFSTAY__FOOTER_SOCIAL" className="flex gap-3">
-                {['Instagram', 'Twitter', 'Facebook', 'TikTok'].map((s) => (
-                  <a key={s} href="#" target="_blank" rel="noopener noreferrer" className="text-xs text-muted-foreground hover:text-primary transition-colors">{s}</a>
+              <div data-feature="NFSTAY__FOOTER_SOCIAL" className="flex gap-2.5 mt-1">
+                {[
+                  { label: "Instagram", href: "https://instagram.com/nfstay", icon: <Instagram className="w-4 h-4" /> },
+                  { label: "Facebook",  href: "https://facebook.com/nfstay",  icon: <Facebook  className="w-4 h-4" /> },
+                  { label: "X",         href: "https://x.com/nfstay",         icon: <XIcon     className="w-3.5 h-3.5" /> },
+                  { label: "LinkedIn",  href: "https://linkedin.com/company/nfstay", icon: <Linkedin className="w-4 h-4" /> },
+                ].map((s) => (
+                  <a
+                    key={s.label}
+                    href={s.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={s.label}
+                    className="w-9 h-9 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary transition-colors"
+                  >
+                    {s.icon}
+                  </a>
                 ))}
               </div>
             )}
