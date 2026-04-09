@@ -155,24 +155,57 @@ export function useNfsReservationWithProperty(id: string | undefined) {
   });
 }
 
-/** Fetch confirmed/blocked date ranges for a property (used by booking calendar) */
+/** Fetch confirmed/blocked date ranges for a property (used by booking calendar).
+ *  Merges two sources:
+ *  1. Confirmed reservations from nfs_reservations (check_in → check_out ranges)
+ *  2. Manually blocked dates from nfs_blocked_dates (individual YYYY-MM-DD entries)
+ */
 export function useNfsPropertyBlockedDates(propertyId: string | undefined) {
   return useQuery({
     queryKey: ["nfs-property-blocked-dates", propertyId],
     queryFn: async (): Promise<{ from: Date; to: Date }[]> => {
       if (!propertyId || !SUPABASE_CONFIGURED) return [];
 
-      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/nfs-property-availability?property_id=${propertyId}`;
-      const res = await fetch(url);
-      if (!res.ok) return [];
-      const json = await res.json();
-      return (json.ranges ?? []).map((r: { from: string; to: string }) => ({
-        from: new Date(r.from),
-        to: new Date(r.to),
-      }));
+      // Fetch both in parallel
+      const [resResult, blockedResult] = await Promise.all([
+        supabase
+          .from("nfs_reservations")
+          .select("check_in, check_out")
+          .eq("property_id", propertyId)
+          .in("status", ["confirmed", "pending_approval"]),
+        supabase
+          .from("nfs_blocked_dates")
+          .select("date")
+          .eq("property_id", propertyId),
+      ]);
+
+      const ranges: { from: Date; to: Date }[] = [];
+
+      // Add reservation ranges (check_in inclusive → check_out exclusive)
+      if (resResult.data) {
+        for (const r of resResult.data) {
+          const from = new Date(r.check_in);
+          const to = new Date(r.check_out);
+          if (!isNaN(from.getTime()) && !isNaN(to.getTime())) {
+            ranges.push({ from, to });
+          }
+        }
+      }
+
+      // Add manually blocked dates — each as a single-day range
+      if (blockedResult.data) {
+        for (const b of blockedResult.data) {
+          // Parse "YYYY-MM-DD" as local date to avoid UTC offset shifting the day
+          const [y, m, d] = b.date.split("-").map(Number);
+          const day = new Date(y, m - 1, d);
+          ranges.push({ from: day, to: day });
+        }
+      }
+
+      return ranges;
     },
     enabled: !!propertyId,
-    staleTime: 60_000,
+    staleTime: 30_000,
   });
 }
 
