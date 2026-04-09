@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { MapPin, CalendarDays, CircleUserRound, ChevronDown, Minus, Plus } from "lucide-react";
 import { format } from "date-fns";
@@ -7,6 +7,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import type { DateRange } from "react-day-picker";
+import { useNfsPropertyCities } from "@/hooks/useNfsProperties";
 
 interface NfsHeroSearchProps {
   heading?: string;
@@ -15,14 +16,38 @@ interface NfsHeroSearchProps {
   btnText?: string;
 }
 
-export function NfsHeroSearch({ heading, subHeading, desc, btnText = "Search" }: NfsHeroSearchProps) {
+export function NfsHeroSearch({ heading, subHeading, desc, btnText = "Explore" }: NfsHeroSearchProps) {
   const navigate = useNavigate();
   const [location, setLocation] = useState('');
+  const [locationOpen, setLocationOpen] = useState(false);
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [guestsOpen, setGuestsOpen] = useState(false);
   const [adults, setAdults] = useState(1);
   const [children, setChildren] = useState(0);
   const [infants, setInfants] = useState(0);
+  const locationRef = useRef<HTMLDivElement>(null);
+
+  const { data: allCities = [] } = useNfsPropertyCities();
+
+  // Filter cities by what the user has typed
+  const filteredCities = location.trim().length === 0
+    ? allCities.slice(0, 8)
+    : allCities.filter(
+        (c) =>
+          c.city.toLowerCase().includes(location.toLowerCase()) ||
+          c.country.toLowerCase().includes(location.toLowerCase()),
+      ).slice(0, 8);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (locationRef.current && !locationRef.current.contains(e.target as Node)) {
+        setLocationOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const totalGuests = adults + children;
 
@@ -34,6 +59,11 @@ export function NfsHeroSearch({ heading, subHeading, desc, btnText = "Search" }:
     if (adults > 1) params.set('adults', String(adults));
     if (children > 0) params.set('children', String(children));
     navigate(`/search?${params.toString()}`);
+  };
+
+  const handleSelectCity = (city: string, country: string) => {
+    setLocation(`${city}, ${country}`);
+    setLocationOpen(false);
   };
 
   const Stepper = ({ label, sub, value, onChange, min = 0 }: { label: string; sub: string; value: number; onChange: (v: number) => void; min?: number }) => (
@@ -98,23 +128,70 @@ export function NfsHeroSearch({ heading, subHeading, desc, btnText = "Search" }:
             </div>
           )}
 
-          {/* Search bar — legacy pill shape */}
+          {/* Search bar */}
           <div className="border border-[#e6e6eb] lg:rounded-full rounded-3xl flex flex-col lg:flex-row justify-between lg:p-2 md:p-8 p-5 mx-auto relative transition-all duration-300 shadow-sm hover:shadow-md bg-white">
-            {/* Location */}
-            <div className="flex items-center flex-1 p-2 border-b lg:border-none relative lg:min-w-[200px] lg:max-w-[300px]">
+
+            {/* Location with autocomplete */}
+            <div
+              ref={locationRef}
+              className="flex items-center flex-1 p-2 border-b lg:border-none relative lg:min-w-[200px] lg:max-w-[300px]"
+            >
               <div className="flex items-center flex-1 gap-2 min-w-0">
                 <MapPin className="w-5 h-5 flex-shrink-0 text-black" />
                 <input
                   data-feature="NFSTAY__HERO_LOCATION"
                   type="text"
                   value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter") handleSearch(); }}
+                  onChange={(e) => { setLocation(e.target.value); setLocationOpen(true); }}
+                  onFocus={() => setLocationOpen(true)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") { setLocationOpen(false); handleSearch(); }
+                    if (e.key === "Escape") setLocationOpen(false);
+                  }}
                   placeholder="Find Location"
                   className="outline-none border-none w-full placeholder:text-black text-sm bg-transparent"
+                  autoComplete="off"
                 />
+                {location && (
+                  <button
+                    type="button"
+                    onClick={() => { setLocation(''); setLocationOpen(true); }}
+                    className="text-gray-400 hover:text-gray-600 flex-shrink-0 text-lg leading-none"
+                  >
+                    ×
+                  </button>
+                )}
                 <ChevronDown className="w-4 h-4 text-black flex-shrink-0" />
               </div>
+
+              {/* City dropdown */}
+              {locationOpen && filteredCities.length > 0 && (
+                <div className="absolute top-full left-0 mt-2 w-full min-w-[240px] bg-white border border-[#e6e6eb] rounded-2xl shadow-lg z-50 overflow-hidden">
+                  <div className="px-3 pt-3 pb-1">
+                    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+                      {location.trim() ? "Matching destinations" : "Popular destinations"}
+                    </p>
+                  </div>
+                  {filteredCities.map((c) => (
+                    <button
+                      key={`${c.city}|${c.country}`}
+                      type="button"
+                      onMouseDown={(e) => e.preventDefault()} // prevent blur before click
+                      onClick={() => handleSelectCity(c.city, c.country)}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-gray-50 transition-colors"
+                    >
+                      <span className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        <MapPin className="w-3.5 h-3.5 text-primary" />
+                      </span>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-gray-900 truncate">{c.city}</p>
+                        <p className="text-xs text-gray-400 truncate">{c.country}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+
               <div className="h-7 w-px bg-[#e6e6eb] hidden lg:block absolute right-0" />
             </div>
 
@@ -164,7 +241,7 @@ export function NfsHeroSearch({ heading, subHeading, desc, btnText = "Search" }:
               </PopoverContent>
             </Popover>
 
-            {/* Search button — gradient */}
+            {/* Search button */}
             <button
               data-feature="NFSTAY__HERO_SEARCH_BTN"
               onClick={handleSearch}
