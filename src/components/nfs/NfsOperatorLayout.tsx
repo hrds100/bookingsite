@@ -1,14 +1,43 @@
+import { useEffect, useState } from "react";
 import { Outlet, Navigate } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { NfsOperatorSidebar } from "./NfsOperatorSidebar";
 import { useAuth } from "@/hooks/useAuth";
 import { useNfsOperator } from "@/hooks/useNfsOperator";
+import { supabase } from "@/lib/supabase";
 
 export function NfsOperatorLayout() {
   const { user, loading } = useAuth();
   const { data: operator, isLoading: operatorLoading, isFetched } = useNfsOperator();
 
-  if (loading || (!!user && !isFetched)) {
+  // Synchronously detect bridge tokens in URL so we show a spinner
+  // before the auth guard can redirect to /signin
+  const [bridging, setBridging] = useState(() => {
+    const p = new URLSearchParams(window.location.search);
+    return !!(p.get("access_token") && p.get("refresh_token"));
+  });
+
+  useEffect(() => {
+    if (!bridging) return;
+    const p = new URLSearchParams(window.location.search);
+    const accessToken = p.get("access_token");
+    const refreshToken = p.get("refresh_token");
+    if (!accessToken || !refreshToken) { setBridging(false); return; }
+
+    supabase.auth
+      .setSession({ access_token: accessToken, refresh_token: refreshToken })
+      .then(() => {
+        // Remove tokens from URL so they aren't visible or bookmarked
+        const url = new URL(window.location.href);
+        url.searchParams.delete("access_token");
+        url.searchParams.delete("refresh_token");
+        window.history.replaceState({}, "", url.toString());
+      })
+      .catch((err) => console.error("[SessionBridge] setSession failed:", err))
+      .finally(() => setBridging(false));
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (bridging || loading || (!!user && !isFetched)) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
