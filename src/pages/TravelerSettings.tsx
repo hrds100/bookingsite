@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Camera, Trash2 } from "lucide-react";
+import { Camera, Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,7 +23,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/useAuth";
 
 function getInitials(email: string, name?: string): string {
@@ -50,6 +50,9 @@ export default function TravelerSettings() {
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [whatsappNotifications, setWhatsappNotifications] = useState(false);
   const [currency, setCurrency] = useState("GBP");
+  const [avatarUrl, setAvatarUrl] = useState<string>((user?.user_metadata?.avatar_url as string) || "");
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [passwordSaving, setPasswordSaving] = useState(false);
@@ -113,7 +116,54 @@ export default function TravelerSettings() {
   };
 
   const handlePhotoUpload = () => {
-    toast("Photo upload coming soon");
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    const ALLOWED = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+    if (!ALLOWED.includes(file.type)) {
+      toast.error("Please upload a JPEG, PNG, WEBP or GIF image.");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image must be smaller than 5 MB.");
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const ext = file.name.split(".").pop() ?? "jpg";
+      const path = `avatars/${user.id}.${ext}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("nfs-images")
+        .upload(path, file, { upsert: true, contentType: file.type });
+
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage
+        .from("nfs-images")
+        .getPublicUrl(path);
+
+      const publicUrl = `${urlData.publicUrl}?t=${Date.now()}`;
+
+      const { error: updateError } = await supabase.auth.updateUser({
+        data: { avatar_url: publicUrl },
+      });
+      if (updateError) throw updateError;
+
+      setAvatarUrl(publicUrl);
+      toast.success("Photo updated");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Upload failed. Please try again.");
+    } finally {
+      setUploading(false);
+      // Reset so the same file can be re-selected if needed
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
   };
 
   const handleDeleteAccount = () => {
@@ -140,14 +190,22 @@ export default function TravelerSettings() {
       {/* Profile photo */}
       <div className="flex items-center gap-4">
         <Avatar className="w-20 h-20">
+          {avatarUrl && <AvatarImage src={avatarUrl} alt={userName || userEmail} />}
           <AvatarFallback className="bg-primary-gradient text-white text-xl font-semibold">
             {initials}
           </AvatarFallback>
         </Avatar>
-        <Button variant="outline" className="rounded-full" onClick={handlePhotoUpload}>
-          <Camera className="w-4 h-4 mr-2" />
-          Upload photo
+        <Button variant="outline" className="rounded-full" onClick={handlePhotoUpload} disabled={uploading}>
+          {uploading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Camera className="w-4 h-4 mr-2" />}
+          {uploading ? "Uploading..." : "Upload photo"}
         </Button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/gif"
+          className="hidden"
+          onChange={handleFileChange}
+        />
       </div>
 
       <hr className="border-border" />
