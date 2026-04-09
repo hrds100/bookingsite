@@ -98,11 +98,18 @@ Deno.serve(async (req: Request) => {
           <p class="lbl">Revenue</p><p class="big">${fmt(total, currency)}</p>
         </div>`);
 
+      // Deduplicate: normalise all addresses, skip if already covered
+      const guestNorm = guestEmail.trim().toLowerCase();
+      const adminNorm = ADMIN_EMAIL.trim().toLowerCase();
+      const opNorm = operatorEmail ? operatorEmail.trim().toLowerCase() : null;
+
       const sends = [
         sendEmail(guestEmail, `Booking Confirmed — ${propertyTitle}`, guestHtml),
-        sendEmail(ADMIN_EMAIL, `New Booking: ${propertyTitle} (${guestName})`, adminHtml),
       ];
-      if (operatorEmail && operatorEmail !== ADMIN_EMAIL) {
+      if (adminNorm !== guestNorm) {
+        sends.push(sendEmail(ADMIN_EMAIL, `New Booking: ${propertyTitle} (${guestName})`, adminHtml));
+      }
+      if (opNorm && opNorm !== adminNorm && opNorm !== guestNorm) {
         sends.push(sendEmail(operatorEmail, `New Booking: ${propertyTitle} — ${guestName}`, operatorHtml));
       }
       await Promise.all(sends);
@@ -141,11 +148,18 @@ Deno.serve(async (req: Request) => {
           <p style="color:#444;font-size:14px">View all reservations at <a href="https://nfstay.app/nfstay/reservations">nfstay.app/nfstay/reservations</a></p>
         </div>`);
 
+      // Deduplicate: normalise all addresses, skip if already covered
+      const guestNormC = guestEmail.trim().toLowerCase();
+      const adminNormC = ADMIN_EMAIL.trim().toLowerCase();
+      const opNormC = operatorEmail ? operatorEmail.trim().toLowerCase() : null;
+
       const sends = [
         sendEmail(guestEmail, `Booking Cancelled — ${propertyTitle}`, guestHtml),
-        sendEmail(ADMIN_EMAIL, `Cancelled: ${propertyTitle} (${guestName})`, guestHtml),
       ];
-      if (operatorEmail && operatorEmail !== ADMIN_EMAIL) {
+      if (adminNormC !== guestNormC) {
+        sends.push(sendEmail(ADMIN_EMAIL, `Cancelled: ${propertyTitle} (${guestName})`, adminHtml));
+      }
+      if (opNormC && opNormC !== adminNormC && opNormC !== guestNormC) {
         sends.push(sendEmail(operatorEmail, `Booking Cancelled: ${propertyTitle} — ${guestName}`, operatorHtml));
       }
       await Promise.all(sends);
