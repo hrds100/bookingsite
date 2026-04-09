@@ -24,6 +24,7 @@ import OperatorPropertyForm from "./pages/operator/OperatorPropertyForm";
 import OperatorReservations from "./pages/operator/OperatorReservations";
 import OperatorReservationDetail from "./pages/operator/OperatorReservationDetail";
 import OperatorCreateReservation from "./pages/operator/OperatorCreateReservation";
+import OperatorCalendar from "./pages/operator/OperatorCalendar";
 import OperatorAnalytics from "./pages/operator/OperatorAnalytics";
 import OperatorSettings from "./pages/operator/OperatorSettings";
 import OperatorOnboarding from "./pages/operator/OperatorOnboarding";
@@ -83,6 +84,7 @@ const App = () => (
               <Route path="/nfstay/reservations" element={<OperatorReservations />} />
               <Route path="/nfstay/reservations/:id" element={<OperatorReservationDetail />} />
               <Route path="/nfstay/create-reservation" element={<OperatorCreateReservation />} />
+              <Route path="/nfstay/calendar" element={<OperatorCalendar />} />
               <Route path="/nfstay/analytics" element={<OperatorAnalytics />} />
               <Route path="/nfstay/settings" element={<OperatorSettings />} />
             </Route>

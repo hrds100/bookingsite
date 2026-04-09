@@ -110,3 +110,24 @@ export function useNfsPropertySearch(filters: {
     staleTime: 30_000,
   });
 }
+
+/** Fetch ALL properties for an operator (including unlisted) — for operator portal use */
+export function useNfsOperatorProperties(operatorId: string | null | undefined) {
+  return useQuery({
+    queryKey: ["nfs-operator-properties", operatorId],
+    queryFn: async (): Promise<MockProperty[]> => {
+      if (!SUPABASE_CONFIGURED || !operatorId) return [];
+
+      const { data, error } = await supabase
+        .from("nfs_properties")
+        .select("*")
+        .eq("operator_id", operatorId)
+        .order("created_at", { ascending: false });
+
+      if (error || !data || data.length === 0) return [];
+      return data as unknown as MockProperty[];
+    },
+    enabled: !!operatorId,
+    staleTime: 30_000,
+  });
+}
