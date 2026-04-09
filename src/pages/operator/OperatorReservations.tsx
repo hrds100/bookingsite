@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { useAuth } from "@/hooks/useAuth";
 import { useNfsOperatorReservations, type ReservationWithProperty } from "@/hooks/useNfsReservations";
-import { format, parseISO, isFuture, isPast } from "date-fns";
+import { format, parseISO, isPast } from "date-fns";
 
 function exportToCsv(reservations: ReservationWithProperty[]) {
   const headers = ["ID", "Guest Name", "Guest Email", "Guest Phone", "Property", "Check-in", "Check-out", "Nights", "Adults", "Children", "Total Amount", "Currency", "Status", "Payment Status", "Booked At"];
@@ -53,8 +53,9 @@ export default function OperatorReservations() {
   // Show operator's real reservations only — no mock fallback
   const all: ReservationWithProperty[] = realReservations ?? [];
 
-  const upcoming = all.filter(r => isFuture(parseISO(r.check_in)) && r.status !== 'cancelled');
-  const past = all.filter(r => isPast(parseISO(r.check_out)) || r.status === 'completed');
+  // Upcoming = not yet checked out (includes today's check-ins and active stays)
+  const upcoming = all.filter(r => !isPast(parseISO(r.check_out)) && r.status !== 'cancelled' && r.status !== 'pending' && r.status !== 'pending_approval');
+  const past = all.filter(r => isPast(parseISO(r.check_out)) && r.status !== 'cancelled');
   const cancelled = all.filter(r => r.status === 'cancelled');
   const pending = all.filter(r => r.status === 'pending' || r.status === 'pending_approval');
 
