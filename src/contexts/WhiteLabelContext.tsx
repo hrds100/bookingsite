@@ -166,21 +166,21 @@ export function WhiteLabelProvider({ children }: { children: ReactNode }) {
         twImageEl?.parentNode?.removeChild(twImageEl);
       }
 
-      // Favicon — use operator's favicon, or clear nfstay default
-      const faviconEl = document.querySelector('link[rel="icon"]') as HTMLLinkElement | null;
-      if (op.favicon_url) {
-        if (faviconEl) {
-          faviconEl.href = op.favicon_url;
-        } else {
-          const newFavicon = document.createElement('link');
-          newFavicon.rel = 'icon';
-          newFavicon.href = op.favicon_url;
-          document.head.appendChild(newFavicon);
-        }
-      } else {
-        // Remove nfstay favicon so browser shows nothing (or its default blank tab icon)
-        faviconEl?.parentNode?.removeChild(faviconEl);
-      }
+      // Favicon — use operator's favicon, or blank out the nfstay default.
+      // We must update href rather than remove the element — browsers cache
+      // the favicon from the initial HTML parse and removal doesn't override it.
+      // Pointing to a blank data URI reliably clears it in all browsers.
+      const BLANK_ICON = 'data:image/x-icon;base64,AAABAAEAAQEAAAEAGAAoAAAAFgAAACgAAAABAAAAAgAAAAEAGAAAAAAACAAAACMuAAAjLgAAAAAAAAAAAAD///8A';
+
+      // Remove ALL existing favicon link variants first
+      document.querySelectorAll('link[rel="icon"], link[rel="shortcut icon"], link[rel="apple-touch-icon"]')
+        .forEach(el => el.parentNode?.removeChild(el));
+
+      // Create a single controlled favicon link
+      const favicon = document.createElement('link');
+      favicon.rel = 'icon';
+      favicon.href = op.favicon_url || BLANK_ICON;
+      document.head.appendChild(favicon);
     } else {
       document.title = 'Find Stays, Book Directly';
     }
