@@ -22,10 +22,14 @@ export default function OperatorProperties() {
   // Show operator's real properties only — no mock fallback for real operators
   const operatorProps = realProperties ?? [];
 
-  const filtered = operatorProps.filter((p: any) =>
-    p.public_title?.toLowerCase().includes(search.toLowerCase()) ||
-    p.city?.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = operatorProps.filter((p: any) => {
+    if (!search) return true; // no filter → show all, including drafts with no title/city
+    const term = search.toLowerCase();
+    return (
+      (p.public_title?.toLowerCase().includes(term) ?? false) ||
+      (p.city?.toLowerCase().includes(term) ?? false)
+    );
+  });
 
   return (
     <div data-feature="NFSTAY__OP_PROPERTIES" className="p-6 max-w-7xl space-y-6">
@@ -81,15 +85,27 @@ export default function OperatorProperties() {
                   <tr key={p.id} className="border-b border-border last:border-0 hover:bg-muted/20 transition-colors">
                     <td className="p-4">
                       <div className="flex items-center gap-3">
-                        <img src={p.images?.find((i: any) => i.is_cover)?.url || p.images?.[0]?.url} alt="" className="w-12 h-12 rounded-lg object-cover" />
+                        {p.images?.find((i: any) => i.is_cover)?.url || p.images?.[0]?.url ? (
+                          <img src={p.images?.find((i: any) => i.is_cover)?.url || p.images?.[0]?.url} alt="" className="w-12 h-12 rounded-lg object-cover shrink-0" />
+                        ) : (
+                          <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center shrink-0 text-muted-foreground text-xs">No img</div>
+                        )}
                         <div>
-                          <Link to={`/nfstay/properties/${p.id}`} className="font-medium hover:text-primary transition-colors">{p.public_title}</Link>
-                          <p className="text-xs text-muted-foreground">{p.room_counts?.bedrooms} bed · {p.room_counts?.bathrooms} bath · {p.max_guests} guests</p>
+                          <Link to={`/nfstay/properties/${p.id}`} className="font-medium hover:text-primary transition-colors">
+                            {p.public_title?.trim() || <span className="text-muted-foreground italic">Untitled draft</span>}
+                          </Link>
+                          <p className="text-xs text-muted-foreground">
+                            {p.room_counts?.bedrooms != null ? `${p.room_counts.bedrooms} bed · ` : ""}
+                            {p.room_counts?.bathrooms != null ? `${p.room_counts.bathrooms} bath · ` : ""}
+                            {p.max_guests ? `${p.max_guests} guests` : "—"}
+                          </p>
                         </div>
                       </div>
                     </td>
-                    <td className="p-4 text-muted-foreground">{p.property_type}</td>
-                    <td className="p-4 text-muted-foreground">{p.city}, {p.country}</td>
+                    <td className="p-4 text-muted-foreground">{p.property_type || "—"}</td>
+                    <td className="p-4 text-muted-foreground">
+                      {p.city && p.country ? `${p.city}, ${p.country}` : p.city || p.country || <span className="italic text-muted-foreground/60">No location</span>}
+                    </td>
                     <td className="p-4 font-medium">{formatPrice(p.base_rate_amount)}</td>
                     <td className="p-4"><NfsStatusBadge status={p.listing_status} /></td>
                     <td className="p-4">
