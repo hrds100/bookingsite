@@ -1425,12 +1425,37 @@ export default function OperatorPropertyForm() {
             </DialogHeader>
 
             <div className="flex flex-col items-center gap-3 py-2">
+              {/* Legend */}
+              <div className="flex items-center gap-4 text-xs text-muted-foreground self-start px-1">
+                <span className="flex items-center gap-1.5">
+                  <span className="inline-block w-3 h-3 rounded-sm bg-rose-200 border border-rose-300" />
+                  Already blocked
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="inline-block w-3 h-3 rounded-sm bg-primary" />
+                  Your selection
+                </span>
+              </div>
               <DayCalendar
                 mode="range"
                 selected={availRange}
                 onSelect={setAvailRange}
                 numberOfMonths={1}
                 disabled={{ before: startOfDay(new Date()) }}
+                modifiers={{
+                  blocked: isEdit
+                    ? existingBlockedDates.map((d) => {
+                        const [y, m, day] = d.split("-").map(Number);
+                        return new Date(y, m - 1, day);
+                      })
+                    : pendingBlockedDates.map((d) => {
+                        const [y, m, day] = d.split("-").map(Number);
+                        return new Date(y, m - 1, day);
+                      }),
+                }}
+                modifiersClassNames={{
+                  blocked: "bg-rose-100 text-rose-700 font-semibold rounded-md",
+                }}
                 className="rounded-md border"
               />
               {availRange?.from && (
