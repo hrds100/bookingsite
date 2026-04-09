@@ -156,7 +156,7 @@ export function NfsMainFooter() {
             <ul className="space-y-2">
               <li><Link to="/privacy" className="text-sm text-muted-foreground hover:text-primary transition-colors">Privacy policy</Link></li>
               <li><Link to="/terms" className="text-sm text-muted-foreground hover:text-primary transition-colors">Terms of service</Link></li>
-              <li><a href="#" className="text-sm text-muted-foreground hover:text-primary transition-colors">Cookie policy</a></li>
+              <li><Link to="/cookie-policy" className="text-sm text-muted-foreground hover:text-primary transition-colors">Cookie policy</Link></li>
             </ul>
           </div>
         </div>
