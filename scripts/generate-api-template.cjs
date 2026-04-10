@@ -26,3 +26,9 @@ export const HTML_TEMPLATE = ${JSON.stringify(html)};
 fs.mkdirSync(path.dirname(outputPath), { recursive: true });
 fs.writeFileSync(outputPath, output, 'utf8');
 console.log('[generate-api-template] wrote api/_template.ts ✓');
+
+// Remove dist/index.html so Vercel's static-file layer doesn't serve it
+// directly, bypassing the Edge Function rewrite. All HTML routes (including /)
+// will fall through to /(.*) → /api/render where OG tags are injected.
+fs.unlinkSync(htmlPath);
+console.log('[generate-api-template] removed dist/index.html (edge function owns all HTML) ✓');
