@@ -329,15 +329,17 @@ export function NfsMainNavbar() {
                           WhatsApp
                         </a>
                       )}
-                      {isWhiteLabel && wlOperator?.contact_email ? (
-                        <a
-                          href={`mailto:${wlOperator.contact_email}`}
-                          onClick={() => setContactOpen(false)}
-                          className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors"
-                        >
-                          <Mail className="w-4 h-4 text-muted-foreground" />
-                          Email
-                        </a>
+                      {isWhiteLabel ? (
+                        wlOperator?.contact_email && (
+                          <a
+                            href={`mailto:${wlOperator.contact_email}`}
+                            onClick={() => setContactOpen(false)}
+                            className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors"
+                          >
+                            <Mail className="w-4 h-4 text-muted-foreground" />
+                            Email
+                          </a>
+                        )
                       ) : (
                         <a
                           href="mailto:hello@nfstay.app"
@@ -540,14 +542,27 @@ export function NfsMainNavbar() {
                     WhatsApp
                   </a>
                 )}
-                <a
-                  href={isWhiteLabel && wlOperator?.contact_email ? `mailto:${wlOperator.contact_email}` : "mailto:hello@nfstay.app"}
-                  onClick={() => setDrawerOpen(false)}
-                  className="flex items-center justify-center gap-2 w-full px-4 py-3 font-medium border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors text-gray-700"
-                >
-                  <Mail className="w-4 h-4" />
-                  Email
-                </a>
+                {isWhiteLabel ? (
+                  wlOperator?.contact_email && (
+                    <a
+                      href={`mailto:${wlOperator.contact_email}`}
+                      onClick={() => setDrawerOpen(false)}
+                      className="flex items-center justify-center gap-2 w-full px-4 py-3 font-medium border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors text-gray-700"
+                    >
+                      <Mail className="w-4 h-4" />
+                      Email
+                    </a>
+                  )
+                ) : (
+                  <a
+                    href="mailto:hello@nfstay.app"
+                    onClick={() => setDrawerOpen(false)}
+                    className="flex items-center justify-center gap-2 w-full px-4 py-3 font-medium border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors text-gray-700"
+                  >
+                    <Mail className="w-4 h-4" />
+                    Email
+                  </a>
+                )}
               </div>
             </div>
           </div>

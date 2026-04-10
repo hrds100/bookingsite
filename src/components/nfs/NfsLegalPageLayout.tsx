@@ -31,7 +31,7 @@ export function NfsLegalPageLayout({ title, updatedAt, content, protectedBlock, 
 
   // Replace placeholders with real operator values before rendering
   const operatorName = (isWhiteLabel && operator?.brand_name) ? operator.brand_name : "nfstay";
-  const operatorEmail = (isWhiteLabel && operator?.contact_email) ? operator.contact_email : "hello@nfstay.com";
+  const operatorEmail = (isWhiteLabel && operator?.contact_email) ? operator.contact_email : "";
   const resolvedContent = interpolate(content, operatorName, operatorEmail);
   const resolvedProtectedBlock = protectedBlock ? interpolate(protectedBlock, operatorName, operatorEmail) : "";
 
