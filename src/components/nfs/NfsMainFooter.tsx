@@ -28,9 +28,9 @@ export function NfsMainFooter() {
   return (
     <footer data-feature="NFSTAY__FOOTER" className={isWhiteLabel ? "bg-white text-gray-700 border-t border-gray-200" : "bg-[#f0f3f7] mt-8"}>
       <div className="max-w-7xl mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-8">
           {/* About */}
-          <div data-feature="NFSTAY__FOOTER_ABOUT">
+          <div data-feature="NFSTAY__FOOTER_ABOUT" className="col-span-2 sm:col-span-1">
             {isWhiteLabel && operator ? (
               <Link to="/" className="flex items-center gap-2 text-lg font-bold text-foreground mb-3">
                 {operator.logo_url ? (
@@ -151,13 +151,15 @@ export function NfsMainFooter() {
           </div>
 
           {/* Legal */}
-          <div data-feature="NFSTAY__FOOTER_LEGAL">
+          <div data-feature="NFSTAY__FOOTER_LEGAL" className="col-span-2 sm:col-span-1">
             <h4 className="text-sm font-semibold text-foreground mb-3">Legal</h4>
-            <ul className="space-y-2">
-              <li><Link to="/privacy" target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-primary transition-colors">Privacy policy</Link></li>
-              <li><Link to="/terms" target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-primary transition-colors">Terms of service</Link></li>
-              <li><Link to="/cookie-policy" target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-primary transition-colors">Cookie policy</Link></li>
-            </ul>
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              <Link to="/privacy" target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-primary transition-colors">Privacy policy</Link>
+              <span className="text-muted-foreground/40 text-sm select-none">|</span>
+              <Link to="/terms" target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-primary transition-colors">Terms of service</Link>
+              <span className="text-muted-foreground/40 text-sm select-none">|</span>
+              <Link to="/cookie-policy" target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-primary transition-colors">Cookie policy</Link>
+            </div>
           </div>
         </div>
 
