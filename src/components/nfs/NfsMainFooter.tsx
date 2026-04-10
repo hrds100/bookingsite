@@ -153,11 +153,11 @@ export function NfsMainFooter() {
           {/* Legal */}
           <div data-feature="NFSTAY__FOOTER_LEGAL" className="col-span-2 sm:col-span-1">
             <h4 className="text-sm font-semibold text-foreground mb-3">Legal</h4>
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 sm:flex-col sm:items-start sm:gap-x-0 sm:gap-y-2">
               <Link to="/privacy" target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-primary transition-colors">Privacy policy</Link>
-              <span className="text-muted-foreground/40 text-sm select-none">|</span>
+              <span className="sm:hidden text-muted-foreground/40 text-sm select-none">|</span>
               <Link to="/terms" target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-primary transition-colors">Terms of service</Link>
-              <span className="text-muted-foreground/40 text-sm select-none">|</span>
+              <span className="sm:hidden text-muted-foreground/40 text-sm select-none">|</span>
               <Link to="/cookie-policy" target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-primary transition-colors">Cookie policy</Link>
             </div>
           </div>
