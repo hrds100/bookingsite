@@ -111,7 +111,7 @@ export function NfsMainFooter() {
                   <li>
                     <a href={`mailto:${operator.contact_email}`} className="text-sm text-muted-foreground hover:text-primary transition-colors flex items-center gap-2">
                       <Mail className="w-3.5 h-3.5" />
-                      {operator.contact_email}
+                      Email
                     </a>
                   </li>
                 )}
