@@ -205,9 +205,9 @@ export function NfsSearchFilters({
         </p>
         <div className="flex items-center gap-2 min-w-0 overflow-x-auto">
           <div data-feature="NFSTAY__FILTER_SORT" className="flex items-center border border-border rounded-lg overflow-hidden">
-            <span className="text-xs text-muted-foreground px-3">Sort by:</span>
+            <span className="text-[10px] sm:text-xs text-muted-foreground px-2 sm:px-3">Sort by:</span>
             <Select value={sortBy} onValueChange={onSortChange}>
-              <SelectTrigger className="h-9 w-24 sm:w-[120px] text-xs border-0 border-l border-border rounded-none shadow-none focus:ring-0">
+              <SelectTrigger className="h-8 sm:h-9 w-[86px] sm:w-[120px] text-[10px] sm:text-xs border-0 border-l border-border rounded-none shadow-none focus:ring-0">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -221,10 +221,10 @@ export function NfsSearchFilters({
           <Button
             variant="outline"
             size="sm"
-            className="h-9 text-xs gap-1.5 rounded-lg"
+            className="h-8 sm:h-9 text-[10px] sm:text-xs gap-1 sm:gap-1.5 rounded-lg"
             onClick={onToggleFilters}
           >
-            <SlidersHorizontal className="w-3.5 h-3.5" />
+            <SlidersHorizontal className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
             Filters
             {hasFilters && (
               <span className="ml-1 w-1.5 h-1.5 rounded-full bg-primary" />
@@ -234,7 +234,7 @@ export function NfsSearchFilters({
             <Button
               variant="ghost"
               size="sm"
-              className="h-9 text-xs text-destructive gap-1"
+              className="h-8 sm:h-9 text-[10px] sm:text-xs text-destructive gap-1"
               onClick={onClearFilters}
             >
               <X className="w-3 h-3" />
