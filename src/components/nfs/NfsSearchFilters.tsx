@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { SlidersHorizontal, X, ChevronDown, ChevronUp, Minus, Plus, Users, CalendarDays, MapPin } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
@@ -164,6 +165,7 @@ export function NfsSearchFilters({
   onLocationQueryChange,
   availableCities,
 }: NfsSearchFiltersProps) {
+  const { t } = useTranslation();
   const [guestsOpen, setGuestsOpen] = useState(false);
   const [amenitiesOpen, setAmenitiesOpen] = useState(false);
   const [locationOpen, setLocationOpen] = useState(false);
@@ -201,20 +203,20 @@ export function NfsSearchFilters({
       {/* Results bar */}
       <div className="flex items-center justify-between gap-2 min-w-0">
         <p data-feature="NFSTAY__FILTER_COUNT" className="text-sm text-foreground font-semibold shrink-0">
-          {resultCount}+ results
+          {t('search.results', { count: resultCount })}
         </p>
         <div className="flex items-center gap-2 min-w-0 overflow-x-auto">
           <div data-feature="NFSTAY__FILTER_SORT" className="flex items-center border border-border rounded-lg overflow-hidden">
-            <span className="text-[10px] sm:text-xs text-muted-foreground px-2 sm:px-3">Sort by:</span>
+            <span className="text-[10px] sm:text-xs text-muted-foreground px-2 sm:px-3">{t('search.sort_by')}</span>
             <Select value={sortBy} onValueChange={onSortChange}>
               <SelectTrigger className="h-8 sm:h-9 w-[86px] sm:w-[120px] text-[10px] sm:text-xs border-0 border-l border-border rounded-none shadow-none focus:ring-0">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="relevant">Relevant</SelectItem>
-                <SelectItem value="price-asc">Price: Low → High</SelectItem>
-                <SelectItem value="price-desc">Price: High → Low</SelectItem>
-                <SelectItem value="newest">Newest</SelectItem>
+                <SelectItem value="relevant">{t('search.relevant')}</SelectItem>
+                <SelectItem value="price-asc">{t('search.price_low')}</SelectItem>
+                <SelectItem value="price-desc">{t('search.price_high')}</SelectItem>
+                <SelectItem value="newest">{t('search.newest')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -225,7 +227,7 @@ export function NfsSearchFilters({
             onClick={onToggleFilters}
           >
             <SlidersHorizontal className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-            Filters
+            {t('search.filters')}
             {hasFilters && (
               <span className="ml-1 w-1.5 h-1.5 rounded-full bg-primary" />
             )}
@@ -238,7 +240,7 @@ export function NfsSearchFilters({
               onClick={onClearFilters}
             >
               <X className="w-3 h-3" />
-              Clear
+              {t('search.clear')}
             </Button>
           )}
         </div>
@@ -251,7 +253,7 @@ export function NfsSearchFilters({
           <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-start gap-3 sm:gap-4">
             {/* Location Autocomplete */}
             <div data-feature="NFSTAY__FILTER_LOCATION" className="relative" ref={locationRef}>
-              <span className="text-xs font-medium text-muted-foreground block mb-1">Location:</span>
+              <span className="text-xs font-medium text-muted-foreground block mb-1">{t('search.location')}:</span>
               <div className="relative">
                 <MapPin className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
                 <input
@@ -289,7 +291,7 @@ export function NfsSearchFilters({
 
             {/* Date Range Picker */}
             <div data-feature="NFSTAY__FILTER_DATES">
-              <span className="text-xs font-medium text-muted-foreground block mb-1">Dates:</span>
+              <span className="text-xs font-medium text-muted-foreground block mb-1">{t('search.dates')}:</span>
               <Popover>
                 <PopoverTrigger asChild>
                   <button
@@ -319,7 +321,7 @@ export function NfsSearchFilters({
 
             {/* Guest Count */}
             <div data-feature="NFSTAY__FILTER_GUESTS">
-              <span className="text-xs font-medium text-muted-foreground block mb-1">Guests:</span>
+              <span className="text-xs font-medium text-muted-foreground block mb-1">{t('search.guests_label')}:</span>
               <Popover open={guestsOpen} onOpenChange={setGuestsOpen}>
                 <PopoverTrigger asChild>
                   <button
@@ -334,15 +336,15 @@ export function NfsSearchFilters({
                 </PopoverTrigger>
                 <PopoverContent className="w-72 p-4">
                   <GuestStepper
-                    label="Adults"
-                    sub="Ages 13+"
+                    label={t('hero.adults')}
+                    sub={t('hero.adults_sub')}
                     value={adults}
                     onChange={onAdultsChange}
                     min={0}
                   />
                   <GuestStepper
-                    label="Children"
-                    sub="Ages 2-12"
+                    label={t('hero.children')}
+                    sub={t('hero.children_sub')}
                     value={childrenCount}
                     onChange={onChildrenChange}
                   />
@@ -354,7 +356,7 @@ export function NfsSearchFilters({
           {/* Row 2: Type + Price + Bedrooms/Beds/Bathrooms */}
           <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3 sm:gap-4">
             <div data-feature="NFSTAY__FILTER_TYPE" className="flex items-center gap-2">
-              <span className="text-xs font-medium text-muted-foreground">Type:</span>
+              <span className="text-xs font-medium text-muted-foreground">{t('search.type_label')}:</span>
               <Select value={activeType} onValueChange={onTypeChange}>
                 <SelectTrigger className="h-8 w-28 sm:w-[140px] text-xs">
                   <SelectValue />
@@ -367,7 +369,7 @@ export function NfsSearchFilters({
               </Select>
             </div>
             <div data-feature="NFSTAY__FILTER_PRICE" className="flex items-center gap-2">
-              <span className="text-xs font-medium text-muted-foreground">Price / night:</span>
+              <span className="text-xs font-medium text-muted-foreground">{t('search.price_label')}:</span>
               <div className="flex items-center gap-1">
                 <input
                   type="number"
@@ -387,7 +389,7 @@ export function NfsSearchFilters({
               </div>
             </div>
             <div data-feature="NFSTAY__FILTER_BEDROOMS" className="flex items-center gap-2">
-              <span className="text-xs font-medium text-muted-foreground">Bedrooms:</span>
+              <span className="text-xs font-medium text-muted-foreground">{t('search.bedrooms')}:</span>
               <div className="flex gap-1">
                 {[0, 1, 2, 3, 4, 5].map((n) => (
                   <button
@@ -399,13 +401,13 @@ export function NfsSearchFilters({
                         : 'border-border hover:border-foreground'
                     }`}
                   >
-                    {n === 0 ? 'Any' : n === 5 ? '5+' : n}
+                    {n === 0 ? t('search.any') : n === 5 ? '5+' : n}
                   </button>
                 ))}
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-xs font-medium text-muted-foreground">Beds:</span>
+              <span className="text-xs font-medium text-muted-foreground">{t('search.beds')}:</span>
               <div className="flex gap-1">
                 {[0, 1, 2, 3, 4, 5].map((n) => (
                   <button
@@ -417,13 +419,13 @@ export function NfsSearchFilters({
                         : 'border-border hover:border-foreground'
                     }`}
                   >
-                    {n === 0 ? 'Any' : n === 5 ? '5+' : n}
+                    {n === 0 ? t('search.any') : n === 5 ? '5+' : n}
                   </button>
                 ))}
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-xs font-medium text-muted-foreground">Bathrooms:</span>
+              <span className="text-xs font-medium text-muted-foreground">{t('search.bathrooms')}:</span>
               <div className="flex gap-1">
                 {[0, 1, 2, 3, 4, 5].map((n) => (
                   <button
@@ -435,7 +437,7 @@ export function NfsSearchFilters({
                         : 'border-border hover:border-foreground'
                     }`}
                   >
-                    {n === 0 ? 'Any' : n === 5 ? '5+' : n}
+                    {n === 0 ? t('search.any') : n === 5 ? '5+' : n}
                   </button>
                 ))}
               </div>
@@ -450,7 +452,7 @@ export function NfsSearchFilters({
                 data-testid="amenities-toggle"
               >
                 {amenitiesOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-                Amenities
+                {t('search.amenities_label')}
                 {selectedAmenities.length > 0 && (
                   <span className="text-primary font-semibold">({selectedAmenities.length})</span>
                 )}

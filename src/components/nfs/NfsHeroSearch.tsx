@@ -8,6 +8,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 import type { DateRange } from "react-day-picker";
 import { useNfsPropertyCities } from "@/hooks/useNfsProperties";
+import { useTranslation } from "react-i18next";
+import { useDynamicTranslation } from "@/hooks/useDynamicTranslation";
 
 interface NfsHeroSearchProps {
   heading?: string;
@@ -16,8 +18,12 @@ interface NfsHeroSearchProps {
   btnText?: string;
 }
 
-export function NfsHeroSearch({ heading, subHeading, desc, btnText = "Explore" }: NfsHeroSearchProps) {
+export function NfsHeroSearch({ heading, subHeading, desc, btnText }: NfsHeroSearchProps) {
   const navigate = useNavigate();
+  const { t } = useTranslation();
+  const translatedHeading = useDynamicTranslation(heading ?? '');
+  const translatedSubHeading = useDynamicTranslation(subHeading ?? '');
+  const translatedDesc = useDynamicTranslation(desc ?? '');
   const [location, setLocation] = useState('');
   const [locationOpen, setLocationOpen] = useState(false);
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
@@ -102,7 +108,7 @@ export function NfsHeroSearch({ heading, subHeading, desc, btnText = "Explore" }
     const parts = [];
     if (total > 0) parts.push(`${total} guest${total > 1 ? 's' : ''}`);
     if (infants > 0) parts.push(`${infants} infant${infants > 1 ? 's' : ''}`);
-    return parts.length ? parts.join(', ') : 'Any guests';
+    return parts.length ? parts.join(', ') : t('nav.add_guests');
   };
 
   return (
@@ -114,16 +120,16 @@ export function NfsHeroSearch({ heading, subHeading, desc, btnText = "Explore" }
             <div className="text-center px-4 py-2 mb-4 md:mb-6">
               {heading && (
                 <h1 className="text-3xl md:text-5xl font-semibold text-foreground">
-                  {heading}
+                  {translatedHeading}
                 </h1>
               )}
               {subHeading && (
                 <h1 className="text-3xl md:text-5xl font-semibold text-foreground mt-4">
-                  {subHeading}
+                  {translatedSubHeading}
                 </h1>
               )}
               {desc && (
-                <p className="text-[#9d9da1] mt-3 md:mt-6">{desc}</p>
+                <p className="text-[#9d9da1] mt-3 md:mt-6">{translatedDesc}</p>
               )}
             </div>
           )}
@@ -148,7 +154,7 @@ export function NfsHeroSearch({ heading, subHeading, desc, btnText = "Explore" }
                     if (e.key === "Enter") { setLocationOpen(false); handleSearch(); }
                     if (e.key === "Escape") setLocationOpen(false);
                   }}
-                  placeholder="Find Location"
+                  placeholder={t('hero.search_placeholder')}
                   className="outline-none border-none w-full placeholder:text-black text-sm bg-transparent"
                   autoComplete="off"
                 />
@@ -169,7 +175,7 @@ export function NfsHeroSearch({ heading, subHeading, desc, btnText = "Explore" }
                 <div className="absolute top-full left-0 mt-2 w-full min-w-[240px] bg-white border border-[#e6e6eb] rounded-2xl shadow-lg z-50 overflow-hidden">
                   <div className="px-3 pt-3 pb-1">
                     <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
-                      {location.trim() ? "Matching destinations" : "Popular destinations"}
+                      {location.trim() ? t('nav.matching_destinations') : t('nav.popular_destinations')}
                     </p>
                   </div>
                   {filteredCities.map((c) => (
@@ -202,7 +208,7 @@ export function NfsHeroSearch({ heading, subHeading, desc, btnText = "Explore" }
                   <div className="flex flex-row gap-2 min-w-0">
                     <CalendarDays className="w-5 h-5 flex-shrink-0 text-black" />
                     <span className="text-nowrap overflow-hidden text-ellipsis text-sm">
-                      {dateLabel ?? "Any dates"}
+                      {dateLabel ?? t('nav.any_dates')}
                     </span>
                   </div>
                   <ChevronDown className="w-4 h-4 flex-shrink-0" />
@@ -235,9 +241,9 @@ export function NfsHeroSearch({ heading, subHeading, desc, btnText = "Explore" }
                 </button>
               </PopoverTrigger>
               <PopoverContent className="w-72 p-4" align="end">
-                <Stepper label="Adults" sub="Ages 13 or above" value={adults} onChange={setAdults} min={1} />
-                <Stepper label="Children" sub="Ages 2–12" value={children} onChange={setChildren} />
-                <Stepper label="Infants" sub="Under 2" value={infants} onChange={setInfants} />
+                <Stepper label={t('hero.adults')} sub={t('hero.adults_sub')} value={adults} onChange={setAdults} min={1} />
+                <Stepper label={t('hero.children')} sub={t('hero.children_sub')} value={children} onChange={setChildren} />
+                <Stepper label={t('hero.infants')} sub={t('hero.infants_sub')} value={infants} onChange={setInfants} />
               </PopoverContent>
             </Popover>
 
@@ -247,7 +253,7 @@ export function NfsHeroSearch({ heading, subHeading, desc, btnText = "Explore" }
               onClick={handleSearch}
               className="w-auto md:w-[140px] h-[50px] mt-4 lg:mt-0 bg-primary-gradient text-white font-semibold py-2 px-6 rounded-full hover:opacity-90 transition-opacity text-[14px] flex items-center justify-center"
             >
-              {btnText}
+              {btnText ?? t('hero.explore')}
             </button>
           </div>
         </div>
