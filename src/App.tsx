@@ -8,6 +8,7 @@ import { CurrencyProvider, useCurrency } from "@/contexts/CurrencyContext";
 import { WhiteLabelProvider } from "@/contexts/WhiteLabelContext";
 import { useWhiteLabel } from "@/contexts/WhiteLabelContext";
 import i18n from "@/lib/i18n";
+import { dbLangToLocale } from "@/components/nfs/NfsLanguageSelector";
 import { useEffect } from "react";
 import { NfsMainLayout } from "@/components/nfs/NfsMainLayout";
 import { NfsOperatorLayout } from "@/components/nfs/NfsOperatorLayout";
@@ -66,9 +67,7 @@ function ApplyOperatorDefaults() {
     if (isWhiteLabel && operator) {
       if (operator.default_currency) setCurrencyCode(operator.default_currency);
       if (operator.default_language) {
-        // Map stored 'pt' → i18next locale 'pt-BR'
-        const locale = operator.default_language === 'pt' ? 'pt-BR' : operator.default_language;
-        i18n.changeLanguage(locale);
+        i18n.changeLanguage(dbLangToLocale(operator.default_language));
       }
     }
   }, [isWhiteLabel, operator, setCurrencyCode]);
