@@ -1,5 +1,6 @@
 import { Link, Navigate } from "react-router-dom";
 import { format, parseISO, isFuture, isPast } from "date-fns";
+import { useTranslation } from "react-i18next";
 import { CalendarDays, MapPin, Users, ChevronRight } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { NfsStatusBadge } from "@/components/nfs/NfsStatusBadge";
@@ -23,6 +24,7 @@ function getPropertyDisplay(r: ReservationWithProperty) {
 
 function ReservationCard({ r }: { r: ReservationWithProperty }) {
   const { formatPrice } = useCurrency();
+  const { t } = useTranslation();
   const prop = getPropertyDisplay(r);
   return (
     <Link data-feature="NFSTAY__TRAVELER_CARD" to={`/traveler/reservation/${r.id}`} className="flex gap-4 bg-card border border-border rounded-2xl p-4 hover:border-primary/30 hover:shadow-sm transition-all group">
@@ -37,7 +39,7 @@ function ReservationCard({ r }: { r: ReservationWithProperty }) {
         </div>
         <div className="flex items-center gap-4 text-xs text-muted-foreground mt-2">
           <span className="flex items-center gap-1"><CalendarDays className="w-3 h-3" />{format(parseISO(r.check_in), 'MMM d')} – {format(parseISO(r.check_out), 'MMM d, yyyy')}</span>
-          <span className="flex items-center gap-1"><Users className="w-3 h-3" />{r.adults + r.children} guests</span>
+          <span className="flex items-center gap-1"><Users className="w-3 h-3" />{t("traveler_reservations.guests_count", { n: r.adults + r.children })}</span>
         </div>
         <p className="text-sm font-semibold mt-2">{formatPrice(r.total_amount)}</p>
       </div>
@@ -47,6 +49,7 @@ function ReservationCard({ r }: { r: ReservationWithProperty }) {
 }
 
 export default function TravelerReservations() {
+  const { t } = useTranslation();
   const { user, loading } = useAuth();
   const { data: reservations, isLoading: reservationsLoading } = useNfsReservations(user?.email ?? undefined);
 
@@ -72,19 +75,19 @@ export default function TravelerReservations() {
 
   const renderList = (list: ReservationWithProperty[]) =>
     list.length === 0
-      ? <NfsEmptyState icon={CalendarDays} title="No reservations" description="You don't have any reservations in this category." />
+      ? <NfsEmptyState icon={CalendarDays} title={t("traveler_reservations.no_reservations")} description={t("traveler_reservations.no_reservations_desc")} />
       : <div className="space-y-3">{list.map(r => <ReservationCard key={r.id} r={r} />)}</div>;
 
   return (
     <div data-feature="NFSTAY__TRAVELER_RESERVATIONS" className="max-w-3xl mx-auto px-4 py-10">
-      <h1 className="text-2xl font-bold tracking-tight mb-6">My Reservations</h1>
+      <h1 className="text-2xl font-bold tracking-tight mb-6">{t("traveler_reservations.title")}</h1>
       <Tabs defaultValue="all">
         <TabsList className="mb-6">
-          <TabsTrigger value="all">All ({all.length})</TabsTrigger>
-          <TabsTrigger value="running">Running ({running.length})</TabsTrigger>
-          <TabsTrigger data-feature="NFSTAY__TRAVELER_UPCOMING" value="upcoming">Upcoming ({upcoming.length})</TabsTrigger>
-          <TabsTrigger data-feature="NFSTAY__TRAVELER_PAST" value="past">Past ({past.length})</TabsTrigger>
-          <TabsTrigger value="cancelled">Cancelled ({cancelled.length})</TabsTrigger>
+          <TabsTrigger value="all">{t("traveler_reservations.tab_all")} ({all.length})</TabsTrigger>
+          <TabsTrigger value="running">{t("traveler_reservations.tab_running")} ({running.length})</TabsTrigger>
+          <TabsTrigger data-feature="NFSTAY__TRAVELER_UPCOMING" value="upcoming">{t("traveler_reservations.tab_upcoming")} ({upcoming.length})</TabsTrigger>
+          <TabsTrigger data-feature="NFSTAY__TRAVELER_PAST" value="past">{t("traveler_reservations.tab_past")} ({past.length})</TabsTrigger>
+          <TabsTrigger value="cancelled">{t("traveler_reservations.tab_cancelled")} ({cancelled.length})</TabsTrigger>
         </TabsList>
         <TabsContent value="all">{renderList(all)}</TabsContent>
         <TabsContent value="running">{renderList(running)}</TabsContent>
