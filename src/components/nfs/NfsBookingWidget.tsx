@@ -7,7 +7,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { useCurrency } from "@/contexts/CurrencyContext";
-import { useLanguage } from "@/contexts/LanguageContext";
+import { useTranslation } from "react-i18next";
 import { useWhiteLabel } from "@/contexts/WhiteLabelContext";
 import { supabase } from "@/lib/supabase";
 import { validatePromoCode as validatePromoCodeReal } from "@/lib/promo-codes";
@@ -63,7 +63,7 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
   const [selectedAddons, setSelectedAddons] = useState<string[]>([]);
 
   const { currency, convert } = useCurrency();
-  const { t } = useLanguage();
+  const { t } = useTranslation();
   const { operator } = useWhiteLabel();
   const acceptCash = operator?.accept_cash_booking ?? false;
 
@@ -509,10 +509,10 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
         {nights > 0 ? 'Reserve' : 'Check availability'}
       </button>
 
-      <p className="text-center text-xs text-muted-foreground mt-3">{t('widget_no_charge')}</p>
+      <p className="text-center text-xs text-muted-foreground mt-3">{t('widget.no_charge')}</p>
 
       {property.minimum_stay > 1 && (
-        <p className="text-center text-xs text-muted-foreground mt-1">{t('widget_min_stay')} {property.minimum_stay} {t('widget_min_stay_nights')}</p>
+        <p className="text-center text-xs text-muted-foreground mt-1">{t('widget.min_stay', { n: property.minimum_stay })}</p>
       )}
 
       {/* Cash booking option */}
@@ -525,25 +525,25 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
                 onClick={() => setShowCashForm(true)}
                 className="w-full border-2 border-primary text-primary font-semibold py-3.5 px-6 rounded-full hover:bg-primary/5 transition-all duration-200 text-base"
               >
-                {t('widget_cash_button')}
+                {t('widget.cash_button')}
               </button>
-              <p className="text-center text-xs text-muted-foreground mt-2">{t('widget_cash_note')}</p>
+              <p className="text-center text-xs text-muted-foreground mt-2">{t('widget.cash_note')}</p>
             </>
           ) : (
             <div className="space-y-3">
-              <p className="text-sm font-semibold text-foreground">{t('widget_cash_button')}</p>
+              <p className="text-sm font-semibold text-foreground">{t('widget.cash_button')}</p>
               <input
                 type="text"
                 value={cashName}
                 onChange={e => setCashName(e.target.value)}
-                placeholder={t('widget_cash_name')}
+                placeholder={t('widget.cash_name')}
                 className="w-full h-10 px-3 text-sm border border-input rounded-lg bg-background outline-none focus:border-primary"
               />
               <input
                 type="email"
                 value={cashEmail}
                 onChange={e => setCashEmail(e.target.value)}
-                placeholder={t('widget_cash_email')}
+                placeholder={t('widget.cash_email')}
                 className="w-full h-10 px-3 text-sm border border-input rounded-lg bg-background outline-none focus:border-primary"
               />
               <div className="flex gap-2">
@@ -552,13 +552,13 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
                   disabled={cashSubmitting || !cashName.trim() || !cashEmail.trim()}
                   className="flex-1 bg-primary-gradient text-white font-semibold py-3 px-4 rounded-full hover:opacity-90 transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {cashSubmitting ? t('widget_cash_submitting') : t('widget_cash_confirm')}
+                  {cashSubmitting ? t('widget.cash_submitting') : t('widget.cash_confirm')}
                 </button>
                 <button
                   onClick={() => { setShowCashForm(false); setCashName(''); setCashEmail(''); }}
                   className="px-4 py-3 text-sm text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  {t('widget_cash_cancel')}
+                  {t('widget.cash_cancel')}
                 </button>
               </div>
             </div>

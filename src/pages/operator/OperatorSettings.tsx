@@ -1080,6 +1080,9 @@ export default function OperatorSettings() {
                 <SelectContent>
                   <SelectItem value="en">🇬🇧 English</SelectItem>
                   <SelectItem value="pt">🇧🇷 Português</SelectItem>
+                  <SelectItem value="es">🇪🇸 Español</SelectItem>
+                  <SelectItem value="fr">🇫🇷 Français</SelectItem>
+                  <SelectItem value="ar">🇦🇪 العربية</SelectItem>
                 </SelectContent>
               </Select>
             </div>

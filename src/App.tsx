@@ -1,3 +1,4 @@
+import '@/lib/i18n';
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -5,8 +6,9 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { CurrencyProvider, useCurrency } from "@/contexts/CurrencyContext";
 import { WhiteLabelProvider } from "@/contexts/WhiteLabelContext";
-import { LanguageProvider, useLanguage } from "@/contexts/LanguageContext";
 import { useWhiteLabel } from "@/contexts/WhiteLabelContext";
+import i18n from "@/lib/i18n";
+import { dbLangToLocale } from "@/components/nfs/NfsLanguageSelector";
 import { useEffect } from "react";
 import { NfsMainLayout } from "@/components/nfs/NfsMainLayout";
 import { NfsOperatorLayout } from "@/components/nfs/NfsOperatorLayout";
@@ -60,14 +62,15 @@ const queryClient = new QueryClient();
 function ApplyOperatorDefaults() {
   const { operator, isWhiteLabel } = useWhiteLabel();
   const { setCurrencyCode } = useCurrency();
-  const { setLanguage } = useLanguage();
 
   useEffect(() => {
     if (isWhiteLabel && operator) {
       if (operator.default_currency) setCurrencyCode(operator.default_currency);
-      if (operator.default_language) setLanguage(operator.default_language as 'en' | 'pt');
+      if (operator.default_language) {
+        i18n.changeLanguage(dbLangToLocale(operator.default_language));
+      }
     }
-  }, [isWhiteLabel, operator, setCurrencyCode, setLanguage]);
+  }, [isWhiteLabel, operator, setCurrencyCode]);
 
   return null;
 }
@@ -75,7 +78,6 @@ function ApplyOperatorDefaults() {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <CurrencyProvider>
-      <LanguageProvider>
       <WhiteLabelProvider>
         <TooltipProvider>
           <Toaster />
@@ -143,7 +145,6 @@ const App = () => (
           </BrowserRouter>
         </TooltipProvider>
       </WhiteLabelProvider>
-      </LanguageProvider>
     </CurrencyProvider>
   </QueryClientProvider>
 );
