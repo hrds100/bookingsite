@@ -18,6 +18,7 @@ import { useNfsOperatorLegalPage, useNfsOperatorLegalPageUpdate, type LegalPageT
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabase";
 import { Loader2 } from "lucide-react";
+import { SITE_LANGUAGES } from "@/components/nfs/NfsLanguageSelector";
 
 interface ProfileForm {
   brand_name: string;
@@ -42,6 +43,9 @@ interface BrandingForm {
   hero_headline: string;
   hero_subheadline: string;
   about_bio: string;
+  hero_headline_translations: Record<string, string>;
+  hero_subheadline_translations: Record<string, string>;
+  about_bio_translations: Record<string, string>;
 }
 
 interface DomainForm {
@@ -104,6 +108,9 @@ const EMPTY_BRANDING: BrandingForm = {
   hero_headline: "",
   hero_subheadline: "",
   about_bio: "",
+  hero_headline_translations: {},
+  hero_subheadline_translations: {},
+  about_bio_translations: {},
 };
 
 const EMPTY_DOMAIN: DomainForm = {
@@ -195,6 +202,9 @@ export default function OperatorSettings() {
         hero_headline: operator.hero_headline || "",
         hero_subheadline: operator.hero_subheadline || "",
         about_bio: operator.about_bio || "",
+        hero_headline_translations: (operator.hero_headline_translations && typeof operator.hero_headline_translations === 'object') ? operator.hero_headline_translations as Record<string, string> : {},
+        hero_subheadline_translations: (operator.hero_subheadline_translations && typeof operator.hero_subheadline_translations === 'object') ? operator.hero_subheadline_translations as Record<string, string> : {},
+        about_bio_translations: (operator.about_bio_translations && typeof operator.about_bio_translations === 'object') ? operator.about_bio_translations as Record<string, string> : {},
       });
       setDomainForm({
         subdomain: operator.subdomain || "",
@@ -271,6 +281,9 @@ export default function OperatorSettings() {
       hero_headline: brandingForm.hero_headline || null,
       hero_subheadline: brandingForm.hero_subheadline || null,
       about_bio: brandingForm.about_bio || null,
+      hero_headline_translations: brandingForm.hero_headline_translations,
+      hero_subheadline_translations: brandingForm.hero_subheadline_translations,
+      about_bio_translations: brandingForm.about_bio_translations,
     });
 
   const handleSaveDomain = async () => {
@@ -688,6 +701,25 @@ export default function OperatorSettings() {
                   className="mt-1.5"
                   placeholder="Welcome to our vacation rentals"
                 />
+                {/* Headline translations */}
+                <div className="mt-2 space-y-2">
+                  <p className="text-xs text-muted-foreground font-medium">Translations (optional)</p>
+                  <div className="flex flex-wrap gap-2">
+                    {SITE_LANGUAGES.filter(l => l.code !== 'en').map(lang => (
+                      <div key={lang.code} className="flex-1 min-w-[140px]">
+                        <label className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
+                          <span>{lang.flag}</span> {lang.name}
+                        </label>
+                        <Input
+                          placeholder={`Headline in ${lang.name}`}
+                          className="text-sm h-8"
+                          value={brandingForm.hero_headline_translations[lang.code] || ""}
+                          onChange={(e) => setBrandingForm(p => ({ ...p, hero_headline_translations: { ...p.hero_headline_translations, [lang.code]: e.target.value } }))}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
               <div>
                 <Label>Subheadline</Label>
@@ -697,6 +729,25 @@ export default function OperatorSettings() {
                   className="mt-1.5"
                   placeholder="Find your perfect stay"
                 />
+                {/* Subheadline translations */}
+                <div className="mt-2 space-y-2">
+                  <p className="text-xs text-muted-foreground font-medium">Translations (optional)</p>
+                  <div className="flex flex-wrap gap-2">
+                    {SITE_LANGUAGES.filter(l => l.code !== 'en').map(lang => (
+                      <div key={lang.code} className="flex-1 min-w-[140px]">
+                        <label className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
+                          <span>{lang.flag}</span> {lang.name}
+                        </label>
+                        <Input
+                          placeholder={`Subheadline in ${lang.name}`}
+                          className="text-sm h-8"
+                          value={brandingForm.hero_subheadline_translations[lang.code] || ""}
+                          onChange={(e) => setBrandingForm(p => ({ ...p, hero_subheadline_translations: { ...p.hero_subheadline_translations, [lang.code]: e.target.value } }))}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
               <div>
                 <Label>About Bio</Label>
@@ -707,6 +758,24 @@ export default function OperatorSettings() {
                   rows={4}
                   placeholder="Tell guests about your brand and properties..."
                 />
+              </div>
+              {/* About Bio translations */}
+              <div className="mt-3 space-y-3">
+                <p className="text-xs text-muted-foreground font-medium">About Bio Translations (optional)</p>
+                {SITE_LANGUAGES.filter(l => l.code !== 'en').map(lang => (
+                  <div key={lang.code}>
+                    <label className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
+                      <span>{lang.flag}</span> {lang.name}
+                    </label>
+                    <Textarea
+                      placeholder={`About bio in ${lang.name}...`}
+                      rows={3}
+                      className="text-sm"
+                      value={brandingForm.about_bio_translations[lang.code] || ""}
+                      onChange={(e) => setBrandingForm(p => ({ ...p, about_bio_translations: { ...p.about_bio_translations, [lang.code]: e.target.value } }))}
+                    />
+                  </div>
+                ))}
               </div>
             </div>
           </section>

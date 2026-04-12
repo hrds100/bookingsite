@@ -34,6 +34,7 @@ import {
   useNfsHospitableImport,
   type HospitableSyncedProperty,
 } from "@/hooks/useNfsHospitable";
+import { SITE_LANGUAGES } from "@/components/nfs/NfsLanguageSelector";
 
 // --- Constants ---
 
@@ -188,6 +189,8 @@ export default function OperatorPropertyForm() {
   const [propertyType, setPropertyType] = useState("");
   const [rentalType, setRentalType] = useState("");
   const [description, setDescription] = useState("");
+  const [titleTranslations, setTitleTranslations] = useState<Record<string, string>>({});
+  const [descriptionTranslations, setDescriptionTranslations] = useState<Record<string, string>>({});
   const [address, setAddress] = useState("");
   const [city, setCity] = useState("");
   const [state, setState] = useState("");
@@ -253,6 +256,8 @@ export default function OperatorPropertyForm() {
         }
 
         setPublicTitle(data.public_title || "");
+        setTitleTranslations(data.title_translations && typeof data.title_translations === 'object' ? data.title_translations : {});
+        setDescriptionTranslations(data.description_translations && typeof data.description_translations === 'object' ? data.description_translations : {});
         setPropertyType(data.property_type || "");
         setRentalType(data.rental_type || "");
         setDescription(data.description || "");
@@ -424,6 +429,8 @@ export default function OperatorPropertyForm() {
     check_out_time: checkOutTime,
     rules,
     addons: propertyAddons,
+    title_translations: titleTranslations,
+    description_translations: descriptionTranslations,
   } as PropertyFields & { addons: typeof propertyAddons });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -788,6 +795,25 @@ export default function OperatorPropertyForm() {
                 onChange={(e) => setPublicTitle(e.target.value)}
                 required
               />
+              {/* Translations for other languages */}
+              <div className="mt-3 space-y-2">
+                <p className="text-xs text-muted-foreground font-medium">Translations (optional)</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {SITE_LANGUAGES.filter(l => l.code !== 'en').map(lang => (
+                    <div key={lang.code} className="flex-1 min-w-[140px]">
+                      <label className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
+                        <span>{lang.flag}</span> {lang.name}
+                      </label>
+                      <Input
+                        placeholder={`Title in ${lang.name}`}
+                        className="text-sm h-8"
+                        value={titleTranslations[lang.code] || ""}
+                        onChange={(e) => setTitleTranslations(prev => ({ ...prev, [lang.code]: e.target.value }))}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
             <div>
               <Label htmlFor="property-type">Property Type *</Label>
@@ -1093,6 +1119,25 @@ export default function OperatorPropertyForm() {
               maxLength={2000}
             />
             <p className="text-xs text-muted-foreground mt-1 text-right">{description.length}/2000</p>
+            {/* Description translations for other languages */}
+            <div className="mt-4 space-y-3">
+              <p className="text-xs text-muted-foreground font-medium">Description Translations (optional)</p>
+              {SITE_LANGUAGES.filter(l => l.code !== 'en').map(lang => (
+                <div key={lang.code}>
+                  <label className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
+                    <span>{lang.flag}</span> {lang.name}
+                  </label>
+                  <Textarea
+                    placeholder={`Description in ${lang.name}...`}
+                    rows={3}
+                    className="text-sm"
+                    value={descriptionTranslations[lang.code] || ""}
+                    onChange={(e) => setDescriptionTranslations(prev => ({ ...prev, [lang.code]: e.target.value.slice(0, 2000) }))}
+                    maxLength={2000}
+                  />
+                </div>
+              ))}
+            </div>
           </div>
         </section>
 

@@ -1,7 +1,6 @@
 import { useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { useDynamicTranslation } from "@/hooks/useDynamicTranslation";
 import { ChevronLeft, ChevronRight, Search, Star, Shield, CreditCard, Globe, Clock, MessageCircle, Headphones } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NfsHeroSearch } from "@/components/nfs/NfsHeroSearch";
@@ -15,26 +14,26 @@ import { useWhiteLabel } from "@/contexts/WhiteLabelContext";
 import { useWhiteLabelProperties } from "@/hooks/useWhiteLabelProperties";
 import { useNfsOperatorDomains } from "@/hooks/useNfsOperator";
 
-const faqs = [
-  { q: 'How does booking work?', a: 'Search for your ideal property, select your dates and guests, then complete booking with secure payment via Stripe. You\'ll receive instant confirmation.' },
-  { q: 'What is your cancellation policy?', a: 'Each property sets its own cancellation policy — Flexible, Moderate, Strict, or Non-refundable. Check the property listing for details before booking.' },
-  { q: 'How do I list my property?', a: 'Sign up as an operator, complete the onboarding wizard, and add your property details including photos, pricing, and availability. It takes about 10 minutes.' },
-  { q: 'Are payments secure?', a: 'All payments are processed through Stripe, a PCI-compliant payment processor. Your card details are never stored on our servers.' },
-  { q: 'Can I contact the host before booking?', a: 'Yes! Each listing includes a message option to contact the host with any questions before you book.' },
-  { q: 'What if something goes wrong during my stay?', a: 'Our support team is available to help resolve any issues. Contact us through the booking details page or email support@nfstay.app.' },
-  { q: 'How does the white-label feature work?', a: 'Operators can create a branded booking website on their own subdomain (yourname.nfstay.app) or custom domain. Guests book directly with no nfstay branding visible.' },
-  { q: 'What is Hospitable integration?', a: 'Hospitable integration allows property managers to sync their listings and calendars across multiple platforms, avoiding double bookings and manual updates.' },
-];
+function FaqItem({ q, a, value }: { q: string; a: string; value: string }) {
+  return (
+    <AccordionItem value={value} className="bg-card border border-border rounded-xl px-4">
+      <AccordionTrigger className="text-sm font-medium hover:no-underline">{q}</AccordionTrigger>
+      <AccordionContent className="text-sm text-muted-foreground">{a}</AccordionContent>
+    </AccordionItem>
+  );
+}
+
+const FAQ_KEYS = [1, 2, 3, 4, 5, 6, 7, 8] as const;
 
 export default function NfsMainLanding() {
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const currentLang = i18n.language;
   const scrollRef = useRef<HTMLDivElement>(null);
   const testimonialRef = useRef<HTMLDivElement>(null);
   const { operator: wlOperator, isWhiteLabel, loading: wlLoading } = useWhiteLabel();
   const { data: wlProperties } = useWhiteLabelProperties();
   const operatorDomains = useNfsOperatorDomains();
-  const translatedAboutBio = useDynamicTranslation(wlOperator?.about_bio ?? '');
 
   const scrollDestinations = (dir: number) => {
     scrollRef.current?.scrollBy({ left: dir * 220, behavior: 'smooth' });
@@ -53,20 +52,29 @@ export default function NfsMainLanding() {
   const recentProperties = recentIds.map(id => allProperties.find(p => p.id === id)).filter(Boolean);
 
   // Hero content
-  const heroHeading = isWhiteLabel && wlOperator?.hero_headline
-    ? wlOperator.hero_headline
-    : t('hero.sub');
-  const heroSubHeading = isWhiteLabel && wlOperator?.hero_headline
-    ? undefined
-    : t('hero.book_direct_save');
-  const heroDesc = isWhiteLabel && wlOperator?.hero_subheadline
-    ? wlOperator.hero_subheadline
-    : t('hero.desc');
+  const heroHeadline = wlOperator?.hero_headline_translations?.[currentLang]
+    || wlOperator?.hero_headline
+    || t('hero.sub');
+  const heroSubheadline = wlOperator?.hero_subheadline_translations?.[currentLang]
+    || wlOperator?.hero_subheadline
+    || null;
+
+  const heroHeading = isWhiteLabel ? heroHeadline : t('hero.sub');
+  const heroSubHeading = isWhiteLabel ? undefined : t('hero.book_direct_save');
+  const heroDesc = isWhiteLabel ? (heroSubheadline ?? t('hero.desc')) : t('hero.desc');
+
+  // About bio with i18n fallback
+  const aboutBio = wlOperator?.about_bio_translations?.[currentLang]
+    || wlOperator?.about_bio
+    || null;
+
+  // Predefined FAQs translated via i18n
+  const defaultFaqs = FAQ_KEYS.map(n => ({ q: t(`faq.q${n}`), a: t(`faq.a${n}`) }));
 
   // White-label FAQs
   const displayFaqs = isWhiteLabel && wlOperator?.faqs && wlOperator.faqs.length > 0
     ? wlOperator.faqs.map(f => ({ q: f.question, a: f.answer }))
-    : faqs;
+    : defaultFaqs;
 
   if (wlLoading) {
     return (
@@ -198,11 +206,11 @@ export default function NfsMainLanding() {
       )}
 
       {/* About — white-label only */}
-      {isWhiteLabel && wlOperator?.about_bio && (
+      {isWhiteLabel && aboutBio && (
         <section className="bg-card border-y border-border">
           <div className="max-w-3xl mx-auto px-4 py-16 text-center">
-            <h2 className="text-2xl font-bold tracking-tight mb-4">About {wlOperator.brand_name}</h2>
-            <p className="text-muted-foreground">{translatedAboutBio}</p>
+            <h2 className="text-2xl font-bold tracking-tight mb-4">About {wlOperator?.brand_name}</h2>
+            <p className="text-muted-foreground">{aboutBio}</p>
           </div>
         </section>
       )}
@@ -246,10 +254,7 @@ export default function NfsMainLanding() {
         <h2 className="text-2xl font-bold tracking-tight text-center mb-8">{t('landing.faq_title')}</h2>
         <Accordion type="single" collapsible className="space-y-2">
           {displayFaqs.map((faq, i) => (
-            <AccordionItem key={i} value={`faq-${i}`} className="bg-card border border-border rounded-xl px-4">
-              <AccordionTrigger className="text-sm font-medium hover:no-underline">{faq.q}</AccordionTrigger>
-              <AccordionContent className="text-sm text-muted-foreground">{faq.a}</AccordionContent>
-            </AccordionItem>
+            <FaqItem key={i} value={`faq-${i}`} q={faq.q} a={faq.a} />
           ))}
         </Accordion>
       </section>

@@ -35,6 +35,8 @@ export interface PropertyFields {
   check_in_time?: string;
   check_out_time?: string;
   rules?: string;
+  title_translations?: Record<string, string>;
+  description_translations?: Record<string, string>;
 }
 
 /** Insert a new property into nfs_properties */
@@ -78,6 +80,8 @@ export function useNfsPropertyCreate() {
         check_in_time: fields.check_in_time || null,
         check_out_time: fields.check_out_time || null,
         rules: fields.rules || null,
+        title_translations: fields.title_translations || {},
+        description_translations: fields.description_translations || {},
       };
 
       const { data, error } = await (supabase.from("nfs_properties") as any)
