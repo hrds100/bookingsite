@@ -1,5 +1,7 @@
 import { useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+import { useDynamicTranslation } from "@/hooks/useDynamicTranslation";
 import { ChevronLeft, ChevronRight, Search, Star, Shield, CreditCard, Globe, Clock, MessageCircle, Headphones } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NfsHeroSearch } from "@/components/nfs/NfsHeroSearch";
@@ -26,11 +28,13 @@ const faqs = [
 
 export default function NfsMainLanding() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const scrollRef = useRef<HTMLDivElement>(null);
   const testimonialRef = useRef<HTMLDivElement>(null);
   const { operator: wlOperator, isWhiteLabel, loading: wlLoading } = useWhiteLabel();
   const { data: wlProperties } = useWhiteLabelProperties();
   const operatorDomains = useNfsOperatorDomains();
+  const translatedAboutBio = useDynamicTranslation(wlOperator?.about_bio ?? '');
 
   const scrollDestinations = (dir: number) => {
     scrollRef.current?.scrollBy({ left: dir * 220, behavior: 'smooth' });
@@ -51,13 +55,13 @@ export default function NfsMainLanding() {
   // Hero content
   const heroHeading = isWhiteLabel && wlOperator?.hero_headline
     ? wlOperator.hero_headline
-    : "Host, Find Stays,";
+    : t('hero.sub');
   const heroSubHeading = isWhiteLabel && wlOperator?.hero_headline
     ? undefined
-    : "Book Direct and Save";
+    : t('hero.book_direct_save');
   const heroDesc = isWhiteLabel && wlOperator?.hero_subheadline
     ? wlOperator.hero_subheadline
-    : "The comfort of your own home in the heart of the city.";
+    : t('hero.desc');
 
   // White-label FAQs
   const displayFaqs = isWhiteLabel && wlOperator?.faqs && wlOperator.faqs.length > 0
@@ -79,14 +83,13 @@ export default function NfsMainLanding() {
         heading={heroHeading}
         subHeading={heroSubHeading}
         desc={heroDesc}
-        btnText="Explore"
       />
 
       {/* Popular Destinations — main site only */}
       {!isWhiteLabel && (
         <section data-feature="NFSTAY__LANDING_DESTINATIONS" className="max-w-7xl mx-auto px-4 py-16">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold tracking-tight">Popular Destinations</h2>
+            <h2 className="text-2xl font-bold tracking-tight">{t('landing.destinations_title')}</h2>
             <div className="flex gap-2">
               <button onClick={() => scrollDestinations(-1)} className="p-2 rounded-lg hover:bg-secondary border border-border">
                 <ChevronLeft className="w-4 h-4" />
@@ -110,7 +113,7 @@ export default function NfsMainLanding() {
                   <p className="text-white font-semibold text-sm">{dest.city}</p>
                 </div>
                 <span className="absolute top-3 right-3 bg-primary text-primary-foreground text-[10px] font-semibold px-2 py-0.5 rounded-full">
-                  {dest.propertyCount} properties
+                  {t('landing.properties_count', { count: dest.propertyCount })}
                 </span>
               </button>
             ))}
@@ -121,9 +124,9 @@ export default function NfsMainLanding() {
       {/* Featured Properties */}
       <section data-feature="NFSTAY__LANDING_FEATURED" className="max-w-7xl mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold tracking-tight">{isWhiteLabel ? "Our Properties" : "Featured Properties"}</h2>
+          <h2 className="text-2xl font-bold tracking-tight">{isWhiteLabel ? t('landing.our_properties') : t('landing.featured_properties')}</h2>
           <Button variant="link" onClick={() => navigate('/search')} className="text-primary">
-            View all →
+            {t('landing.view_all')}
           </Button>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 gap-6">
@@ -136,7 +139,7 @@ export default function NfsMainLanding() {
       {/* Recently Viewed */}
       {recentProperties.length > 0 && (
         <section data-feature="NFSTAY__LANDING_RECENTLY_VIEWED" className="max-w-7xl mx-auto px-4 py-12">
-          <h2 className="text-2xl font-bold tracking-tight mb-6">Recently Viewed</h2>
+          <h2 className="text-2xl font-bold tracking-tight mb-6">{t('landing.recently_viewed')}</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {recentProperties.slice(0, 4).map((p) => (
               <NfsPropertyCard key={p!.id} property={p!} operatorDomains={operatorDomains} />
@@ -147,12 +150,12 @@ export default function NfsMainLanding() {
 
       {/* How It Works */}
       <section data-feature="NFSTAY__LANDING_HOW_IT_WORKS" id="how-it-works" className="max-w-7xl mx-auto px-4 py-16">
-        <h2 className="text-2xl font-bold tracking-tight text-center mb-10">Simple, transparent, direct</h2>
+        <h2 className="text-2xl font-bold tracking-tight text-center mb-10">{t('landing.simple_transparent')}</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {[
-            { icon: Search, title: 'Find your perfect stay', desc: 'Browse curated properties in top destinations. Use filters to narrow your search by type, price, and amenities.' },
-            { icon: CreditCard, title: 'Book securely', desc: 'Book with confidence through Stripe\'s secure payment system. No hidden charges or surprise fees.' },
-            { icon: Star, title: 'Enjoy your trip', desc: 'Check in smoothly with all the details you need. Direct communication with your host throughout.' },
+            { icon: Search, title: t('landing.step1_title'), desc: t('landing.step1_desc') },
+            { icon: CreditCard, title: t('landing.step2_title'), desc: t('landing.step2_desc') },
+            { icon: Star, title: t('landing.step3_title'), desc: t('landing.step3_desc') },
           ].map((item) => (
             <div key={item.title} className="bg-card border border-border rounded-2xl p-6 text-center hover:shadow-md hover:border-primary/30 hover:-translate-y-px transition-all duration-200">
               <div className="w-12 h-12 rounded-full bg-accent-light flex items-center justify-center mx-auto mb-4">
@@ -169,15 +172,15 @@ export default function NfsMainLanding() {
       {!isWhiteLabel && (
         <section className="bg-card border-y border-border">
           <div className="max-w-7xl mx-auto px-4 py-16">
-            <h2 className="text-2xl font-bold tracking-tight text-center mb-10">Why book direct with nfstay?</h2>
+            <h2 className="text-2xl font-bold tracking-tight text-center mb-10">{t('landing.why_title')}</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
               {[
-                { icon: Shield, title: 'Verified hosts', desc: 'Every operator is verified before their properties go live.' },
-                { icon: CreditCard, title: 'No hidden fees', desc: 'What you see is what you pay. Transparent pricing always.' },
-                { icon: Globe, title: 'Global properties', desc: 'Unique stays in top destinations across the world.' },
-                { icon: Clock, title: 'Instant confirmation', desc: 'Book and get confirmed instantly. No waiting.' },
-                { icon: MessageCircle, title: 'Direct communication', desc: 'Chat directly with your host before and during your stay.' },
-                { icon: Headphones, title: '24/7 support', desc: 'Our team is here to help whenever you need assistance.' },
+                { icon: Shield, title: t('landing.verified_hosts'), desc: t('landing.verified_hosts_desc') },
+                { icon: CreditCard, title: t('landing.no_hidden_fees'), desc: t('landing.no_hidden_fees_desc') },
+                { icon: Globe, title: t('landing.global_properties'), desc: t('landing.global_properties_desc') },
+                { icon: Clock, title: t('landing.instant_confirmation'), desc: t('landing.instant_confirmation_desc') },
+                { icon: MessageCircle, title: t('landing.direct_communication'), desc: t('landing.direct_communication_desc') },
+                { icon: Headphones, title: t('landing.support'), desc: t('landing.support_desc') },
               ].map((item) => (
                 <div key={item.title} className="flex gap-4">
                   <div className="w-10 h-10 rounded-lg bg-accent-light flex items-center justify-center shrink-0">
@@ -199,7 +202,7 @@ export default function NfsMainLanding() {
         <section className="bg-card border-y border-border">
           <div className="max-w-3xl mx-auto px-4 py-16 text-center">
             <h2 className="text-2xl font-bold tracking-tight mb-4">About {wlOperator.brand_name}</h2>
-            <p className="text-muted-foreground">{wlOperator.about_bio}</p>
+            <p className="text-muted-foreground">{translatedAboutBio}</p>
           </div>
         </section>
       )}
@@ -208,7 +211,7 @@ export default function NfsMainLanding() {
       {!isWhiteLabel && (
         <section data-feature="NFSTAY__LANDING_TESTIMONIALS" className="max-w-7xl mx-auto px-4 py-16">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold tracking-tight">What our guests say</h2>
+            <h2 className="text-2xl font-bold tracking-tight">{t('landing.testimonials_title')}</h2>
             <div className="flex gap-2">
               <button onClick={() => scrollTestimonials(-1)} className="p-2 rounded-lg hover:bg-secondary border border-border">
                 <ChevronLeft className="w-4 h-4" />
@@ -240,7 +243,7 @@ export default function NfsMainLanding() {
 
       {/* FAQs */}
       <section data-feature="NFSTAY__LANDING_FAQ" className="max-w-3xl mx-auto px-4 py-16">
-        <h2 className="text-2xl font-bold tracking-tight text-center mb-8">Frequently Asked Questions</h2>
+        <h2 className="text-2xl font-bold tracking-tight text-center mb-8">{t('landing.faq_title')}</h2>
         <Accordion type="single" collapsible className="space-y-2">
           {displayFaqs.map((faq, i) => (
             <AccordionItem key={i} value={`faq-${i}`} className="bg-card border border-border rounded-xl px-4">
@@ -255,22 +258,22 @@ export default function NfsMainLanding() {
       {isWhiteLabel ? (
         <section data-feature="NFSTAY__LANDING_CTA" className="max-w-7xl mx-auto px-4 py-16">
           <div className="bg-primary rounded-3xl p-10 md:p-16 text-center">
-            <h2 className="text-3xl font-bold text-primary-foreground mb-3">Ready to book your stay?</h2>
+            <h2 className="text-3xl font-bold text-primary-foreground mb-3">{t('landing.cta_book_title')}</h2>
             <p className="text-primary-foreground/80 mb-6 max-w-md mx-auto">
-              Browse our properties and book your next vacation directly.
+              {t('landing.cta_book_desc')}
             </p>
             <Button size="lg" variant="secondary" className="rounded-2xl font-semibold" onClick={() => navigate('/search')}>
-              Browse properties
+              {t('landing.browse_properties')}
             </Button>
           </div>
         </section>
       ) : (
         <section data-feature="NFSTAY__LANDING_CTA" className="max-w-7xl mx-auto px-4 py-16">
           <div className="bg-primary rounded-3xl p-10 md:p-16 text-center">
-            <h2 className="text-3xl font-bold text-primary-foreground mb-3">Ready to list your property?</h2>
-            <p className="text-primary-foreground/80 mb-6 max-w-md mx-auto">Join hundreds of operators already using nfstay to accept direct bookings.</p>
+            <h2 className="text-3xl font-bold text-primary-foreground mb-3">{t('landing.cta_list_title')}</h2>
+            <p className="text-primary-foreground/80 mb-6 max-w-md mx-auto">{t('landing.cta_list_desc')}</p>
             <Button size="lg" variant="secondary" className="rounded-2xl font-semibold" onClick={() => { window.location.href = "https://hub.nfstay.com"; }}>
-              Get started free
+              {t('landing.cta_get_started')}
             </Button>
           </div>
         </section>

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { Menu, X, Search, Clock, Users, User, ChevronDown, LogOut, MessageCircle, Mail, Phone, Minus, Plus, Settings, MapPin } from "lucide-react";
 import { format } from "date-fns";
@@ -14,6 +15,7 @@ import { useWhiteLabel } from "@/contexts/WhiteLabelContext";
 import { useNfsPropertyCities } from "@/hooks/useNfsProperties";
 
 export function NfsMainNavbar() {
+  const { t } = useTranslation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [contactOpen, setContactOpen] = useState(false);
@@ -144,8 +146,8 @@ export function NfsMainNavbar() {
                       navMode === "traveler" || isSearchPage ? "text-white" : "text-gray-600 hover:text-primary"
                     }`}
                   >
-                    <span className="hidden xl:inline">Search Properties</span>
-                    <span className="xl:hidden">Search</span>
+                    <span className="hidden xl:inline">{t('nav.search_properties')}</span>
+                    <span className="xl:hidden">{t('nav.search')}</span>
                   </button>
                   <button
                     onClick={() => handleNavToggle("reservations")}
@@ -153,8 +155,8 @@ export function NfsMainNavbar() {
                       navMode === "reservations" ? "text-white" : "text-gray-600 hover:text-primary"
                     }`}
                   >
-                    <span className="hidden xl:inline">My Reservations</span>
-                    <span className="xl:hidden">Bookings</span>
+                    <span className="hidden xl:inline">{t('nav.my_reservations')}</span>
+                    <span className="xl:hidden">{t('nav.bookings')}</span>
                   </button>
                 </div>
               </div>
@@ -176,7 +178,7 @@ export function NfsMainNavbar() {
                       onChange={(e) => { setQuery(e.target.value); setCitiesOpen(true); }}
                       onFocus={() => setCitiesOpen(true)}
                       onKeyDown={(e) => { if (e.key === "Enter") { setCitiesOpen(false); handleSearch(); } if (e.key === "Escape") setCitiesOpen(false); else handleKeyDown(e); }}
-                      placeholder="Where to?"
+                      placeholder={t('nav.where_to')}
                       className="text-sm bg-transparent outline-none flex-1 placeholder:text-gray-400 min-w-0"
                       autoComplete="off"
                     />
@@ -187,7 +189,7 @@ export function NfsMainNavbar() {
                     <div className="absolute top-full left-0 mt-2 w-64 bg-white border border-gray-200 rounded-2xl shadow-lg z-50 overflow-hidden">
                       <div className="px-3 pt-3 pb-1">
                         <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
-                          {query.trim() ? "Matching destinations" : "Popular destinations"}
+                          {query.trim() ? t('nav.matching_destinations') : t('nav.popular_destinations')}
                         </p>
                       </div>
                       {filteredNavCities.map((c) => (
@@ -219,7 +221,7 @@ export function NfsMainNavbar() {
                         <span>
                           {navDateRange?.from
                             ? `${format(navDateRange.from, "MMM d")}${navDateRange.to ? ` – ${format(navDateRange.to, "MMM d")}` : ""}`
-                            : "Any dates..."}
+                            : t('nav.any_dates')}
                         </span>
                       </button>
                     </PopoverTrigger>
@@ -243,7 +245,7 @@ export function NfsMainNavbar() {
                         <span>
                           {navAdults + navChildren > 0
                             ? `${navAdults + navChildren} guest${navAdults + navChildren !== 1 ? "s" : ""}`
-                            : "Add guests"}
+                            : t('nav.add_guests')}
                         </span>
                       </button>
                     </PopoverTrigger>
@@ -251,8 +253,8 @@ export function NfsMainNavbar() {
                       {/* Adults */}
                       <div className="flex items-center justify-between py-2">
                         <div>
-                          <p className="text-sm font-medium">Adults</p>
-                          <p className="text-xs text-muted-foreground">Ages 13+</p>
+                          <p className="text-sm font-medium">{t('hero.adults')}</p>
+                          <p className="text-xs text-muted-foreground">{t('hero.adults_sub')}</p>
                         </div>
                         <div className="flex items-center gap-3">
                           <button
@@ -274,8 +276,8 @@ export function NfsMainNavbar() {
                       {/* Children */}
                       <div className="flex items-center justify-between py-2">
                         <div>
-                          <p className="text-sm font-medium">Children</p>
-                          <p className="text-xs text-muted-foreground">Ages 2–12</p>
+                          <p className="text-sm font-medium">{t('hero.children')}</p>
+                          <p className="text-xs text-muted-foreground">{t('hero.children_sub')}</p>
                         </div>
                         <div className="flex items-center gap-3">
                           <button
@@ -297,7 +299,7 @@ export function NfsMainNavbar() {
                     </PopoverContent>
                   </Popover>
                   <button onClick={handleSearch} className="bg-primary-gradient text-white font-medium py-2 px-5 rounded-full text-sm hover:opacity-90 transition-opacity ml-1 shrink-0">
-                    Search
+                    {t('nav.search')}
                   </button>
                 </div>
               </div>
@@ -315,7 +317,7 @@ export function NfsMainNavbar() {
                     onClick={() => setContactOpen(!contactOpen)}
                     className="px-3 lg:px-4 py-2 lg:py-2 text-xs lg:text-sm font-medium border border-gray-200 rounded-full hover:bg-gray-50 transition-colors flex items-center gap-1"
                   >
-                    Contact
+                    {t('nav.contact')}
                     <ChevronDown className={`w-3 h-3 transition-transform ${contactOpen ? 'rotate-180' : ''}`} />
                   </button>
                   {contactOpen && (
@@ -404,14 +406,14 @@ export function NfsMainNavbar() {
         <div className="border-t border-gray-200" />
         <div className="p-4 space-y-2 flex flex-col h-[calc(100%-72px)]">
           <div className="flex-1 space-y-1">
-            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-2 pb-1">Traveler</p>
+            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-2 pb-1">{t('nav.traveler')}</p>
             <Link data-feature="NFSTAY__NAVBAR_LINK" to="/search" onClick={() => setSidebarOpen(false)} className="block p-2 rounded-lg hover:bg-[#f0f0ed] transition-colors">
-              <h3 className="font-semibold text-base">Find Stays</h3>
-              <p className="text-[#737373] font-medium text-sm">Browse and book properties</p>
+              <h3 className="font-semibold text-base">{t('nav.find_stays')}</h3>
+              <p className="text-[#737373] font-medium text-sm">{t('nav.browse_book')}</p>
             </Link>
             <Link to="/traveler/reservations" onClick={() => setSidebarOpen(false)} className="block p-2 rounded-lg hover:bg-[#f0f0ed] transition-colors">
-              <h3 className="font-semibold text-base">My Reservations</h3>
-              <p className="text-[#737373] font-medium text-sm">Manage your bookings</p>
+              <h3 className="font-semibold text-base">{t('nav.my_reservations')}</h3>
+              <p className="text-[#737373] font-medium text-sm">{t('nav.manage_bookings')}</p>
             </Link>
           </div>
 
@@ -423,14 +425,14 @@ export function NfsMainNavbar() {
                 onClick={() => setSidebarOpen(false)}
                 className="block w-full px-4 py-3 text-center font-medium bg-primary-gradient text-white rounded-xl hover:opacity-90 transition-opacity text-sm"
               >
-                Sign In
+                {t('nav.sign_in')}
               </Link>
               <Link
                 to="/signup"
                 onClick={() => setSidebarOpen(false)}
                 className="block w-full px-4 py-3 text-center font-medium border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors text-sm text-gray-700"
               >
-                Create Account
+                {t('nav.create_account')}
               </Link>
             </div>
           )}
@@ -454,7 +456,7 @@ export function NfsMainNavbar() {
           <div className="flex flex-col items-center space-y-6 p-6 text-sm text-gray-800">
             {isOperator && !isWhiteLabel && (
               <Link to="/nfstay" onClick={() => setDrawerOpen(false)} className="flex items-center gap-3 hover:text-primary font-semibold transition-colors">
-                Dashboard
+                {t('nav.dashboard')}
               </Link>
             )}
             <Link
@@ -462,7 +464,7 @@ export function NfsMainNavbar() {
               onClick={() => setDrawerOpen(false)}
               className="flex items-center gap-3 hover:text-primary font-semibold transition-colors"
             >
-              My Reservations
+              {t('nav.my_reservations')}
             </Link>
             <Link
               to="/traveler/settings"
@@ -470,14 +472,14 @@ export function NfsMainNavbar() {
               className="flex items-center gap-3 hover:text-primary font-semibold transition-colors"
             >
               <Settings className="w-4 h-4" />
-              Settings
+              {t('nav.settings')}
             </Link>
             <button
               onClick={() => { signOut(); setDrawerOpen(false); }}
               className="flex items-center gap-3 cursor-pointer hover:text-primary font-semibold transition-colors"
             >
               <LogOut className="w-4 h-4" />
-              Log Out
+              {t('nav.log_out')}
             </button>
           </div>
         </div>
@@ -486,14 +488,14 @@ export function NfsMainNavbar() {
           <div className="flex flex-col h-full">
             <div className="flex-1 py-6">
               <div className="px-6 mb-4">
-                <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide">Menu</h3>
+                <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide">{t('nav.menu')}</h3>
               </div>
               {[
-                { label: "Find a stay", href: "/search", external: false },
-                { label: "Reservations", href: "/traveler/reservations", external: false },
-                { label: "Find your booking", href: "/booking", external: false },
-                { label: "List your property", href: "https://hub.nfstay.com", external: true },
-                { label: "FAQ", href: "#", external: false },
+                { label: t('nav.find_stays'), href: "/search", external: false },
+                { label: t('nav.my_reservations'), href: "/traveler/reservations", external: false },
+                { label: t('nav.find_booking'), href: "/booking", external: false },
+                { label: t('nav.list_property'), href: "https://hub.nfstay.com", external: true },
+                { label: t('nav.faq'), href: "#", external: false },
               ].map((link) => (
                 link.external ? (
                   <a
@@ -522,17 +524,17 @@ export function NfsMainNavbar() {
                 onClick={() => setDrawerOpen(false)}
                 className="block w-full px-4 py-3 font-medium bg-primary-gradient text-white rounded-xl hover:opacity-90 transition-opacity text-center shadow-lg shadow-emerald-500/25"
               >
-                Sign In
+                {t('nav.sign_in')}
               </Link>
               <Link
                 to="/signup"
                 onClick={() => setDrawerOpen(false)}
                 className="block w-full px-4 py-3 font-medium border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors text-center text-gray-700"
               >
-                Create account
+                {t('nav.create_account')}
               </Link>
               <div className="space-y-2">
-                <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Contact us</p>
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">{t('nav.contact_us')}</p>
                 {isWhiteLabel && wlOperator?.contact_whatsapp && (
                   <a
                     href={`https://wa.me/${wlOperator.contact_whatsapp.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(wlOperator.whatsapp_prefill_message || `Hi ${wlOperator.brand_name}, I have a question.`)}`}
@@ -597,7 +599,7 @@ export function NfsMainNavbar() {
                   : "text-gray-600 hover:text-primary"
               }`}
             >
-              Search
+              {t('nav.search')}
             </button>
             <button
               onClick={() => handleNavToggle("reservations")}
@@ -607,7 +609,7 @@ export function NfsMainNavbar() {
                   : "text-gray-600 hover:text-primary"
               }`}
             >
-              Bookings
+              {t('nav.bookings')}
             </button>
           </div>
         </div>
