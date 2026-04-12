@@ -425,13 +425,27 @@ async function importFromUrl(rawUrl: string): Promise<ImportedListing> {
   const cleanUrl = `${url.protocol}//${url.hostname}${url.pathname}`;
 
   const headers: Record<string, string> = {
-    "User-Agent": "Mozilla/5.0 (compatible; NFStayBot/1.0; +https://nfstay.app)",
-    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
     "Accept-Language": "en-GB,en;q=0.9",
+    "Accept-Encoding": "gzip, deflate, br",
     "Cache-Control": "no-cache",
+    "Pragma": "no-cache",
+    "Sec-Fetch-Dest": "document",
+    "Sec-Fetch-Mode": "navigate",
+    "Sec-Fetch-Site": "none",
+    "Upgrade-Insecure-Requests": "1",
   };
 
   const response = await fetch(cleanUrl, { headers });
+
+  if (response.status === 403 || response.status === 401) {
+    throw new Error("Airbnb blocked this request. Try copying the URL directly from the browser address bar and make sure you are not logged in to Airbnb when copying it.");
+  }
+
+  if (response.status === 404) {
+    throw new Error("Listing not found. Check the URL is correct and the listing is still active.");
+  }
 
   if (!response.ok) {
     throw new Error(`Could not fetch listing (HTTP ${response.status}). The URL may be private or unavailable.`);
@@ -491,15 +505,21 @@ async function importFromUrl(rawUrl: string): Promise<ImportedListing> {
 // ---------------------------------------------------------------------------
 
 serve(async (req: Request) => {
+  // Always return 200 so supabase.functions.invoke() doesn't swallow the error message.
+  // Errors are communicated via { error: string } in the response body.
+
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: CORS });
   }
 
-  if (req.method !== "POST") {
-    return new Response(JSON.stringify({ error: "Method not allowed" }), {
-      status: 405,
+  const json = (body: unknown) =>
+    new Response(JSON.stringify(body), {
+      status: 200,
       headers: { ...CORS, "Content-Type": "application/json" },
     });
+
+  if (req.method !== "POST") {
+    return json({ error: "Method not allowed" });
   }
 
   try {
@@ -507,23 +527,13 @@ serve(async (req: Request) => {
     const { url } = body as { url?: string };
 
     if (!url || typeof url !== "string" || !url.trim()) {
-      return new Response(JSON.stringify({ error: "url is required" }), {
-        status: 400,
-        headers: { ...CORS, "Content-Type": "application/json" },
-      });
+      return json({ error: "url is required" });
     }
 
     const listing = await importFromUrl(url.trim());
-
-    return new Response(JSON.stringify({ data: listing }), {
-      status: 200,
-      headers: { ...CORS, "Content-Type": "application/json" },
-    });
+    return json({ data: listing });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Import failed";
-    return new Response(JSON.stringify({ error: message }), {
-      status: 422,
-      headers: { ...CORS, "Content-Type": "application/json" },
-    });
+    return json({ error: message });
   }
 });
