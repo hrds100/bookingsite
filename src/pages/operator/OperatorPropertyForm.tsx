@@ -35,8 +35,6 @@ import {
   type HospitableSyncedProperty,
 } from "@/hooks/useNfsHospitable";
 import { SITE_LANGUAGES } from "@/components/nfs/NfsLanguageSelector";
-import { NfsImportListingBar } from "@/components/nfs/NfsImportListingBar";
-import type { ImportedListing } from "@/hooks/useNfsImportListing";
 
 // --- Constants ---
 
@@ -184,35 +182,6 @@ export default function OperatorPropertyForm() {
       toast({ title: "Sync triggered", description: "Properties are being refreshed from Airbnb." });
       setTimeout(() => refetchSyncedProps(), 2000);
     }
-  };
-
-  // ── Import from URL ──
-  const applyImportedData = (data: ImportedListing) => {
-    if (data.public_title) setPublicTitle(data.public_title);
-    if (data.description) setDescription(data.description);
-    if (data.property_type) setPropertyType(data.property_type);
-    if (data.rental_type) setRentalType(data.rental_type);
-    if (data.city) setCity(data.city);
-    if (data.state) setState(data.state);
-    if (data.country) setCountry(data.country);
-    if (data.address) setAddress(data.address);
-    if (typeof data.lat === "number") setLat(data.lat);
-    if (typeof data.lng === "number") setLng(data.lng);
-    if (typeof data.max_guests === "number") setMaxGuests(data.max_guests);
-    if (typeof data.bedrooms === "number") setBedrooms(data.bedrooms);
-    if (typeof data.beds === "number") setBeds(data.beds);
-    if (typeof data.bathrooms === "number") setBathrooms(data.bathrooms);
-    if (typeof data.base_rate_amount === "number") setBaseRateAmount(data.base_rate_amount);
-    if (data.base_rate_currency) setBaseRateCurrency(data.base_rate_currency);
-    if (data.amenities && Object.keys(data.amenities).length > 0) {
-      setAmenities((prev) => ({ ...prev, ...data.amenities }));
-    }
-    if (data.images && data.images.length > 0) setImages(data.images);
-    if (typeof data.minimum_stay === "number") setMinimumStay(data.minimum_stay);
-    if (data.cancellation_policy) setCancellationPolicy(data.cancellation_policy);
-    if (data.check_in_time) setCheckInTime(data.check_in_time);
-    if (data.check_out_time) setCheckOutTime(data.check_out_time);
-    if (data.rules) setRules(data.rules);
   };
 
   // Form state
@@ -812,11 +781,6 @@ export default function OperatorPropertyForm() {
       {/* ── Manual Property Form ── */}
       {(syncMode === "manual" || isEdit) && (
       <form onSubmit={handleSubmit} className="space-y-8">
-        {/* Import from URL — new listings only */}
-        {!isEdit && (
-          <NfsImportListingBar onImport={applyImportedData} />
-        )}
-
         {/* Basic Info */}
         <section className="bg-card border border-border rounded-2xl p-4 md:p-6 space-y-4">
           <h2 className="text-lg font-semibold">Basic Information</h2>
