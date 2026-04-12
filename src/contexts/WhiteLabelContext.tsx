@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useRef, type ReactNode } from "react";
 import { supabase } from "@/lib/supabase";
+import i18n from "@/lib/i18n";
 import type { NfsOperator } from "@/hooks/useNfsOperator";
 
 /** Convert hex color to HSL string for CSS variable (e.g. "164 73% 34%") */
@@ -243,8 +244,17 @@ export function WhiteLabelProvider({ children }: { children: ReactNode }) {
           return;
         }
 
+        const op = data as unknown as NfsOperator;
+
+        // Apply operator's default language immediately — before any re-render
+        // so there's no English flash on white-label sites
+        if (op.default_language) {
+          const locale = op.default_language === 'pt' ? 'pt-BR' : op.default_language;
+          i18n.changeLanguage(locale);
+        }
+
         setState({
-          operator: data as unknown as NfsOperator,
+          operator: op,
           loading: false,
           isWhiteLabel: true,
         });
