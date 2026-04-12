@@ -25,6 +25,7 @@ i18n
       caches: ['localStorage'],
     },
     interpolation: { escapeValue: false },
+    react: { useSuspense: false },
   });
 
 // Handle RTL for Arabic
