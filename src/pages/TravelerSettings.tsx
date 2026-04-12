@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Camera, Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -36,6 +37,7 @@ function getInitials(email: string, name?: string): string {
 }
 
 export default function TravelerSettings() {
+  const { t } = useTranslation();
   const { user, loading } = useAuth();
   const navigate = useNavigate();
 
@@ -77,10 +79,10 @@ export default function TravelerSettings() {
       if (error) {
         toast.error(error.message);
       } else {
-        toast.success("Profile saved");
+        toast.success(t("traveler_settings.profile_saved"));
       }
     } catch {
-      toast.error("Something went wrong. Please try again.");
+      toast.error(t("traveler_settings.something_wrong"));
     } finally {
       setSaving(false);
     }
@@ -90,11 +92,11 @@ export default function TravelerSettings() {
     setPasswordError(null);
     if (!newPassword) return;
     if (newPassword !== confirmPassword) {
-      setPasswordError("Passwords don't match.");
+      setPasswordError(t("traveler_settings.passwords_no_match"));
       return;
     }
     if (newPassword.length < 8) {
-      setPasswordError("Password must be at least 8 characters.");
+      setPasswordError(t("traveler_settings.password_too_short"));
       return;
     }
     setPasswordSaving(true);
@@ -103,13 +105,13 @@ export default function TravelerSettings() {
       if (error) {
         setPasswordError(error.message);
       } else {
-        toast.success("Password updated");
+        toast.success(t("traveler_settings.password_updated"));
         setCurrentPassword("");
         setNewPassword("");
         setConfirmPassword("");
       }
     } catch {
-      setPasswordError("Something went wrong. Please try again.");
+      setPasswordError(t("traveler_settings.something_wrong"));
     } finally {
       setPasswordSaving(false);
     }
@@ -156,7 +158,7 @@ export default function TravelerSettings() {
       if (updateError) throw updateError;
 
       setAvatarUrl(publicUrl);
-      toast.success("Photo updated");
+      toast.success(t("traveler_settings.photo_updated"));
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Upload failed. Please try again.");
     } finally {
@@ -168,7 +170,7 @@ export default function TravelerSettings() {
 
   const handleDeleteAccount = () => {
     setDeleteDialogOpen(false);
-    toast("Contact support to delete your account");
+    toast(t("traveler_settings.contact_support"));
   };
 
   if (loading) {
@@ -185,7 +187,7 @@ export default function TravelerSettings() {
 
   return (
     <div data-feature="NFSTAY__TRAVELER_SETTINGS" className="max-w-2xl mx-auto px-4 py-8 pb-24 lg:pb-8 space-y-8">
-      <h1 className="text-2xl font-semibold">Settings</h1>
+      <h1 className="text-2xl font-semibold">{t("traveler_settings.page_title")}</h1>
 
       {/* Profile photo */}
       <div className="flex items-center gap-4">
@@ -197,7 +199,7 @@ export default function TravelerSettings() {
         </Avatar>
         <Button variant="outline" className="rounded-full" onClick={handlePhotoUpload} disabled={uploading}>
           {uploading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Camera className="w-4 h-4 mr-2" />}
-          {uploading ? "Uploading..." : "Upload photo"}
+          {uploading ? t("traveler_settings.uploading") : t("traveler_settings.upload_photo")}
         </Button>
         <input
           ref={fileInputRef}
@@ -212,10 +214,10 @@ export default function TravelerSettings() {
 
       {/* Personal info */}
       <section className="space-y-4">
-        <h2 className="text-lg font-semibold">Personal information</h2>
+        <h2 className="text-lg font-semibold">{t("traveler_settings.personal_info")}</h2>
         <div className="space-y-3">
           <div>
-            <Label htmlFor="name">Full name</Label>
+            <Label htmlFor="name">{t("traveler_settings.full_name")}</Label>
             <Input
               id="name"
               value={name}
@@ -224,7 +226,7 @@ export default function TravelerSettings() {
             />
           </div>
           <div>
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email">{t("common.email")}</Label>
             <Input
               id="email"
               value={userEmail}
@@ -234,7 +236,7 @@ export default function TravelerSettings() {
             />
           </div>
           <div>
-            <Label htmlFor="phone">Phone number</Label>
+            <Label htmlFor="phone">{t("traveler_settings.phone_number")}</Label>
             <Input
               id="phone"
               value={phone}
@@ -250,10 +252,10 @@ export default function TravelerSettings() {
 
       {/* Password change */}
       <section className="space-y-4">
-        <h2 className="text-lg font-semibold">Change password</h2>
+        <h2 className="text-lg font-semibold">{t("traveler_settings.change_password")}</h2>
         <div className="space-y-3">
           <div>
-            <Label htmlFor="current-password">Current password</Label>
+            <Label htmlFor="current-password">{t("traveler_settings.current_password")}</Label>
             <Input
               id="current-password"
               type="password"
@@ -264,7 +266,7 @@ export default function TravelerSettings() {
             />
           </div>
           <div>
-            <Label htmlFor="new-password">New password</Label>
+            <Label htmlFor="new-password">{t("traveler_settings.new_password")}</Label>
             <Input
               id="new-password"
               type="password"
@@ -275,7 +277,7 @@ export default function TravelerSettings() {
             />
           </div>
           <div>
-            <Label htmlFor="confirm-password">Confirm new password</Label>
+            <Label htmlFor="confirm-password">{t("traveler_settings.confirm_password")}</Label>
             <Input
               id="confirm-password"
               type="password"
@@ -294,7 +296,7 @@ export default function TravelerSettings() {
             onClick={handlePasswordSave}
             disabled={passwordSaving || !newPassword}
           >
-            {passwordSaving ? "Updating..." : "Update password"}
+            {passwordSaving ? t("traveler_settings.updating") : t("traveler_settings.update_password")}
           </Button>
         </div>
       </section>
@@ -303,12 +305,12 @@ export default function TravelerSettings() {
 
       {/* Notification preferences */}
       <section className="space-y-4">
-        <h2 className="text-lg font-semibold">Notifications</h2>
+        <h2 className="text-lg font-semibold">{t("traveler_settings.notifications_title")}</h2>
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium">Email notifications</p>
-              <p className="text-xs text-muted-foreground">Booking confirmations and updates</p>
+              <p className="text-sm font-medium">{t("traveler_settings.email_notifications")}</p>
+              <p className="text-xs text-muted-foreground">{t("traveler_settings.email_notifications_desc")}</p>
             </div>
             <Switch
               checked={emailNotifications}
@@ -317,8 +319,8 @@ export default function TravelerSettings() {
           </div>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium">WhatsApp notifications</p>
-              <p className="text-xs text-muted-foreground">Receive messages via WhatsApp</p>
+              <p className="text-sm font-medium">{t("traveler_settings.whatsapp_notifications")}</p>
+              <p className="text-xs text-muted-foreground">{t("traveler_settings.whatsapp_notifications_desc")}</p>
             </div>
             <Switch
               checked={whatsappNotifications}
@@ -332,7 +334,7 @@ export default function TravelerSettings() {
 
       {/* Currency preference */}
       <section className="space-y-4">
-        <h2 className="text-lg font-semibold">Currency preference</h2>
+        <h2 className="text-lg font-semibold">{t("traveler_settings.currency_preference")}</h2>
         <Select value={currency} onValueChange={setCurrency}>
           <SelectTrigger className="w-full max-w-[200px]">
             <SelectValue />
@@ -351,27 +353,27 @@ export default function TravelerSettings() {
 
       {/* Delete account */}
       <section className="space-y-4">
-        <h2 className="text-lg font-semibold">Danger zone</h2>
+        <h2 className="text-lg font-semibold">{t("traveler_settings.danger_zone")}</h2>
         <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
           <DialogTrigger asChild>
             <Button variant="destructive" className="rounded-full">
               <Trash2 className="w-4 h-4 mr-2" />
-              Delete account
+              {t("traveler_settings.delete_account")}
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Delete your account?</DialogTitle>
+              <DialogTitle>{t("traveler_settings.delete_title")}</DialogTitle>
               <DialogDescription>
-                This action cannot be undone. All your data, bookings, and preferences will be permanently removed.
+                {t("traveler_settings.delete_desc")}
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
               <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
-                Cancel
+                {t("common.cancel")}
               </Button>
               <Button variant="destructive" onClick={handleDeleteAccount}>
-                Delete account
+                {t("traveler_settings.delete_account")}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -386,7 +388,7 @@ export default function TravelerSettings() {
         onClick={handleSave}
         disabled={saving}
       >
-        {saving ? "Saving..." : "Save settings"}
+        {saving ? t("common.saving") : t("traveler_settings.save_settings")}
       </Button>
     </div>
   );
