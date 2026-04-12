@@ -398,12 +398,121 @@ function parseMetaTags(html: string): ImportedListing {
 }
 
 // ---------------------------------------------------------------------------
-// Source detection
+// Airbnb API strategy — avoids HTML scraping entirely
 // ---------------------------------------------------------------------------
 
-function detectSource(url: string): "airbnb" | "unknown" {
-  if (url.includes("airbnb.")) return "airbnb";
-  return "unknown";
+function extractAirbnbListingId(pathname: string): string | null {
+  const match = pathname.match(/\/rooms\/(\d+)/);
+  return match ? match[1] : null;
+}
+
+async function fetchAirbnbApi(listingId: string, isUk: boolean): Promise<ImportedListing | null> {
+  const currency = isUk ? "GBP" : "USD";
+  const apiUrl = `https://www.airbnb.com/api/v2/listings/${listingId}?_format=for_rooms_show&key=d306zoyjsyarp7uqwjaufrqo&currency=${currency}&locale=en-US`;
+
+  const res = await fetch(apiUrl, {
+    headers: {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+      "Accept": "application/json",
+      "X-Airbnb-API-Key": "d306zoyjsyarp7uqwjaufrqo",
+      "Accept-Language": "en-US,en;q=0.9",
+    },
+  });
+
+  if (!res.ok) return null;
+
+  let json: Record<string, unknown>;
+  try { json = await res.json(); } catch { return null; }
+
+  const l = (json.listing ?? json) as Record<string, unknown>;
+  if (!l) return null;
+
+  const listing: ImportedListing = {};
+
+  // Title
+  if (typeof l.name === "string") listing.public_title = l.name.trim();
+
+  // Description — try multiple fields
+  const descFields = ["description", "summary", "space", "access", "interaction", "neighborhood_overview", "transit", "notes"];
+  const descParts: string[] = [];
+  for (const f of descFields) {
+    if (typeof l[f] === "string" && (l[f] as string).trim()) descParts.push((l[f] as string).trim());
+  }
+  if (descParts.length > 0) listing.description = descParts[0]; // use primary description
+
+  // Capacity / rooms
+  if (typeof l.person_capacity === "number") listing.max_guests = l.person_capacity;
+  if (typeof l.bedrooms === "number") listing.bedrooms = l.bedrooms;
+  if (typeof l.beds === "number") listing.beds = l.beds;
+  if (typeof l.bathrooms === "number") listing.bathrooms = l.bathrooms;
+
+  // Location
+  if (typeof l.city === "string") listing.city = l.city;
+  if (typeof l.state === "string") listing.state = l.state;
+  if (typeof l.country === "string") listing.country = l.country;
+  if (typeof l.country_code === "string" && !listing.country) listing.country = l.country_code;
+  if (typeof l.lat === "number") listing.lat = l.lat;
+  if (typeof l.lng === "number") listing.lng = l.lng;
+  if (typeof l.address === "string") listing.address = l.address;
+
+  // Property / rental type
+  if (typeof l.property_type === "string") listing.property_type = mapPropertyType(l.property_type);
+  if (typeof l.room_type === "string") {
+    const rt = (l.room_type as string).toLowerCase();
+    if (rt.includes("entire") || rt.includes("whole")) listing.rental_type = "entire_place";
+    else if (rt.includes("private")) listing.rental_type = "private_room";
+    else if (rt.includes("shared") || rt.includes("hotel")) listing.rental_type = "shared_room";
+  }
+
+  // Price
+  if (typeof l.price === "number") {
+    listing.base_rate_amount = l.price;
+    listing.base_rate_currency = currency;
+  } else if (l.price && typeof l.price === "object") {
+    const p = l.price as Record<string, unknown>;
+    const amount = p.amount ?? p.rate ?? p.nightly_price;
+    if (typeof amount === "number") { listing.base_rate_amount = amount; listing.base_rate_currency = currency; }
+  }
+
+  // Amenities
+  const rawAmenities = l.amenities ?? l.listing_amenities;
+  if (Array.isArray(rawAmenities)) {
+    const names: string[] = [];
+    for (const a of rawAmenities) {
+      if (typeof a === "string") names.push(a);
+      else if (a && typeof a === "object") {
+        const name = (a as Record<string, unknown>).name ?? (a as Record<string, unknown>).tag;
+        if (typeof name === "string") names.push(name);
+      }
+    }
+    if (names.length > 0) listing.amenities = mapAmenities(names);
+  }
+
+  // Images
+  const photos = l.photos ?? l.listing_photos ?? l.picture_urls;
+  if (Array.isArray(photos)) {
+    const imageUrls: string[] = [];
+    for (const p of photos) {
+      if (typeof p === "string") imageUrls.push(p);
+      else if (p && typeof p === "object") {
+        const u = (p as Record<string, unknown>).x_large_url ?? (p as Record<string, unknown>).large ?? (p as Record<string, unknown>).url ?? (p as Record<string, unknown>).picture;
+        if (typeof u === "string") imageUrls.push(u);
+      }
+    }
+    if (imageUrls.length > 0) listing.images = imageUrls.slice(0, 20).map((url, i) => ({ url, caption: "", order: i }));
+  }
+
+  // Min nights
+  if (typeof l.min_nights === "number") listing.minimum_stay = l.min_nights;
+
+  // Check-in / check-out
+  if (typeof l.check_in_time === "string") listing.check_in_time = l.check_in_time;
+  if (typeof l.check_out_time === "string") listing.check_out_time = l.check_out_time;
+
+  // House rules
+  if (typeof l.house_rules === "string") listing.rules = l.house_rules;
+
+  return Object.keys(listing).length > 1 ? listing : null;
 }
 
 // ---------------------------------------------------------------------------
@@ -411,90 +520,77 @@ function detectSource(url: string): "airbnb" | "unknown" {
 // ---------------------------------------------------------------------------
 
 async function importFromUrl(rawUrl: string): Promise<ImportedListing> {
-  // Normalise URL
   let url: URL;
-  try {
-    url = new URL(rawUrl);
-  } catch {
-    throw new Error("Invalid URL provided.");
-  }
+  try { url = new URL(rawUrl); } catch { throw new Error("Invalid URL provided."); }
 
-  const source = detectSource(url.hostname);
-
-  // Strip tracking params for cleaner fetch
+  const isAirbnb = url.hostname.includes("airbnb.");
+  const isUk = url.hostname.includes(".co.uk");
   const cleanUrl = `${url.protocol}//${url.hostname}${url.pathname}`;
 
-  const headers: Record<string, string> = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
-    "Accept-Language": "en-GB,en;q=0.9",
-    "Accept-Encoding": "gzip, deflate, br",
-    "Cache-Control": "no-cache",
-    "Pragma": "no-cache",
-    "Sec-Fetch-Dest": "document",
-    "Sec-Fetch-Mode": "navigate",
-    "Sec-Fetch-Site": "none",
-    "Upgrade-Insecure-Requests": "1",
-  };
-
-  const response = await fetch(cleanUrl, { headers });
-
-  if (response.status === 403 || response.status === 401) {
-    throw new Error("Airbnb blocked this request. Try copying the URL directly from the browser address bar and make sure you are not logged in to Airbnb when copying it.");
+  // ── Strategy 1: Airbnb internal API (clean JSON, no bot detection) ──
+  if (isAirbnb) {
+    const listingId = extractAirbnbListingId(url.pathname);
+    if (listingId) {
+      try {
+        const apiResult = await fetchAirbnbApi(listingId, isUk);
+        if (apiResult && apiResult.public_title) {
+          apiResult.source_url = cleanUrl;
+          if (!apiResult.base_rate_currency) apiResult.base_rate_currency = isUk ? "GBP" : "USD";
+          return apiResult;
+        }
+      } catch {
+        // fall through to HTML scraping
+      }
+    }
   }
 
-  if (response.status === 404) {
-    throw new Error("Listing not found. Check the URL is correct and the listing is still active.");
-  }
+  // ── Strategy 2: HTML scrape fallback ──
+  const response = await fetch(cleanUrl, {
+    headers: {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+      "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+      "Accept-Language": "en-GB,en;q=0.9",
+      "Cache-Control": "no-cache",
+      "Sec-Fetch-Dest": "document",
+      "Sec-Fetch-Mode": "navigate",
+      "Sec-Fetch-Site": "none",
+    },
+  });
 
-  if (!response.ok) {
-    throw new Error(`Could not fetch listing (HTTP ${response.status}). The URL may be private or unavailable.`);
-  }
+  if (response.status === 403 || response.status === 401) throw new Error("Airbnb blocked this request.");
+  if (response.status === 404) throw new Error("Listing not found. Check the URL is correct and the listing is still active.");
+  if (!response.ok) throw new Error(`Could not fetch listing (HTTP ${response.status}).`);
 
   const html = await response.text();
 
-  // Try strategies in order
-  const strategies: Array<(h: string) => ImportedListing | null> = [
-    parseNextData,
-    parseJsonLd,
-  ];
-
-  let listing: ImportedListing = {};
-
-  for (const strategy of strategies) {
-    try {
-      const result = strategy(html);
-      if (result && Object.keys(result).length > 1) {
-        listing = result;
-        break;
-      }
-    } catch {
-      // try next
-    }
+  // Detect homepage redirect (anti-bot)
+  if (html.includes("Holiday Rentals, Cabins, Beach Houses") || html.includes("Vacation Rentals, Cabins, Beach Houses")) {
+    throw new Error("Airbnb redirected to homepage — this listing may be unavailable from server-side requests. Try the Airbnb Sync option instead.");
   }
 
-  // Always merge OG tags for anything missing
-  const ogData = parseMetaTags(html);
+  let listing: ImportedListing = {};
+  for (const strategy of [parseNextData, parseJsonLd]) {
+    try {
+      const result = strategy(html);
+      if (result && Object.keys(result).length > 1) { listing = result; break; }
+    } catch { /* try next */ }
+  }
+
+  const og = parseMetaTags(html);
   listing = {
-    public_title: listing.public_title ?? ogData.public_title,
-    description: listing.description ?? ogData.description,
-    images: listing.images?.length ? listing.images : ogData.images,
+    public_title: listing.public_title ?? og.public_title,
+    description: listing.description ?? og.description,
+    images: listing.images?.length ? listing.images : og.images,
     ...listing,
   };
-
   listing.source_url = cleanUrl;
 
-  // Apply source-specific post-processing
-  if (source === "airbnb") {
-    // Default currency for Airbnb UK URLs
-    if (!listing.base_rate_currency && url.hostname.includes(".co.uk")) {
-      listing.base_rate_currency = "GBP";
-    }
-    listing.base_rate_currency = listing.base_rate_currency ?? "USD";
+  if (isAirbnb) {
+    if (!listing.base_rate_currency) listing.base_rate_currency = isUk ? "GBP" : "USD";
   }
 
   if (!listing.public_title && !listing.description) {
-    throw new Error("Could not extract listing data from the provided URL. The page may require login or the URL format is unsupported.");
+    throw new Error("Could not extract listing data. The page may require login or the URL format is unsupported.");
   }
 
   return listing;
