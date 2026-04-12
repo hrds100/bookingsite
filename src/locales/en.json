@@ -195,7 +195,15 @@
     "bathrooms_label": "{{n}} bathrooms",
     "property_not_found": "Property not found",
     "property_removed": "This listing may have been removed or doesn't exist.",
-    "browse_properties": "Browse properties"
+    "browse_properties": "Browse properties",
+    "policy_flexible": "Flexible",
+    "policy_flexible_desc": "Full refund up to 24 hours before check-in",
+    "policy_moderate": "Moderate",
+    "policy_moderate_desc": "Full refund up to 5 days before check-in",
+    "policy_strict": "Strict",
+    "policy_strict_desc": "50% refund up to 7 days before check-in",
+    "policy_non_refundable": "Non-refundable",
+    "policy_non_refundable_desc": "No refund"
   },
   "widget": {
     "check_in": "Check in",

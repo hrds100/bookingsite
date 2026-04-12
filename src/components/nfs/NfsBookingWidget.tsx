@@ -257,7 +257,7 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
     <div data-feature="NFSTAY__BOOKING_WIDGET" className="bg-white border border-gray-200 rounded-2xl p-4 sm:p-6 shadow-card">
       <div data-feature="NFSTAY__WIDGET_PRICE" className="mb-4">
         <span className="text-xl sm:text-2xl font-bold text-primary">{sym}{rate}</span>
-        <span className="text-base font-normal text-gray-900 ml-1">/ night</span>
+        <span className="text-base font-normal text-gray-900 ml-1">{t('property.per_night')}</span>
       </div>
 
       {/* Dates */}
@@ -276,15 +276,15 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
           <button data-feature="NFSTAY__WIDGET_CHECKIN" className="w-full border border-border rounded-xl overflow-hidden mb-3">
             <div className="grid grid-cols-2 divide-x divide-border">
               <div className={cn("p-3 text-left", calendarOpen && calPhase === "from" && "bg-muted/40")}>
-                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground block">Check in</label>
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground block">{t('widget.check_in_label')}</label>
                 <span className={cn("text-sm", dateRange?.from ? "text-foreground font-medium" : "text-muted-foreground")}>
-                  {dateRange?.from ? format(dateRange.from, 'MMM d, yyyy') : 'Add date'}
+                  {dateRange?.from ? format(dateRange.from, 'MMM d, yyyy') : t('widget.add_date')}
                 </span>
               </div>
               <div className={cn("p-3 text-left", calendarOpen && calPhase === "to" && "bg-muted/40")}>
-                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground block">Check out</label>
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground block">{t('widget.check_out_label')}</label>
                 <span className={cn("text-sm", dateRange?.to ? "text-foreground font-medium" : "text-muted-foreground")}>
-                  {dateRange?.to ? format(dateRange.to, 'MMM d, yyyy') : 'Add date'}
+                  {dateRange?.to ? format(dateRange.to, 'MMM d, yyyy') : t('widget.add_date')}
                 </span>
               </div>
             </div>
@@ -295,14 +295,14 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
           <div className="px-4 pt-4 pb-2 border-b border-border">
             {dateRange?.from && dateRange?.to ? (
               <>
-                <p className="text-base font-bold">{nights} night{nights !== 1 ? "s" : ""}</p>
+                <p className="text-base font-bold">{nights === 1 ? t('widget.nights', { n: nights }) : t('widget.nights_plural', { n: nights })}</p>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   {format(dateRange.from, "d MMM yyyy")} – {format(dateRange.to, "d MMM yyyy")}
                 </p>
               </>
             ) : (
               <p className="text-base font-semibold">
-                {calPhase === "from" ? "Select check-in date" : "Select check-out date"}
+                {calPhase === "from" ? t('widget.select_checkin_label') : t('widget.select_checkout_label')}
               </p>
             )}
           </div>
@@ -347,14 +347,14 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
               onClick={() => { setDateRange(undefined); setCalPhase("from"); }}
               className="text-sm font-semibold underline underline-offset-2 text-foreground hover:text-primary transition-colors"
             >
-              Clear dates
+              {t('widget.clear_dates')}
             </button>
             <button
               type="button"
               onClick={() => setCalendarOpen(false)}
               className="px-5 py-2 bg-foreground text-background text-sm font-semibold rounded-lg hover:opacity-80 transition-opacity"
             >
-              Close
+              {t('widget.close_btn')}
             </button>
           </div>
         </PopoverContent>
@@ -364,23 +364,23 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
       <Popover open={guestsOpen} onOpenChange={setGuestsOpen}>
         <PopoverTrigger asChild>
           <button data-feature="NFSTAY__WIDGET_GUESTS" className="w-full border border-border rounded-xl p-3 text-left mb-4">
-            <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground block">Guests (max {property.max_guests})</label>
+            <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground block">{t('widget.guests_max', { n: property.max_guests })}</label>
             <div className="flex items-center gap-2 mt-0.5">
               <Users className="w-4 h-4 text-muted-foreground" />
-              <span className="text-sm">{adults + children} guest{adults + children !== 1 ? 's' : ''}</span>
+              <span className="text-sm">{adults + children} {adults + children === 1 ? t('common.guest') : t('common.guests')}</span>
             </div>
           </button>
         </PopoverTrigger>
         <PopoverContent className="w-72 p-4">
-          <Stepper label="Adults" sub="Ages 13+" value={adults} onChange={setAdults} min={1} disableIncrement={atMaxGuests} />
-          <Stepper label="Children" sub="Ages 2-12" value={children} onChange={setChildren} disableIncrement={atMaxGuests} />
+          <Stepper label={t('widget.adults_label')} sub={t('widget.adults_sub_label')} value={adults} onChange={setAdults} min={1} disableIncrement={atMaxGuests} />
+          <Stepper label={t('widget.children_label')} sub={t('widget.children_sub_label')} value={children} onChange={setChildren} disableIncrement={atMaxGuests} />
         </PopoverContent>
       </Popover>
 
       {/* Add-ons */}
       {nights > 0 && addons.length > 0 && (
         <div data-feature="NFSTAY__WIDGET_ADDONS" className="mb-4 space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Enhance your stay</p>
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t('widget.enhance')}</p>
           <div className="grid grid-cols-2 gap-2">
             {addons.map(addon => {
               const selected = selectedAddons.includes(addon.id);
@@ -416,34 +416,34 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
       {nights > 0 && (
         <div data-feature="NFSTAY__WIDGET_BREAKDOWN" className="space-y-2 mb-4 text-sm">
           <div className="flex justify-between">
-            <span className="text-muted-foreground">{sym}{rate} × {nights} night{nights !== 1 ? 's' : ''}</span>
+            <span className="text-muted-foreground">{sym}{rate} × {nights} {nights === 1 ? t('widget.night_label') : t('widget.nights_label_plural')}</span>
             <span>{sym}{subtotal}</span>
           </div>
           {cleaningFee > 0 && (
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Cleaning fee</span>
+              <span className="text-muted-foreground">{t('widget.cleaning_fee_label')}</span>
               <span>{sym}{cleaningFee}</span>
             </div>
           )}
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Service fee</span>
+            <span className="text-muted-foreground">{t('widget.service_fee_label')}</span>
             <span>{sym}{serviceFee}</span>
           </div>
           {taxes > 0 && (
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Taxes</span>
+              <span className="text-muted-foreground">{t('widget.taxes_label')}</span>
               <span>{sym}{taxes}</span>
             </div>
           )}
           {addonsTotal > 0 && (
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Add-ons</span>
+              <span className="text-muted-foreground">{t('widget.addons_label')}</span>
               <span>{sym}{addonsTotal}</span>
             </div>
           )}
           {discount > 0 && (
             <div className="flex justify-between text-primary">
-              <span>{nights >= 28 ? 'Monthly' : 'Weekly'} discount</span>
+              <span>{nights >= 28 ? t('widget.monthly_discount_label') : t('widget.weekly_discount_label')}</span>
               <span>-{sym}{discount}</span>
             </div>
           )}
@@ -457,7 +457,7 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
                   type="text"
                   value={promoCode}
                   onChange={(e) => { setPromoCode(e.target.value); setPromoError(''); }}
-                  placeholder="Promo code"
+                  placeholder={t('widget.promo_code_placeholder')}
                   className="flex-1 h-8 px-3 text-xs border border-input rounded-md bg-card outline-none focus:border-primary"
                   disabled={promoLoading}
                 />
@@ -469,7 +469,7 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
                   onClick={handleApplyPromo}
                   disabled={promoLoading}
                 >
-                  {promoLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Apply'}
+                  {promoLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : t('widget.apply_btn')}
                 </Button>
               </div>
               {promoError && (
@@ -488,7 +488,7 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
 
           <hr className="border-border" />
           <div className="flex justify-between font-bold text-lg">
-            <span>Total</span>
+            <span>{t('widget.total_label')}</span>
             <span>{sym}{total}</span>
           </div>
         </div>
@@ -496,7 +496,7 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
 
       {belowMinStay && (
         <p className="text-center text-xs text-destructive mb-2 font-medium">
-          Minimum stay is {property.minimum_stay} nights
+          {t('widget.min_stay_error', { n: property.minimum_stay })}
         </p>
       )}
 
@@ -506,7 +506,7 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
         disabled={!nights || belowMinStay}
         className="w-full bg-primary-gradient text-white font-semibold py-4 px-6 rounded-full hover:opacity-90 transition-all duration-200 hover:shadow-lg text-base disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        {nights > 0 ? 'Reserve' : 'Check availability'}
+        {nights > 0 ? t('widget.reserve_btn') : t('widget.check_availability')}
       </button>
 
       <p className="text-center text-xs text-muted-foreground mt-3">{t('widget.no_charge')}</p>

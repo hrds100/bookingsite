@@ -237,8 +237,8 @@ export default function NfsPropertyView() {
               <div className="flex items-start gap-3">
                 <ShieldCheck className="w-5 h-5 text-primary mt-0.5" />
                 <div>
-                  <p className="text-sm font-semibold">{policy.label}</p>
-                  <p className="text-sm text-muted-foreground">{policy.description}</p>
+                  <p className="text-sm font-semibold">{t(`property.policy_${property.cancellation_policy}`)}</p>
+                  <p className="text-sm text-muted-foreground">{t(`property.policy_${property.cancellation_policy}_desc`)}</p>
                 </div>
               </div>
             )}

@@ -195,7 +195,15 @@
     "bathrooms_label": "{{n}} baños",
     "property_not_found": "Propiedad no encontrada",
     "property_removed": "Este anuncio puede haber sido eliminado o no existe.",
-    "browse_properties": "Ver propiedades"
+    "browse_properties": "Ver propiedades",
+    "policy_flexible": "Flexible",
+    "policy_flexible_desc": "Reembolso completo hasta 24 horas antes del check-in",
+    "policy_moderate": "Moderada",
+    "policy_moderate_desc": "Reembolso completo hasta 5 días antes del check-in",
+    "policy_strict": "Estricta",
+    "policy_strict_desc": "Reembolso del 50% hasta 7 días antes del check-in",
+    "policy_non_refundable": "No reembolsable",
+    "policy_non_refundable_desc": "Sin reembolso"
   },
   "widget": {
     "check_in": "Entrada",

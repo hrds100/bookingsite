@@ -195,7 +195,15 @@
     "bathrooms_label": "{{n}} حمّامات",
     "property_not_found": "العقار غير موجود",
     "property_removed": "ربما تم حذف هذا الإعلان أو أنه غير موجود.",
-    "browse_properties": "تصفح العقارات"
+    "browse_properties": "تصفح العقارات",
+    "policy_flexible": "مرنة",
+    "policy_flexible_desc": "استرداد كامل حتى 24 ساعة قبل تسجيل الوصول",
+    "policy_moderate": "معتدلة",
+    "policy_moderate_desc": "استرداد كامل حتى 5 أيام قبل تسجيل الوصول",
+    "policy_strict": "صارمة",
+    "policy_strict_desc": "استرداد 50٪ حتى 7 أيام قبل تسجيل الوصول",
+    "policy_non_refundable": "غير قابلة للاسترداد",
+    "policy_non_refundable_desc": "لا استرداد"
   },
   "widget": {
     "check_in": "تسجيل الوصول",

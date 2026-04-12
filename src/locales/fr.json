@@ -195,7 +195,15 @@
     "bathrooms_label": "{{n}} salles de bain",
     "property_not_found": "Propriété introuvable",
     "property_removed": "Cette annonce a peut-être été supprimée ou n'existe pas.",
-    "browse_properties": "Voir les propriétés"
+    "browse_properties": "Voir les propriétés",
+    "policy_flexible": "Flexible",
+    "policy_flexible_desc": "Remboursement complet jusqu'à 24 heures avant l'arrivée",
+    "policy_moderate": "Modérée",
+    "policy_moderate_desc": "Remboursement complet jusqu'à 5 jours avant l'arrivée",
+    "policy_strict": "Stricte",
+    "policy_strict_desc": "Remboursement à 50 % jusqu'à 7 jours avant l'arrivée",
+    "policy_non_refundable": "Non remboursable",
+    "policy_non_refundable_desc": "Aucun remboursement"
   },
   "widget": {
     "check_in": "Arrivée",
