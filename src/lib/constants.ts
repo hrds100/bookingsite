@@ -19,6 +19,7 @@ export const CURRENCIES = [
   { code: 'EUR', symbol: '€', name: 'Euro' },
   { code: 'AED', symbol: 'د.إ', name: 'UAE Dirham' },
   { code: 'SGD', symbol: 'S$', name: 'Singapore Dollar' },
+  { code: 'BRL', symbol: 'R$', name: 'Brazilian Real' },
 ] as const;
 
 export const CURRENCY_RATES: Record<string, number> = {
@@ -27,6 +28,7 @@ export const CURRENCY_RATES: Record<string, number> = {
   EUR: 1.17,
   AED: 4.67,
   SGD: 1.71,
+  BRL: 8.15,
 };
 
 export const CHECK_TIMES = [

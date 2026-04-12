@@ -75,6 +75,12 @@ interface NotificationsForm {
   sms_new_booking: boolean;
 }
 
+interface PreferencesForm {
+  default_currency: string;
+  default_language: string;
+  accept_cash_booking: boolean;
+}
+
 const EMPTY_PROFILE: ProfileForm = {
   brand_name: "",
   legal_name: "",
@@ -124,6 +130,12 @@ const EMPTY_ANALYTICS: AnalyticsForm = {
   favicon_url: "",
 };
 
+const EMPTY_PREFERENCES: PreferencesForm = {
+  default_currency: 'GBP',
+  default_language: 'en',
+  accept_cash_booking: false,
+};
+
 const EMPTY_NOTIFICATIONS: NotificationsForm = {
   email_new_booking: true,
   email_cancellation: true,
@@ -143,6 +155,7 @@ export default function OperatorSettings() {
   const [socialForm, setSocialForm] = useState<SocialForm>(EMPTY_SOCIAL);
   const [analyticsForm, setAnalyticsForm] = useState<AnalyticsForm>(EMPTY_ANALYTICS);
   const [notificationsForm, setNotificationsForm] = useState<NotificationsForm>(EMPTY_NOTIFICATIONS);
+  const [preferencesForm, setPreferencesForm] = useState<PreferencesForm>(EMPTY_PREFERENCES);
 
   const [saving, setSaving] = useState<string | null>(null);
   const [synced, setSynced] = useState(false);
@@ -204,6 +217,11 @@ export default function OperatorSettings() {
         og_image_url: operator.og_image_url || "",
         favicon_url: operator.favicon_url || "",
       });
+      setPreferencesForm({
+        default_currency: operator.default_currency || 'GBP',
+        default_language: operator.default_language || 'en',
+        accept_cash_booking: operator.accept_cash_booking ?? false,
+      });
       setSynced(true);
     }
   }, [operator, synced]);
@@ -219,6 +237,13 @@ export default function OperatorSettings() {
       setSaving(null);
     }
   };
+
+  const handleSavePreferences = () =>
+    saveTab("Preferences", {
+      default_currency: preferencesForm.default_currency,
+      default_language: preferencesForm.default_language,
+      accept_cash_booking: preferencesForm.accept_cash_booking,
+    });
 
   const handleSaveProfile = () =>
     saveTab("Profile", {
@@ -408,6 +433,7 @@ export default function OperatorSettings() {
           <TabsTrigger value="payout">Payout</TabsTrigger>
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
           <TabsTrigger value="legal">Legal Pages</TabsTrigger>
+          <TabsTrigger value="preferences">Preferences</TabsTrigger>
         </TabsList>
 
         {/* Tab 1: Profile */}
@@ -1010,6 +1036,75 @@ export default function OperatorSettings() {
         {/* Tab: Legal Pages */}
         <TabsContent value="legal" className="mt-6">
           <LegalPagesTab />
+        </TabsContent>
+
+        {/* Tab: Preferences */}
+        <TabsContent value="preferences" className="mt-6 space-y-6">
+          <section className="bg-card border border-border rounded-2xl p-6 space-y-5">
+            <h2 className="text-lg font-semibold">Site Defaults</h2>
+            <p className="text-sm text-muted-foreground -mt-2">These defaults apply when visitors first land on your site.</p>
+
+            <div>
+              <Label>Default Currency</Label>
+              <Select
+                value={preferencesForm.default_currency}
+                onValueChange={v => setPreferencesForm(p => ({ ...p, default_currency: v }))}
+              >
+                <SelectTrigger className="mt-1.5">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {[
+                    { code: 'GBP', label: '£ GBP — British Pound' },
+                    { code: 'USD', label: '$ USD — US Dollar' },
+                    { code: 'EUR', label: '€ EUR — Euro' },
+                    { code: 'AED', label: 'د.إ AED — UAE Dirham' },
+                    { code: 'SGD', label: 'S$ SGD — Singapore Dollar' },
+                    { code: 'BRL', label: 'R$ BRL — Brazilian Real' },
+                  ].map(c => (
+                    <SelectItem key={c.code} value={c.code}>{c.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label>Default Language</Label>
+              <Select
+                value={preferencesForm.default_language}
+                onValueChange={v => setPreferencesForm(p => ({ ...p, default_language: v }))}
+              >
+                <SelectTrigger className="mt-1.5">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="en">🇬🇧 English</SelectItem>
+                  <SelectItem value="pt">🇧🇷 Português</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </section>
+
+          <section className="bg-card border border-border rounded-2xl p-6 space-y-4">
+            <h2 className="text-lg font-semibold">Booking Options</h2>
+
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-sm font-medium">Accept cash / pay on arrival</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Show a "Book &amp; Pay at Property" option on your property pages. Guests can reserve without paying online.
+                </p>
+              </div>
+              <Switch
+                checked={preferencesForm.accept_cash_booking}
+                onCheckedChange={v => setPreferencesForm(p => ({ ...p, accept_cash_booking: v }))}
+              />
+            </div>
+          </section>
+
+          <Button onClick={handleSavePreferences} disabled={saving === "Preferences"}>
+            {saving === "Preferences" ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving…</> : "Save Preferences"}
+          </Button>
         </TabsContent>
       </Tabs>
     </div>

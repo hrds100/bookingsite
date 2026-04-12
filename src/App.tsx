@@ -3,8 +3,11 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { CurrencyProvider } from "@/contexts/CurrencyContext";
+import { CurrencyProvider, useCurrency } from "@/contexts/CurrencyContext";
 import { WhiteLabelProvider } from "@/contexts/WhiteLabelContext";
+import { LanguageProvider, useLanguage } from "@/contexts/LanguageContext";
+import { useWhiteLabel } from "@/contexts/WhiteLabelContext";
+import { useEffect } from "react";
 import { NfsMainLayout } from "@/components/nfs/NfsMainLayout";
 import { NfsOperatorLayout } from "@/components/nfs/NfsOperatorLayout";
 import { NfsAdminLayout } from "@/components/nfs/NfsAdminLayout";
@@ -49,16 +52,35 @@ import FeatureInspector from "./components/dev/FeatureInspector";
 import AuthBridgePage from "./pages/AuthBridgePage";
 import ForwardPage from "./pages/ForwardPage";
 import NotFound from "./pages/NotFound";
+import NfsCashBookingConfirmed from "./pages/NfsCashBookingConfirmed";
 
 const queryClient = new QueryClient();
+
+/** Applies operator's default currency and language when on a white-label site */
+function ApplyOperatorDefaults() {
+  const { operator, isWhiteLabel } = useWhiteLabel();
+  const { setCurrencyCode } = useCurrency();
+  const { setLanguage } = useLanguage();
+
+  useEffect(() => {
+    if (isWhiteLabel && operator) {
+      if (operator.default_currency) setCurrencyCode(operator.default_currency);
+      if (operator.default_language) setLanguage(operator.default_language as 'en' | 'pt');
+    }
+  }, [isWhiteLabel, operator, setCurrencyCode, setLanguage]);
+
+  return null;
+}
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <CurrencyProvider>
+      <LanguageProvider>
       <WhiteLabelProvider>
         <TooltipProvider>
           <Toaster />
           <Sonner />
+          <ApplyOperatorDefaults />
           <FeatureInspector />
           <WalletProvisioner />
           <BrowserRouter>
@@ -112,6 +134,7 @@ const App = () => (
             <Route path="/terms" element={<TermsPage />} />
             <Route path="/privacy" element={<PrivacyPage />} />
             <Route path="/cookie-policy" element={<CookiePage />} />
+            <Route path="/cash-booking-confirmed" element={<NfsCashBookingConfirmed />} />
             <Route path="/traveler/login" element={<TravelerLoginPage />} />
             <Route path="/verify-email" element={<VerifyEmailPage />} />
             <Route path="/verify-otp" element={<VerifyOtpPage />} />
@@ -120,6 +143,7 @@ const App = () => (
           </BrowserRouter>
         </TooltipProvider>
       </WhiteLabelProvider>
+      </LanguageProvider>
     </CurrencyProvider>
   </QueryClientProvider>
 );
