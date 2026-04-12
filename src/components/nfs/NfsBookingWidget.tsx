@@ -165,7 +165,7 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
         adults,
         children,
         infants: 0,
-        status: 'confirmed',
+        status: 'pending',
         payment_status: 'pending',
         payment_method: 'cash',
         total_amount: total,

@@ -89,8 +89,8 @@ const en = {
   footer_cookie: 'Cookie policy',
   footer_copyright_operator: 'Powered by nfstay.',
   // Cash booking confirmed page
-  cash_confirmed_title: 'Booking Confirmed!',
-  cash_confirmed_subtitle: 'Your reservation is confirmed. Please pay in cash on arrival.',
+  cash_confirmed_title: 'Booking Request Received!',
+  cash_confirmed_subtitle: 'Your reservation is pending approval by the host. You will be contacted once confirmed. Payment is due in cash on arrival.',
   cash_confirmed_ref: 'Booking Reference',
   cash_confirmed_property: 'Property',
   cash_confirmed_checkin: 'Check-in',
@@ -184,8 +184,8 @@ const pt: typeof en = {
   footer_cookie: 'Política de cookies',
   footer_copyright_operator: 'Desenvolvido por nfstay.',
   // Cash booking confirmed page
-  cash_confirmed_title: 'Reserva Confirmada!',
-  cash_confirmed_subtitle: 'Sua reserva está confirmada. Por favor, pague em dinheiro na chegada.',
+  cash_confirmed_title: 'Solicitação de Reserva Recebida!',
+  cash_confirmed_subtitle: 'Sua reserva está aguardando aprovação do anfitrião. Você será contatado após a confirmação. O pagamento deve ser feito em dinheiro na chegada.',
   cash_confirmed_ref: 'Referência da Reserva',
   cash_confirmed_property: 'Propriedade',
   cash_confirmed_checkin: 'Check-in',

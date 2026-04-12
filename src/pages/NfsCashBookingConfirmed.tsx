@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { CheckCircle } from "lucide-react";
+import { Clock } from "lucide-react";
 import { NfsLogo } from "@/components/nfs/NfsLogo";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useWhiteLabel } from "@/contexts/WhiteLabelContext";
@@ -47,7 +47,7 @@ export default function NfsCashBookingConfirmed() {
         </div>
 
         <div className="flex justify-center mb-4">
-          <CheckCircle className="w-16 h-16 text-primary" />
+          <Clock className="w-16 h-16 text-primary" />
         </div>
 
         <h1 className="text-2xl font-bold text-foreground mb-2">{t('cash_confirmed_title')}</h1>
