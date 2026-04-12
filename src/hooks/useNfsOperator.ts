@@ -42,6 +42,9 @@ export interface NfsOperator {
   meta_title: string | null;
   meta_description: string | null;
   booking_mode: string | null;
+  default_currency: string | null;
+  default_language: string | null;
+  accept_cash_booking: boolean;
   faqs: { question: string; answer: string }[];
   created_at: string;
 }
@@ -57,7 +60,7 @@ export function useNfsOperator() {
 
       const { data, error } = await supabase
         .from("nfs_operators")
-        .select("id, profile_id, brand_name, legal_name, first_name, last_name, persona_type, subdomain, custom_domain, primary_domain_type, accent_color, logo_url, favicon_url, og_image_url, hero_photo, hero_headline, hero_subheadline, about_bio, about_photo, contact_email, contact_phone, contact_whatsapp, contact_telegram, whatsapp_prefill_message, social_twitter, social_instagram, social_facebook, social_tiktok, social_youtube, google_business_url, airbnb_url, google_analytics_id, meta_pixel_id, meta_title, meta_description, booking_mode, faqs, created_at")
+        .select("id, profile_id, brand_name, legal_name, first_name, last_name, persona_type, subdomain, custom_domain, primary_domain_type, accent_color, logo_url, favicon_url, og_image_url, hero_photo, hero_headline, hero_subheadline, about_bio, about_photo, contact_email, contact_phone, contact_whatsapp, contact_telegram, whatsapp_prefill_message, social_twitter, social_instagram, social_facebook, social_tiktok, social_youtube, google_business_url, airbnb_url, google_analytics_id, meta_pixel_id, meta_title, meta_description, booking_mode, default_currency, default_language, accept_cash_booking, faqs, created_at")
         .eq("profile_id", user.id)
         .maybeSingle();
 

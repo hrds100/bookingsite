@@ -7,6 +7,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { NfsLogo } from "./NfsLogo";
 import { NfsCurrencySelector } from "./NfsCurrencySelector";
+import { NfsLanguageSelector } from "./NfsLanguageSelector";
 import { NfsFavouritesDropdown } from "./NfsFavouritesDropdown";
 import { useAuth } from "@/hooks/useAuth";
 import { useWhiteLabel } from "@/contexts/WhiteLabelContext";
@@ -118,10 +119,11 @@ export function NfsMainNavbar() {
               )}
             </div>
 
-            {/* CENTER: Toggle pill (non-search) or Currency (mobile) */}
+            {/* CENTER: Toggle pill (non-search) or Currency+Language (mobile) */}
             {!isSearchPage && (
-              <div className="flex lg:hidden items-center gap-2 flex-1 justify-center max-w-[300px]">
+              <div className="flex lg:hidden items-center gap-1 flex-1 justify-center max-w-[300px]">
                 <NfsCurrencySelector />
+                <NfsLanguageSelector />
               </div>
             )}
 
@@ -303,9 +305,10 @@ export function NfsMainNavbar() {
 
             {/* RIGHT: Actions */}
             <div className={`items-center gap-1 sm:gap-2 md:gap-3 lg:gap-4 ${isSearchPage ? "hidden lg:flex" : "flex ml-auto"}`}>
-              {/* Currency + Favourites + Contact (lg+) */}
+              {/* Currency + Language + Favourites + Contact (lg+) */}
               <div className="hidden lg:flex items-center gap-2 lg:gap-3">
                 <NfsCurrencySelector />
+                <NfsLanguageSelector />
                 <NfsFavouritesDropdown />
                 <div className="relative">
                   <button

@@ -7,6 +7,9 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { useCurrency } from "@/contexts/CurrencyContext";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { useWhiteLabel } from "@/contexts/WhiteLabelContext";
+import { supabase } from "@/lib/supabase";
 import { validatePromoCode as validatePromoCodeReal } from "@/lib/promo-codes";
 import { useNfsPropertyBlockedDates } from "@/hooks/useNfsReservations";
 import type { MockProperty } from "@/data/mock-properties";
@@ -60,6 +63,15 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
   const [selectedAddons, setSelectedAddons] = useState<string[]>([]);
 
   const { currency, convert } = useCurrency();
+  const { t } = useLanguage();
+  const { operator } = useWhiteLabel();
+  const acceptCash = operator?.accept_cash_booking ?? false;
+
+  // Cash booking form state
+  const [showCashForm, setShowCashForm] = useState(false);
+  const [cashName, setCashName] = useState('');
+  const [cashEmail, setCashEmail] = useState('');
+  const [cashSubmitting, setCashSubmitting] = useState(false);
   const fromCur = property.base_rate_currency;
   const sym = currency.symbol;
 
@@ -134,6 +146,48 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
     setSelectedAddons(prev =>
       prev.includes(id) ? prev.filter(a => a !== id) : [...prev, id]
     );
+  };
+
+  const handleCashBook = async () => {
+    if (!cashName.trim() || !cashEmail.trim()) return;
+    setCashSubmitting(true);
+    try {
+      const ref = `CASH-${Date.now().toString(36).toUpperCase()}`;
+      const nameParts = cashName.trim().split(' ');
+      const { error } = await supabase.from('nfs_reservations').insert({
+        property_id: property.id,
+        guest_first_name: nameParts[0] || cashName,
+        guest_last_name: nameParts.slice(1).join(' ') || '',
+        guest_email: cashEmail.trim(),
+        guest_phone: '',
+        check_in: dateRange?.from ? format(dateRange.from, 'yyyy-MM-dd') : '',
+        check_out: dateRange?.to ? format(dateRange.to, 'yyyy-MM-dd') : '',
+        adults,
+        children,
+        infants: 0,
+        status: 'confirmed',
+        payment_status: 'pending',
+        payment_method: 'cash',
+        total_amount: total,
+        payment_currency: currency.code,
+        booking_reference: ref,
+      });
+      const confirmation = {
+        ref,
+        propertyTitle: property.public_title,
+        checkIn: dateRange?.from ? format(dateRange.from, 'yyyy-MM-dd') : '',
+        checkOut: dateRange?.to ? format(dateRange.to, 'yyyy-MM-dd') : '',
+        guests: adults + children,
+        total,
+        currency: currency.code,
+        currencySymbol: currency.symbol,
+        error: error?.message ?? null,
+      };
+      sessionStorage.setItem('nfs_cash_booking', JSON.stringify(confirmation));
+      navigate('/cash-booking-confirmed');
+    } catch (err) {
+      setCashSubmitting(false);
+    }
   };
 
   const handleReserve = () => {
@@ -455,10 +509,61 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
         {nights > 0 ? 'Reserve' : 'Check availability'}
       </button>
 
-      <p className="text-center text-xs text-muted-foreground mt-3">You won't be charged yet</p>
+      <p className="text-center text-xs text-muted-foreground mt-3">{t('widget_no_charge')}</p>
 
       {property.minimum_stay > 1 && (
-        <p className="text-center text-xs text-muted-foreground mt-1">Minimum {property.minimum_stay} night stay</p>
+        <p className="text-center text-xs text-muted-foreground mt-1">{t('widget_min_stay')} {property.minimum_stay} {t('widget_min_stay_nights')}</p>
+      )}
+
+      {/* Cash booking option */}
+      {acceptCash && nights > 0 && !belowMinStay && (
+        <div className="mt-4 pt-4 border-t border-border">
+          {!showCashForm ? (
+            <>
+              <button
+                data-feature="NFSTAY__WIDGET_CASH"
+                onClick={() => setShowCashForm(true)}
+                className="w-full border-2 border-primary text-primary font-semibold py-3.5 px-6 rounded-full hover:bg-primary/5 transition-all duration-200 text-base"
+              >
+                {t('widget_cash_button')}
+              </button>
+              <p className="text-center text-xs text-muted-foreground mt-2">{t('widget_cash_note')}</p>
+            </>
+          ) : (
+            <div className="space-y-3">
+              <p className="text-sm font-semibold text-foreground">{t('widget_cash_button')}</p>
+              <input
+                type="text"
+                value={cashName}
+                onChange={e => setCashName(e.target.value)}
+                placeholder={t('widget_cash_name')}
+                className="w-full h-10 px-3 text-sm border border-input rounded-lg bg-background outline-none focus:border-primary"
+              />
+              <input
+                type="email"
+                value={cashEmail}
+                onChange={e => setCashEmail(e.target.value)}
+                placeholder={t('widget_cash_email')}
+                className="w-full h-10 px-3 text-sm border border-input rounded-lg bg-background outline-none focus:border-primary"
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={handleCashBook}
+                  disabled={cashSubmitting || !cashName.trim() || !cashEmail.trim()}
+                  className="flex-1 bg-primary-gradient text-white font-semibold py-3 px-4 rounded-full hover:opacity-90 transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {cashSubmitting ? t('widget_cash_submitting') : t('widget_cash_confirm')}
+                </button>
+                <button
+                  onClick={() => { setShowCashForm(false); setCashName(''); setCashEmail(''); }}
+                  className="px-4 py-3 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {t('widget_cash_cancel')}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       )}
     </div>
   );
