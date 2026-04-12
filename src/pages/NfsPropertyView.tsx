@@ -9,6 +9,7 @@ import { NfsEmptyState } from "@/components/nfs/NfsEmptyState";
 import { useNfsProperty } from "@/hooks/useNfsProperties";
 import { useNfsReviews } from "@/hooks/useNfsReviews";
 import { useNfsOperatorPublic } from "@/hooks/useNfsOperatorPublic";
+import { useTranslation } from "react-i18next";
 
 export default function NfsPropertyView() {
   const { id } = useParams();
@@ -25,6 +26,18 @@ export default function NfsPropertyView() {
   const { addViewed } = useRecentlyViewed();
   const { reviews, averageRating, totalCount } = useNfsReviews(property?.id);
   const { data: hostInfo } = useNfsOperatorPublic(property?.operator_id);
+
+  // i18n — must be called unconditionally before any early returns
+  const { t, i18n } = useTranslation();
+  const currentLang = i18n.language;
+
+  // DB translation fallback: prefer translated columns, fall back to base columns
+  const displayTitle = (property?.title_translations as Record<string, string> | undefined)?.[currentLang]
+    || property?.public_title
+    || '';
+  const displayDescription = (property?.description_translations as Record<string, string> | undefined)?.[currentLang]
+    || property?.description
+    || '';
 
   useEffect(() => {
     const favs: string[] = JSON.parse(localStorage.getItem('nfs_favourites') || '[]');
@@ -43,7 +56,7 @@ export default function NfsPropertyView() {
   if (!property) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-16">
-        <NfsEmptyState icon={Search} title="Property not found" description="This listing may have been removed or doesn't exist." actionLabel="Browse properties" onAction={() => navigate('/search')} />
+        <NfsEmptyState icon={Search} title={t('property.property_not_found')} description={t('property.property_removed')} actionLabel={t('property.browse_properties')} onAction={() => navigate('/search')} />
       </div>
     );
   }
@@ -82,7 +95,7 @@ export default function NfsPropertyView() {
       <div className="sticky top-0 z-40 bg-background/80 backdrop-blur border-b border-border">
         <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <span className="text-sm font-medium truncate max-w-[200px] md:max-w-md">{property.public_title}</span>
+            <span className="text-sm font-medium truncate max-w-[200px] md:max-w-md">{displayTitle}</span>
           </div>
           <div className="flex items-center gap-2">
             <button onClick={handleShare} className="p-2 rounded-lg hover:bg-secondary"><Share2 className="w-4 h-4" /></button>
@@ -130,7 +143,7 @@ export default function NfsPropertyView() {
           <img src={sortedImages[0]?.url} alt={sortedImages[0]?.caption} className="w-full h-full object-cover" />
         </div>
         <button onClick={() => { setLightboxIndex(0); setLightboxOpen(true); }} className="mt-2 text-xs font-semibold bg-card border border-border rounded-2xl px-3 py-1.5">
-          View all {sortedImages.length} photos
+          {t('property.view_photos', { n: sortedImages.length })}
         </button>
       </div>
 
@@ -162,39 +175,39 @@ export default function NfsPropertyView() {
       <div className="w-full px-4 sm:px-6 lg:px-8 py-8 lg:py-12 flex flex-col xl:flex-row gap-8 xl:gap-12 max-w-7xl mx-auto">
         <main className="flex-1 xl:max-w-4xl space-y-8">
           <div>
-            <h1 data-feature="NFSTAY__PROPERTY_TITLE" className="text-2xl md:text-3xl lg:text-4xl font-semibold leading-tight mb-4">{property.public_title}</h1>
+            <h1 data-feature="NFSTAY__PROPERTY_TITLE" className="text-2xl md:text-3xl lg:text-4xl font-semibold leading-tight mb-4">{displayTitle}</h1>
             <div className="flex flex-wrap items-center gap-2 text-gray-600 text-sm md:text-base">
               <MapPin className="w-4 h-4" />
               <span>{property.city}, {property.country}</span>
               <span>·</span>
               <span className="capitalize">{property.property_type}</span>
               <span>·</span>
-              <span>{property.max_guests} guests</span>
+              <span>{t('property.guests_label', { n: property.max_guests })}</span>
               <span>·</span>
-              <span>{property.room_counts?.bedrooms ?? 0} bedrooms</span>
+              <span>{t('property.bedrooms_label', { n: property.room_counts?.bedrooms ?? 0 })}</span>
               <span>·</span>
-              <span>{property.room_counts?.bathrooms ?? 0} bathrooms</span>
+              <span>{t('property.bathrooms_label', { n: property.room_counts?.bathrooms ?? 0 })}</span>
               {totalCount > 0 ? (
-                <><span>·</span><span className="flex items-center gap-1 text-primary font-medium"><Star className="w-3.5 h-3.5 fill-primary text-primary" />{averageRating} ({totalCount} {totalCount === 1 ? 'review' : 'reviews'})</span></>
+                <><span>·</span><span className="flex items-center gap-1 text-primary font-medium"><Star className="w-3.5 h-3.5 fill-primary text-primary" />{averageRating} ({totalCount} {totalCount === 1 ? t('property.review_singular') : t('property.review_plural')})</span></>
               ) : isNew ? (
-                <><span>·</span><span className="text-primary font-medium">★ New</span></>
+                <><span>·</span><span className="text-primary font-medium">★ {t('property.new_badge')}</span></>
               ) : null}
             </div>
           </div>
           {/* Room info merged into title area above */}
           <hr className="border-border" />
           <div>
-            <h2 className="text-lg font-semibold mb-3">About this place</h2>
+            <h2 className="text-lg font-semibold mb-3">{t('property.about')}</h2>
             <p className="text-sm text-foreground whitespace-pre-line">
-              {showMore ? property.description : property.description.slice(0, 300)}{property.description.length > 300 && !showMore && '...'}
+              {showMore ? displayDescription : displayDescription.slice(0, 300)}{displayDescription.length > 300 && !showMore && '...'}
             </p>
-            {property.description.length > 300 && (
-              <button onClick={() => setShowMore(!showMore)} className="text-sm font-semibold text-primary mt-2 hover:underline">{showMore ? 'Show less' : 'Show more'}</button>
+            {displayDescription.length > 300 && (
+              <button onClick={() => setShowMore(!showMore)} className="text-sm font-semibold text-primary mt-2 hover:underline">{showMore ? t('property.show_less') : t('property.show_more')}</button>
             )}
           </div>
           <hr className="border-border" />
           <div data-feature="NFSTAY__PROPERTY_AMENITIES">
-            <h2 className="text-lg font-semibold mb-3">What this place offers</h2>
+            <h2 className="text-lg font-semibold mb-3">{t('property.what_this_offers')}</h2>
             <div className="grid grid-cols-2 gap-3">
               {amenityList.slice(0, showAllAmenities ? undefined : 10).map(a => (
                 <div key={a} className="flex items-center gap-2 text-sm"><Check className="w-4 h-4 text-primary shrink-0" />{a}</div>
@@ -202,24 +215,24 @@ export default function NfsPropertyView() {
             </div>
             {amenityList.length > 10 && (
               <Button variant="outline" className="mt-4 rounded-2xl" onClick={() => setShowAllAmenities(!showAllAmenities)}>
-                {showAllAmenities ? 'Show fewer' : `Show all ${amenityList.length} amenities`}
+                {showAllAmenities ? t('property.show_fewer_amenities') : t('property.show_all_amenities', { n: amenityList.length })}
               </Button>
             )}
           </div>
           <hr className="border-border" />
           <div data-feature="NFSTAY__PROPERTY_RULES">
-            <h2 className="text-lg font-semibold mb-3">House rules</h2>
+            <h2 className="text-lg font-semibold mb-3">{t('property.house_rules')}</h2>
             <div className="grid grid-cols-2 gap-3 text-sm">
-              <div className="flex items-center gap-2"><Clock className="w-4 h-4 text-muted-foreground" />Check-in after {property.check_in_time}</div>
-              <div className="flex items-center gap-2"><Clock className="w-4 h-4 text-muted-foreground" />Check-out before {property.check_out_time}</div>
-              <div className="flex items-center gap-2"><Users className="w-4 h-4 text-muted-foreground" />Max {property.max_guests} guests</div>
-              <div className="flex items-center gap-2"><PawPrint className="w-4 h-4 text-muted-foreground" />{property.max_pets > 0 ? `Pets allowed (max ${property.max_pets})` : 'No pets'}</div>
+              <div className="flex items-center gap-2"><Clock className="w-4 h-4 text-muted-foreground" />{t('property.checkin_after', { time: property.check_in_time })}</div>
+              <div className="flex items-center gap-2"><Clock className="w-4 h-4 text-muted-foreground" />{t('property.checkout_before', { time: property.check_out_time })}</div>
+              <div className="flex items-center gap-2"><Users className="w-4 h-4 text-muted-foreground" />{t('property.max_guests_label', { n: property.max_guests })}</div>
+              <div className="flex items-center gap-2"><PawPrint className="w-4 h-4 text-muted-foreground" />{property.max_pets > 0 ? t('property.pets_allowed', { n: property.max_pets }) : t('property.no_pets')}</div>
             </div>
             {property.rules && <p className="text-sm text-muted-foreground mt-3">{property.rules}</p>}
           </div>
           <hr className="border-border" />
           <div data-feature="NFSTAY__PROPERTY_PRICE">
-            <h2 className="text-lg font-semibold mb-2">Cancellation policy</h2>
+            <h2 className="text-lg font-semibold mb-2">{t('property.cancellation')}</h2>
             {policy && (
               <div className="flex items-start gap-3">
                 <ShieldCheck className="w-5 h-5 text-primary mt-0.5" />
@@ -234,7 +247,7 @@ export default function NfsPropertyView() {
             <>
               <hr className="border-border" />
               <div data-feature="NFSTAY__PROPERTY_HOST">
-                <h2 className="text-lg font-semibold mb-4">Contact host</h2>
+                <h2 className="text-lg font-semibold mb-4">{t('property.contact_host')}</h2>
                 <div className="flex items-start gap-4">
                   <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-lg shrink-0">
                     {hostInfo.brand_name.charAt(0)}
@@ -243,7 +256,7 @@ export default function NfsPropertyView() {
                     <p className="font-semibold">{hostInfo.brand_name}</p>
                     {hostInfo.first_name && <p className="text-sm text-muted-foreground">{hostInfo.first_name}</p>}
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      Member since {new Date(hostInfo.created_at).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}
+                      {t('property.member_since', { date: new Date(hostInfo.created_at).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }) })}
                     </p>
                     {hostInfo.about_bio && <p className="text-sm text-muted-foreground mt-2">{hostInfo.about_bio}</p>}
                     <div className="flex flex-wrap gap-3 mt-4">
@@ -284,7 +297,7 @@ export default function NfsPropertyView() {
           )}
           <hr className="border-border" />
           <div data-feature="NFSTAY__PROPERTY_MAP">
-            <h2 className="text-lg font-semibold mb-2">Where you'll be</h2>
+            <h2 className="text-lg font-semibold mb-2">{t('property.where_youll_be')}</h2>
             <p className="text-sm text-muted-foreground mb-3">{property.city}, {property.state}, {property.country}</p>
             {import.meta.env.VITE_GOOGLE_MAPS_API_KEY ? (
               <iframe
@@ -314,7 +327,7 @@ export default function NfsPropertyView() {
               <>
                 <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
                   <Star className="w-5 h-5 fill-primary text-primary" />
-                  {averageRating} · {totalCount} {totalCount === 1 ? 'review' : 'reviews'}
+                  {averageRating} · {totalCount} {totalCount === 1 ? t('property.review_singular') : t('property.review_plural')}
                 </h2>
                 <div className="space-y-6">
                   {reviews.slice(0, showAllReviews ? undefined : 3).map((review) => (
@@ -337,7 +350,7 @@ export default function NfsPropertyView() {
                           {review.response && (
                             <div className="mt-3 ml-2 pl-3 border-l-2 border-border">
                               <p className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
-                                <MessageSquare className="w-3 h-3" /> Host response
+                                <MessageSquare className="w-3 h-3" /> {t('property.host_response')}
                               </p>
                               <p className="text-sm text-muted-foreground mt-1">{review.response}</p>
                             </div>
@@ -353,14 +366,14 @@ export default function NfsPropertyView() {
                     className="mt-6 rounded-2xl"
                     onClick={() => setShowAllReviews(!showAllReviews)}
                   >
-                    {showAllReviews ? 'Show fewer reviews' : `Show all ${totalCount} reviews`}
+                    {showAllReviews ? t('property.show_fewer_reviews') : t('property.show_all_reviews', { n: totalCount })}
                   </Button>
                 )}
               </>
             ) : (
               <div className="text-center py-8">
                 <Star className="w-8 h-8 text-muted-foreground mx-auto mb-2 opacity-50" />
-                <p className="text-sm text-muted-foreground">No reviews yet</p>
+                <p className="text-sm text-muted-foreground">{t('property.no_reviews')}</p>
               </div>
             )}
           </div>

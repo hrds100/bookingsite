@@ -9,7 +9,6 @@ import { cn } from "@/lib/utils";
 import type { DateRange } from "react-day-picker";
 import { useNfsPropertyCities } from "@/hooks/useNfsProperties";
 import { useTranslation } from "react-i18next";
-import { useDynamicTranslation } from "@/hooks/useDynamicTranslation";
 
 interface NfsHeroSearchProps {
   heading?: string;
@@ -21,9 +20,6 @@ interface NfsHeroSearchProps {
 export function NfsHeroSearch({ heading, subHeading, desc, btnText }: NfsHeroSearchProps) {
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const translatedHeading = useDynamicTranslation(heading ?? '');
-  const translatedSubHeading = useDynamicTranslation(subHeading ?? '');
-  const translatedDesc = useDynamicTranslation(desc ?? '');
   const [location, setLocation] = useState('');
   const [locationOpen, setLocationOpen] = useState(false);
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
