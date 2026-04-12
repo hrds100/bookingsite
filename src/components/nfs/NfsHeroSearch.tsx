@@ -102,8 +102,8 @@ export function NfsHeroSearch({ heading, subHeading, desc, btnText }: NfsHeroSea
   const formatGuestCount = () => {
     const total = adults + children;
     const parts = [];
-    if (total > 0) parts.push(`${total} guest${total > 1 ? 's' : ''}`);
-    if (infants > 0) parts.push(`${infants} infant${infants > 1 ? 's' : ''}`);
+    if (total > 0) parts.push(`${total} ${total > 1 ? t('common.guests') : t('common.guest')}`);
+    if (infants > 0) parts.push(`${infants} ${infants > 1 ? t('hero.infants') : t('hero.infants')}`);
     return parts.length ? parts.join(', ') : t('nav.add_guests');
   };
 

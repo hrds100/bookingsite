@@ -1204,83 +1204,79 @@ function LegalPagesTab() {
 }
 
 function LegalPageEditor({ pageType, label, path, baseUrl }: { pageType: LegalPageType; label: string; path: string; baseUrl: string }) {
-  const { data: savedContent = "", isLoading } = useNfsOperatorLegalPage(pageType);
+  const { data: savedData, isLoading } = useNfsOperatorLegalPage(pageType);
+  const savedContent = typeof savedData === 'string' ? savedData : savedData?.content ?? '';
+  const savedTranslations = (typeof savedData === 'object' && savedData !== null && 'content_translations' in savedData)
+    ? (savedData as { content: string; content_translations: Record<string, string> }).content_translations ?? {}
+    : {};
   const updateLegal = useNfsOperatorLegalPageUpdate();
-  const [draft, setDraft] = useState("");
-  const [initialised, setInitialised] = useState(false);
+  const [draft, setDraft] = useState('');
+  const [draftTranslations, setDraftTranslations] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
 
-  // Populate draft once saved content loads
   useEffect(() => {
-    if (!isLoading && !initialised) {
-      setDraft(savedContent);
-      setInitialised(true);
-    }
-  }, [isLoading, savedContent, initialised]);
+    setDraft(savedContent);
+    setDraftTranslations(savedTranslations && typeof savedTranslations === 'object' ? savedTranslations : {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [savedContent]);
 
   const handleSave = useCallback(async () => {
     setSaving(true);
     try {
-      await updateLegal.mutateAsync({ pageType, content: draft });
-      toast({ title: "Saved", description: `${label} has been saved.` });
+      await updateLegal.mutateAsync({ pageType, content: draft, content_translations: draftTranslations });
+      toast({ title: `${label} saved` });
     } catch {
-      toast({ title: "Error", description: "Could not save. Please try again.", variant: "destructive" });
+      toast({ title: 'Save failed', variant: 'destructive' });
     } finally {
       setSaving(false);
     }
-  }, [updateLegal, pageType, draft, label]);
+  }, [updateLegal, pageType, draft, draftTranslations, label]);
 
-  const handleReset = useCallback(() => {
-    setDraft("");
-  }, []);
+  if (isLoading) return <div className="h-32 flex items-center justify-center"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>;
 
   return (
-    <section className="bg-card border border-border rounded-2xl p-6 space-y-4">
+    <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold">{label}</h2>
-          <p className="text-sm text-muted-foreground mt-0.5">
+          <h3 className="text-sm font-semibold">{label}</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">
             Edit your {label.toLowerCase()} content. Leave blank to use the nfstay default.{" "}
-            {baseUrl ? (
-              <a href={`${baseUrl}${path}`} target="_blank" rel="noreferrer" className="text-primary underline">
-                Preview page ↗
-              </a>
-            ) : (
-              <span className="text-muted-foreground/60">Set a subdomain or custom domain to preview.</span>
-            )}
+            <a href={`${baseUrl}${path}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Preview →</a>
           </p>
         </div>
+        <Button size="sm" onClick={handleSave} disabled={saving} className="rounded-lg">
+          {saving ? <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />Saving…</> : 'Save'}
+        </Button>
       </div>
 
-      {isLoading ? (
-        <div className="h-40 bg-muted rounded-lg animate-pulse" />
-      ) : (
+      {/* English (default) */}
+      <div>
+        <label className="text-xs text-muted-foreground mb-1 flex items-center gap-1">🇬🇧 English (default)</label>
         <Textarea
+          placeholder={`Paste your ${label.toLowerCase()} content here (Markdown or plain text)…`}
+          rows={8}
           value={draft}
           onChange={e => setDraft(e.target.value)}
-          rows={16}
-          placeholder={`Enter your ${label} content in Markdown format, or leave blank to use the nfstay default template.`}
-          className="font-mono text-xs"
         />
-      )}
-
-      <p className="text-xs text-muted-foreground">
-        Content is formatted as Markdown. Use ## for headings, **bold**, - for bullet points.
-      </p>
-
-      <div className="flex gap-3">
-        <Button onClick={handleSave} disabled={saving || isLoading} size="sm">
-          {saving ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving…</> : "Save"}
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleReset}
-          disabled={saving}
-        >
-          Reset to default
-        </Button>
       </div>
-    </section>
+
+      {/* Other languages */}
+      <div className="space-y-3">
+        <p className="text-xs text-muted-foreground font-medium">Translations (optional)</p>
+        {SITE_LANGUAGES.filter(l => l.code !== 'en').map(lang => (
+          <div key={lang.code}>
+            <label className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
+              <span>{lang.flag}</span> {lang.name}
+            </label>
+            <Textarea
+              placeholder={`${label} in ${lang.name}…`}
+              rows={5}
+              value={draftTranslations[lang.code] || ''}
+              onChange={e => setDraftTranslations(prev => ({ ...prev, [lang.code]: e.target.value }))}
+            />
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }

@@ -48,7 +48,8 @@
       "Bash(grep -v \"className\\\\|import\\\\|//\")",
       "Bash(grep -n \">[A-Za-z ,''''!-]\\\\{4,\\\\}<\\\\|placeholder=\" src/pages/NfsPropertyView.tsx)",
       "Bash(grep -rn \">[A-Z][a-z][a-z ,''''!-]\\\\{3,40\\\\}<\\\\/\" src/pages/NfsPropertyView.tsx)",
-      "Bash(grep -n \">[A-Za-z ]\\\\{3,\\\\}<\\\\|label:\\\\|title:\")"
+      "Bash(grep -n \">[A-Za-z ]\\\\{3,\\\\}<\\\\|label:\\\\|title:\")",
+      "Bash(find src:*)"
     ]
   }
 }

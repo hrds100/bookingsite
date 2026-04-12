@@ -22,7 +22,10 @@
     "guests": "guests",
     "per_night": "/ night",
     "min_stay": "Minimum {{n}} night stay",
-    "powered_by": "Powered by nfstay."
+    "powered_by": "Powered by nfstay.",
+    "email": "Email",
+    "whatsapp": "WhatsApp",
+    "phone": "Phone"
   },
   "nav": {
     "travelers": "Travelers",
@@ -270,7 +273,9 @@
     "terms": "Terms of service",
     "cookie": "Cookie policy",
     "copyright": "© 2026 nfstay. All rights reserved.",
-    "copyright_operator": "© 2026 {{brand}}. Powered by nfstay."
+    "copyright_operator": "© 2026 {{brand}}. Powered by nfstay.",
+    "tagline": "Book unique vacation rentals directly from verified hosts. No middlemen, no hidden fees.",
+    "operator_tagline": "Book your stay directly with {{brand}}. No middlemen, no hidden fees."
   },
   "cash_confirmed": {
     "title": "Booking Request Received!",

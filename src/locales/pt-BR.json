@@ -22,7 +22,10 @@
     "guests": "hóspedes",
     "per_night": "/ noite",
     "min_stay": "Estadia mínima de {{n}} noite",
-    "powered_by": "Desenvolvido por nfstay."
+    "powered_by": "Desenvolvido por nfstay.",
+    "email": "Email",
+    "whatsapp": "WhatsApp",
+    "phone": "Telefone"
   },
   "nav": {
     "travelers": "Hóspedes",
@@ -270,7 +273,9 @@
     "terms": "Termos de serviço",
     "cookie": "Política de cookies",
     "copyright": "© 2026 nfstay. Todos os direitos reservados.",
-    "copyright_operator": "© 2026 {{brand}}. Desenvolvido por nfstay."
+    "copyright_operator": "© 2026 {{brand}}. Desenvolvido por nfstay.",
+    "tagline": "Reserve estadias únicas diretamente com anfitriões verificados. Sem intermediários, sem taxas ocultas.",
+    "operator_tagline": "Reserve sua estadia diretamente com {{brand}}. Sem intermediários, sem taxas ocultas."
   },
   "cash_confirmed": {
     "title": "Solicitação de Reserva Recebida!",

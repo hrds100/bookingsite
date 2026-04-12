@@ -6,7 +6,8 @@ import { Phone, Mail, MessageCircle, Instagram, Facebook, Twitter, Linkedin } fr
 
 export function NfsMainFooter() {
   const { operator, isWhiteLabel } = useWhiteLabel();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const currentLang = i18n.language;
 
   // Collect operator social links that exist
   const socialLinks = isWhiteLabel && operator
@@ -46,8 +47,10 @@ export function NfsMainFooter() {
             )}
             <p className="text-sm text-muted-foreground mb-4">
               {isWhiteLabel && operator
-                ? `Book your stay directly with ${operator.brand_name}. No middlemen, no hidden fees.`
-                : "Book unique vacation rentals directly from verified hosts. No middlemen, no hidden fees."}
+                ? ((operator.about_bio_translations as Record<string,string> | undefined)?.[currentLang]
+                    || operator.about_bio
+                    || t('footer.operator_tagline', { brand: operator.brand_name }))
+                : t('footer.tagline')}
             </p>
 
             {/* Social links — main site */}
@@ -113,7 +116,7 @@ export function NfsMainFooter() {
                   <li>
                     <a href={`mailto:${operator.contact_email}`} className="text-sm text-muted-foreground hover:text-primary transition-colors flex items-center gap-2">
                       <Mail className="w-3.5 h-3.5" />
-                      Email
+                      {t('common.email')}
                     </a>
                   </li>
                 )}
@@ -129,7 +132,7 @@ export function NfsMainFooter() {
                   <li>
                     <a href={`https://wa.me/${operator.contact_whatsapp.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-primary transition-colors flex items-center gap-2">
                       <MessageCircle className="w-3.5 h-3.5" />
-                      WhatsApp
+                      {t('common.whatsapp')}
                     </a>
                   </li>
                 )}

@@ -22,7 +22,10 @@
     "guests": "ضيوف",
     "per_night": "/ ليلة",
     "min_stay": "الإقامة الدنيا {{n}} ليلة",
-    "powered_by": "مدعوم من nfstay."
+    "powered_by": "مدعوم من nfstay.",
+    "email": "البريد الإلكتروني",
+    "whatsapp": "WhatsApp",
+    "phone": "الهاتف"
   },
   "nav": {
     "travelers": "المسافرون",
@@ -270,7 +273,9 @@
     "terms": "شروط الخدمة",
     "cookie": "سياسة ملفات تعريف الارتباط",
     "copyright": "© 2026 nfstay. جميع الحقوق محفوظة.",
-    "copyright_operator": "© 2026 {{brand}}. مدعوم من nfstay."
+    "copyright_operator": "© 2026 {{brand}}. مدعوم من nfstay.",
+    "tagline": "احجز إقامات فريدة مباشرة مع مضيفين موثوقين. بدون وسطاء، بدون رسوم خفية.",
+    "operator_tagline": "احجز إقامتك مباشرة مع {{brand}}. بدون وسطاء، بدون رسوم خفية."
   },
   "cash_confirmed": {
     "title": "تم استلام طلب الحجز!",
