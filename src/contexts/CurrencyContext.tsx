@@ -16,10 +16,10 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
   const [code, setCode] = useState(() => localStorage.getItem('nfs_currency') || 'GBP');
   const currency = CURRENCIES.find(c => c.code === code) || CURRENCIES[0];
 
-  const setCurrencyCode = (c: string) => {
+  const setCurrencyCode = useCallback((c: string) => {
     setCode(c);
     localStorage.setItem('nfs_currency', c);
-  };
+  }, []);
 
   const convert = useCallback((amount: number, fromCurrency = 'GBP') => {
     const fromRate = CURRENCY_RATES[fromCurrency] || 1;

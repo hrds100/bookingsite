@@ -13,6 +13,7 @@ export interface NfsLegalPage {
   owner_id: string;
   page_type: LegalPageType;
   content: string;
+  content_translations: Record<string, string>;
   updated_at: string;
 }
 
@@ -34,23 +35,28 @@ export interface NfsLegalProtectedBlock {
  *
  * When operatorId is null/undefined (main nfstay.app), returns platform content.
  */
-export function useNfsLegalPage(pageType: LegalPageType, operatorId?: string | null) {
+export function useNfsLegalPage(pageType: LegalPageType, operatorId?: string | null, lang?: string) {
   return useQuery({
-    queryKey: ["nfs-legal-page", pageType, operatorId ?? "platform"],
+    queryKey: ["nfs-legal-page", pageType, operatorId ?? "platform", lang ?? "en"],
     queryFn: async (): Promise<string> => {
       if (!SUPABASE_CONFIGURED) return "";
 
       if (operatorId) {
-        // Try operator's own custom content first
+        // Try operator's own custom content first (includes translations)
         const { data: custom } = await supabase
           .from("nfs_legal_pages")
-          .select("content")
+          .select("content, content_translations")
           .eq("owner_type", "operator")
           .eq("owner_id", operatorId)
           .eq("page_type", pageType)
           .maybeSingle();
 
-        if (custom?.content) return custom.content;
+        if (custom?.content) {
+          // Return translated version if available
+          const translations = (custom as any).content_translations as Record<string, string> | null;
+          if (lang && lang !== 'en' && translations?.[lang]) return translations[lang];
+          return custom.content;
+        }
 
         // Fall back to operator default template
         const { data: defaultOp } = await supabase
@@ -109,16 +115,19 @@ export function useNfsOperatorLegalPage(pageType: LegalPageType) {
 
   return useQuery({
     queryKey: ["nfs-operator-legal-page", pageType, operatorId],
-    queryFn: async (): Promise<string> => {
-      if (!SUPABASE_CONFIGURED || !operatorId) return "";
+    queryFn: async (): Promise<{ content: string; content_translations: Record<string, string> }> => {
+      if (!SUPABASE_CONFIGURED || !operatorId) return { content: "", content_translations: {} };
       const { data } = await supabase
         .from("nfs_legal_pages")
-        .select("content")
+        .select("content, content_translations")
         .eq("owner_type", "operator")
         .eq("owner_id", operatorId)
         .eq("page_type", pageType)
         .maybeSingle();
-      return data?.content ?? "";
+      return {
+        content: data?.content ?? "",
+        content_translations: (data?.content_translations as Record<string, string>) ?? {},
+      };
     },
     enabled: !!operatorId,
     staleTime: 60_000,
@@ -134,7 +143,7 @@ export function useNfsOperatorLegalPageUpdate() {
   const { data: operator } = useNfsOperator();
 
   return useMutation({
-    mutationFn: async ({ pageType, content }: { pageType: LegalPageType; content: string }) => {
+    mutationFn: async ({ pageType, content, content_translations }: { pageType: LegalPageType; content: string; content_translations?: Record<string, string> }) => {
       if (!SUPABASE_CONFIGURED || !user || !operator) throw new Error("Not configured");
 
       const { error } = await supabase
@@ -145,6 +154,7 @@ export function useNfsOperatorLegalPageUpdate() {
             owner_id: operator.id,
             page_type: pageType,
             content,
+            content_translations: content_translations ?? {},
             updated_at: new Date().toISOString(),
           },
           { onConflict: "owner_type,owner_id,page_type" }
