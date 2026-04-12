@@ -3,7 +3,7 @@
 // Body: { url: string }
 // Returns: ImportedListing (normalised property data)
 
-import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -504,7 +504,7 @@ async function importFromUrl(rawUrl: string): Promise<ImportedListing> {
 // Handler
 // ---------------------------------------------------------------------------
 
-serve(async (req: Request) => {
+Deno.serve(async (req: Request) => {
   // Always return 200 so supabase.functions.invoke() doesn't swallow the error message.
   // Errors are communicated via { error: string } in the response body.
 
