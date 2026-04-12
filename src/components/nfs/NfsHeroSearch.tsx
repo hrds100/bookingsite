@@ -116,16 +116,16 @@ export function NfsHeroSearch({ heading, subHeading, desc, btnText }: NfsHeroSea
             <div className="text-center px-4 py-2 mb-4 md:mb-6">
               {heading && (
                 <h1 className="text-3xl md:text-5xl font-semibold text-foreground">
-                  {heading}
+                  {translatedHeading}
                 </h1>
               )}
               {subHeading && (
                 <h1 className="text-3xl md:text-5xl font-semibold text-foreground mt-4">
-                  {subHeading}
+                  {translatedSubHeading}
                 </h1>
               )}
               {desc && (
-                <p className="text-[#9d9da1] mt-3 md:mt-6">{desc}</p>
+                <p className="text-[#9d9da1] mt-3 md:mt-6">{translatedDesc}</p>
               )}
             </div>
           )}
