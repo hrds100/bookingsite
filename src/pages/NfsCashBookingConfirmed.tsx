@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Clock } from "lucide-react";
 import { NfsLogo } from "@/components/nfs/NfsLogo";
-import { useLanguage } from "@/contexts/LanguageContext";
+import { useTranslation } from "react-i18next";
 import { useWhiteLabel } from "@/contexts/WhiteLabelContext";
 
 interface CashBookingData {
@@ -18,7 +18,7 @@ interface CashBookingData {
 }
 
 export default function NfsCashBookingConfirmed() {
-  const { t } = useLanguage();
+  const { t } = useTranslation();
   const { operator, isWhiteLabel } = useWhiteLabel();
   const [data, setData] = useState<CashBookingData | null>(null);
 
@@ -50,34 +50,34 @@ export default function NfsCashBookingConfirmed() {
           <Clock className="w-16 h-16 text-primary" />
         </div>
 
-        <h1 className="text-2xl font-bold text-foreground mb-2">{t('cash_confirmed_title')}</h1>
-        <p className="text-sm text-muted-foreground mb-8">{t('cash_confirmed_subtitle')}</p>
+        <h1 className="text-2xl font-bold text-foreground mb-2">{t('cash_confirmed.title')}</h1>
+        <p className="text-sm text-muted-foreground mb-8">{t('cash_confirmed.subtitle')}</p>
 
         {data && (
           <div className="bg-card border border-border rounded-2xl p-6 text-left space-y-3 mb-8">
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">{t('cash_confirmed_ref')}</span>
+              <span className="text-muted-foreground">{t('cash_confirmed.ref')}</span>
               <span className="font-mono font-semibold text-foreground">{data.ref}</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">{t('cash_confirmed_property')}</span>
+              <span className="text-muted-foreground">{t('cash_confirmed.property')}</span>
               <span className="font-medium text-foreground text-right max-w-[60%]">{data.propertyTitle}</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">{t('cash_confirmed_checkin')}</span>
+              <span className="text-muted-foreground">{t('cash_confirmed.check_in')}</span>
               <span className="font-medium text-foreground">{data.checkIn}</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">{t('cash_confirmed_checkout')}</span>
+              <span className="text-muted-foreground">{t('cash_confirmed.check_out')}</span>
               <span className="font-medium text-foreground">{data.checkOut}</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">{t('cash_confirmed_guests')}</span>
+              <span className="text-muted-foreground">{t('cash_confirmed.guests')}</span>
               <span className="font-medium text-foreground">{data.guests}</span>
             </div>
             <hr className="border-border" />
             <div className="flex justify-between text-sm font-bold">
-              <span>{t('cash_confirmed_total')}</span>
+              <span>{t('cash_confirmed.total')}</span>
               <span className="text-primary">{data.currencySymbol}{data.total}</span>
             </div>
           </div>
@@ -87,7 +87,7 @@ export default function NfsCashBookingConfirmed() {
           to="/"
           className="inline-block bg-primary-gradient text-white font-semibold py-3 px-8 rounded-full hover:opacity-90 transition-all"
         >
-          {t('cash_confirmed_back')}
+          {t('cash_confirmed.back')}
         </Link>
       </div>
     </div>

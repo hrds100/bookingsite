@@ -1,12 +1,12 @@
 import { Link } from "react-router-dom";
 import { NfsLogo } from "./NfsLogo";
 import { useWhiteLabel } from "@/contexts/WhiteLabelContext";
-import { useLanguage } from "@/contexts/LanguageContext";
+import { useTranslation } from "react-i18next";
 import { Phone, Mail, MessageCircle, Instagram, Facebook, Twitter, Linkedin } from "lucide-react";
 
 export function NfsMainFooter() {
   const { operator, isWhiteLabel } = useWhiteLabel();
-  const { t } = useLanguage();
+  const { t } = useTranslation();
 
   // Collect operator social links that exist
   const socialLinks = isWhiteLabel && operator
@@ -95,11 +95,11 @@ export function NfsMainFooter() {
           {/* For Operators -- main site only */}
           {!isWhiteLabel && (
             <div data-feature="NFSTAY__FOOTER_OPERATORS">
-              <h4 className="text-sm font-semibold text-foreground mb-3">{t('footer_for_operators')}</h4>
+              <h4 className="text-sm font-semibold text-foreground mb-3">{t('footer.for_operators')}</h4>
               <ul className="space-y-2">
-                <li><a href="https://hub.nfstay.com" className="text-sm text-muted-foreground hover:text-primary transition-colors">{t('footer_list_property')}</a></li>
-                <li><a href="#how-it-works" className="text-sm text-muted-foreground hover:text-primary transition-colors">{t('footer_how_it_works')}</a></li>
-                <li><a href="#" className="text-sm text-muted-foreground hover:text-primary transition-colors">{t('footer_pricing')}</a></li>
+                <li><a href="https://hub.nfstay.com" className="text-sm text-muted-foreground hover:text-primary transition-colors">{t('footer.list_property')}</a></li>
+                <li><a href="#how-it-works" className="text-sm text-muted-foreground hover:text-primary transition-colors">{t('footer.how_it_works')}</a></li>
+                <li><a href="#" className="text-sm text-muted-foreground hover:text-primary transition-colors">{t('footer.pricing')}</a></li>
               </ul>
             </div>
           )}
@@ -107,7 +107,7 @@ export function NfsMainFooter() {
           {/* Contact — white-label only */}
           {isWhiteLabel && operator && (operator.contact_email || operator.contact_phone || operator.contact_whatsapp) && (
             <div>
-              <h4 className="text-sm font-semibold text-foreground mb-3">{t('footer_contact')}</h4>
+              <h4 className="text-sm font-semibold text-foreground mb-3">{t('footer.contact')}</h4>
               <ul className="space-y-2">
                 {operator.contact_email && (
                   <li>
@@ -140,27 +140,27 @@ export function NfsMainFooter() {
           {/* For Travelers / Quick Links */}
           <div data-feature="NFSTAY__FOOTER_TRAVELERS">
             <h4 className="text-sm font-semibold text-foreground mb-3">
-              {isWhiteLabel ? t('footer_quick_links') : t('footer_for_travelers')}
+              {isWhiteLabel ? t('footer.quick_links') : t('footer.for_travelers')}
             </h4>
             <ul className="space-y-2">
-              <li><Link to="/search" className="text-sm text-muted-foreground hover:text-primary transition-colors">{t('footer_search_properties')}</Link></li>
-              <li><a href="#how-it-works" className="text-sm text-muted-foreground hover:text-primary transition-colors">{t('footer_how_to_book')}</a></li>
+              <li><Link to="/search" className="text-sm text-muted-foreground hover:text-primary transition-colors">{t('footer.search_properties')}</Link></li>
+              <li><a href="#how-it-works" className="text-sm text-muted-foreground hover:text-primary transition-colors">{t('footer.how_to_book')}</a></li>
               {!isWhiteLabel && (
-                <li><a href="#" className="text-sm text-muted-foreground hover:text-primary transition-colors">{t('footer_guest_protection')}</a></li>
+                <li><a href="#" className="text-sm text-muted-foreground hover:text-primary transition-colors">{t('footer.guest_protection')}</a></li>
               )}
-              <li><a href="#" className="text-sm text-muted-foreground hover:text-primary transition-colors">{t('footer_contact')}</a></li>
+              <li><a href="#" className="text-sm text-muted-foreground hover:text-primary transition-colors">{t('footer.contact')}</a></li>
             </ul>
           </div>
 
           {/* Legal */}
           <div data-feature="NFSTAY__FOOTER_LEGAL" className="col-span-2 sm:col-span-1">
-            <h4 className="text-sm font-semibold text-foreground mb-3">{t('footer_legal')}</h4>
+            <h4 className="text-sm font-semibold text-foreground mb-3">{t('footer.legal')}</h4>
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1 sm:flex-col sm:items-start sm:gap-x-0 sm:gap-y-2">
-              <Link to="/privacy" target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-primary transition-colors">{t('footer_privacy')}</Link>
+              <Link to="/privacy" target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-primary transition-colors">{t('footer.privacy')}</Link>
               <span className="sm:hidden text-muted-foreground/40 text-sm select-none">|</span>
-              <Link to="/terms" target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-primary transition-colors">{t('footer_terms')}</Link>
+              <Link to="/terms" target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-primary transition-colors">{t('footer.terms')}</Link>
               <span className="sm:hidden text-muted-foreground/40 text-sm select-none">|</span>
-              <Link to="/cookie-policy" target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-primary transition-colors">{t('footer_cookie')}</Link>
+              <Link to="/cookie-policy" target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-primary transition-colors">{t('footer.cookie')}</Link>
             </div>
           </div>
         </div>
@@ -168,8 +168,8 @@ export function NfsMainFooter() {
         <div className="mt-10 pt-6 border-t border-border text-center">
           <p className="text-xs text-muted-foreground">
             {isWhiteLabel && operator
-              ? `© 2026 ${operator.brand_name}. ${t('footer_copyright_operator')}`
-              : "© 2026 nfstay. All rights reserved."}
+              ? t('footer.copyright_operator', { brand: operator.brand_name })
+              : t('footer.copyright')}
           </p>
         </div>
       </div>
