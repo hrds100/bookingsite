@@ -61,7 +61,7 @@ export default function OperatorOnboarding() {
 
   const subdomainSlug = subdomain.toLowerCase().replace(/[^a-z0-9-]/g, "");
 
-  const canFinish = brandName.trim().length >= 2 && subdomainSlug.length >= 3;
+  const canFinish = brandName.trim().length >= 2 && subdomainSlug.length >= 2;
 
   const finish = async () => {
     if (!canFinish) {
@@ -196,8 +196,8 @@ export default function OperatorOnboarding() {
                   Your site: <span className="font-medium text-foreground">{subdomainSlug}.nfstay.app</span>
                 </p>
               )}
-              {subdomain && subdomainSlug.length < 3 && (
-                <p className="text-xs text-destructive mt-1">Subdomain must be at least 3 characters.</p>
+              {subdomain && subdomainSlug.length < 2 && (
+                <p className="text-xs text-destructive mt-1">Subdomain must be at least 2 characters.</p>
               )}
             </div>
           </div>
