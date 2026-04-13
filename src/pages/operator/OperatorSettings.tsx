@@ -1193,7 +1193,6 @@ function LegalPagesTab() {
   const { data: operator } = useNfsOperator();
   const defaultLangCode = operator?.default_language ? dbLangToLocale(operator.default_language) : 'en';
   const defaultLangInfo = SITE_LANGUAGES.find(l => l.code === defaultLangCode) ?? SITE_LANGUAGES[0];
-  const { data: operator } = useNfsOperator();
 
   // Resolve the operator's own site base URL for preview links
   const baseUrl = (() => {
