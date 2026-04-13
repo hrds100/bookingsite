@@ -8,7 +8,7 @@ export default function CookiePage() {
   const { i18n } = useTranslation();
   const operatorId = isWhiteLabel ? operator?.id : undefined;
 
-  const { data: content = "", isLoading } = useNfsLegalPage("cookie", operatorId, i18n.language);
+  const { data: content = "", isLoading } = useNfsLegalPage("cookie", operatorId, i18n.language, operator?.default_language);
   const { data: protectedBlock = "" } = useNfsLegalProtectedBlock("cookie");
 
   const brand = isWhiteLabel && operator?.brand_name ? operator.brand_name : "nfstay";

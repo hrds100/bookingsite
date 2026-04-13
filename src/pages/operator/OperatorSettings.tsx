@@ -18,7 +18,7 @@ import { useNfsOperatorLegalPage, useNfsOperatorLegalPageUpdate, type LegalPageT
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabase";
 import { Loader2 } from "lucide-react";
-import { SITE_LANGUAGES } from "@/components/nfs/NfsLanguageSelector";
+import { SITE_LANGUAGES, dbLangToLocale } from "@/components/nfs/NfsLanguageSelector";
 
 interface ProfileForm {
   brand_name: string;
@@ -153,6 +153,11 @@ const EMPTY_NOTIFICATIONS: NotificationsForm = {
 export default function OperatorSettings() {
   const { data: operator } = useNfsOperator();
   const { operatorId } = useAuth();
+
+  const defaultLangCode = operator?.default_language
+    ? dbLangToLocale(operator.default_language)
+    : 'en';
+  const defaultLangInfo = SITE_LANGUAGES.find(l => l.code === defaultLangCode) ?? SITE_LANGUAGES[0];
   const updateOperator = useNfsOperatorUpdate();
 
   const [profileForm, setProfileForm] = useState<ProfileForm>(EMPTY_PROFILE);
@@ -694,7 +699,7 @@ export default function OperatorSettings() {
             <h2 className="text-lg font-semibold">Hero Section</h2>
             <div className="space-y-4">
               <div>
-                <Label>Headline</Label>
+                <Label>Headline <span className="text-muted-foreground font-normal text-xs">({defaultLangInfo.flag} {defaultLangInfo.name})</span></Label>
                 <Input
                   value={brandingForm.hero_headline}
                   onChange={e => setBrandingForm(p => ({ ...p, hero_headline: e.target.value }))}
@@ -705,7 +710,7 @@ export default function OperatorSettings() {
                 <div className="mt-2 space-y-2">
                   <p className="text-xs text-muted-foreground font-medium">Translations (optional)</p>
                   <div className="flex flex-wrap gap-2">
-                    {SITE_LANGUAGES.filter(l => l.code !== 'en').map(lang => (
+                    {SITE_LANGUAGES.filter(l => l.code !== defaultLangCode).map(lang => (
                       <div key={lang.code} className="flex-1 min-w-[140px]">
                         <label className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
                           <span>{lang.flag}</span> {lang.name}
@@ -722,7 +727,7 @@ export default function OperatorSettings() {
                 </div>
               </div>
               <div>
-                <Label>Subheadline</Label>
+                <Label>Subheadline <span className="text-muted-foreground font-normal text-xs">({defaultLangInfo.flag} {defaultLangInfo.name})</span></Label>
                 <Input
                   value={brandingForm.hero_subheadline}
                   onChange={e => setBrandingForm(p => ({ ...p, hero_subheadline: e.target.value }))}
@@ -733,7 +738,7 @@ export default function OperatorSettings() {
                 <div className="mt-2 space-y-2">
                   <p className="text-xs text-muted-foreground font-medium">Translations (optional)</p>
                   <div className="flex flex-wrap gap-2">
-                    {SITE_LANGUAGES.filter(l => l.code !== 'en').map(lang => (
+                    {SITE_LANGUAGES.filter(l => l.code !== defaultLangCode).map(lang => (
                       <div key={lang.code} className="flex-1 min-w-[140px]">
                         <label className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
                           <span>{lang.flag}</span> {lang.name}
@@ -750,7 +755,7 @@ export default function OperatorSettings() {
                 </div>
               </div>
               <div>
-                <Label>About Bio</Label>
+                <Label>About Bio <span className="text-muted-foreground font-normal text-xs">({defaultLangInfo.flag} {defaultLangInfo.name})</span></Label>
                 <Textarea
                   value={brandingForm.about_bio}
                   onChange={e => setBrandingForm(p => ({ ...p, about_bio: e.target.value }))}
@@ -762,7 +767,7 @@ export default function OperatorSettings() {
               {/* About Bio translations */}
               <div className="mt-3 space-y-3">
                 <p className="text-xs text-muted-foreground font-medium">About Bio Translations (optional)</p>
-                {SITE_LANGUAGES.filter(l => l.code !== 'en').map(lang => (
+                {SITE_LANGUAGES.filter(l => l.code !== defaultLangCode).map(lang => (
                   <div key={lang.code}>
                     <label className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
                       <span>{lang.flag}</span> {lang.name}
@@ -1186,6 +1191,9 @@ export default function OperatorSettings() {
 /** Isolated sub-component so hooks run per page type cleanly */
 function LegalPagesTab() {
   const { data: operator } = useNfsOperator();
+  const defaultLangCode = operator?.default_language ? dbLangToLocale(operator.default_language) : 'en';
+  const defaultLangInfo = SITE_LANGUAGES.find(l => l.code === defaultLangCode) ?? SITE_LANGUAGES[0];
+  const { data: operator } = useNfsOperator();
 
   // Resolve the operator's own site base URL for preview links
   const baseUrl = (() => {
@@ -1196,14 +1204,17 @@ function LegalPagesTab() {
 
   return (
     <div className="space-y-8">
-      <LegalPageEditor pageType="privacy" label="Privacy Policy" path="/privacy" baseUrl={baseUrl} />
-      <LegalPageEditor pageType="terms" label="Terms & Conditions" path="/terms" baseUrl={baseUrl} />
-      <LegalPageEditor pageType="cookie" label="Cookie Policy" path="/cookie-policy" baseUrl={baseUrl} />
+      <LegalPageEditor pageType="privacy" label="Privacy Policy" path="/privacy" baseUrl={baseUrl} defaultLangCode={defaultLangCode} defaultLangInfo={defaultLangInfo} />
+      <LegalPageEditor pageType="terms" label="Terms & Conditions" path="/terms" baseUrl={baseUrl} defaultLangCode={defaultLangCode} defaultLangInfo={defaultLangInfo} />
+      <LegalPageEditor pageType="cookie" label="Cookie Policy" path="/cookie-policy" baseUrl={baseUrl} defaultLangCode={defaultLangCode} defaultLangInfo={defaultLangInfo} />
     </div>
   );
 }
 
-function LegalPageEditor({ pageType, label, path, baseUrl }: { pageType: LegalPageType; label: string; path: string; baseUrl: string }) {
+function LegalPageEditor({ pageType, label, path, baseUrl, defaultLangCode, defaultLangInfo }: {
+  pageType: LegalPageType; label: string; path: string; baseUrl: string;
+  defaultLangCode: string; defaultLangInfo: { code: string; name: string; flag: string };
+}) {
   const { data: savedData, isLoading } = useNfsOperatorLegalPage(pageType);
   const savedContent = typeof savedData === 'string' ? savedData : savedData?.content ?? '';
   const savedTranslations = (typeof savedData === 'object' && savedData !== null && 'content_translations' in savedData)
@@ -1249,9 +1260,9 @@ function LegalPageEditor({ pageType, label, path, baseUrl }: { pageType: LegalPa
         </Button>
       </div>
 
-      {/* English (default) */}
+      {/* Default language content */}
       <div>
-        <label className="text-xs text-muted-foreground mb-1 flex items-center gap-1">🇬🇧 English (default)</label>
+        <label className="text-xs text-muted-foreground mb-1 flex items-center gap-1">{defaultLangInfo.flag} {defaultLangInfo.name} (default)</label>
         <Textarea
           placeholder={`Paste your ${label.toLowerCase()} content here (Markdown or plain text)…`}
           rows={8}
@@ -1263,7 +1274,7 @@ function LegalPageEditor({ pageType, label, path, baseUrl }: { pageType: LegalPa
       {/* Other languages */}
       <div className="space-y-3">
         <p className="text-xs text-muted-foreground font-medium">Translations (optional)</p>
-        {SITE_LANGUAGES.filter(l => l.code !== 'en').map(lang => (
+        {SITE_LANGUAGES.filter(l => l.code !== defaultLangCode).map(lang => (
           <div key={lang.code}>
             <label className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
               <span>{lang.flag}</span> {lang.name}

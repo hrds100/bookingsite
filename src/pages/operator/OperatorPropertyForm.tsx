@@ -34,7 +34,8 @@ import {
   useNfsHospitableImport,
   type HospitableSyncedProperty,
 } from "@/hooks/useNfsHospitable";
-import { SITE_LANGUAGES } from "@/components/nfs/NfsLanguageSelector";
+import { SITE_LANGUAGES, dbLangToLocale } from "@/components/nfs/NfsLanguageSelector";
+import { useNfsOperator } from "@/hooks/useNfsOperator";
 
 // --- Constants ---
 
@@ -135,6 +136,13 @@ export default function OperatorPropertyForm() {
   const createMutation = useNfsPropertyCreate();
   const updateMutation = useNfsPropertyUpdate();
   const { upload, uploading: imageUploading } = useNfsImageUpload();
+
+  // Operator's default language for form labels & translation filters
+  const { data: operatorProfile } = useNfsOperator();
+  const defaultLangCode = operatorProfile?.default_language
+    ? dbLangToLocale(operatorProfile.default_language)
+    : 'en';
+  const defaultLangInfo = SITE_LANGUAGES.find(l => l.code === defaultLangCode) ?? SITE_LANGUAGES[0];
 
   // ── Hospitable sync state ──
   const [syncMode, setSyncMode] = useState<"manual" | "airbnb">("manual");
@@ -786,7 +794,9 @@ export default function OperatorPropertyForm() {
           <h2 className="text-lg font-semibold">Basic Information</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="md:col-span-2">
-              <Label htmlFor="title">Property Title *</Label>
+              <Label htmlFor="title">
+                Property Title * <span className="text-muted-foreground font-normal text-xs">({defaultLangInfo.flag} {defaultLangInfo.name})</span>
+              </Label>
               <Input
                 id="title"
                 placeholder="e.g., Stunning Marina View Apartment"
@@ -799,7 +809,7 @@ export default function OperatorPropertyForm() {
               <div className="mt-3 space-y-2">
                 <p className="text-xs text-muted-foreground font-medium">Translations (optional)</p>
                 <div className="flex flex-wrap gap-1.5">
-                  {SITE_LANGUAGES.filter(l => l.code !== 'en').map(lang => (
+                  {SITE_LANGUAGES.filter(l => l.code !== defaultLangCode).map(lang => (
                     <div key={lang.code} className="flex-1 min-w-[140px]">
                       <label className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
                         <span>{lang.flag}</span> {lang.name}
@@ -1108,7 +1118,9 @@ export default function OperatorPropertyForm() {
         <section className="bg-card border border-border rounded-2xl p-4 md:p-6 space-y-4">
           <h2 className="text-lg font-semibold">Description</h2>
           <div>
-            <Label htmlFor="desc">Describe your property (max 2000 characters)</Label>
+            <Label htmlFor="desc">
+              Describe your property (max 2000 characters) <span className="text-muted-foreground font-normal text-xs">({defaultLangInfo.flag} {defaultLangInfo.name})</span>
+            </Label>
             <Textarea
               id="desc"
               placeholder="Tell guests what makes your property special..."
@@ -1122,7 +1134,7 @@ export default function OperatorPropertyForm() {
             {/* Description translations for other languages */}
             <div className="mt-4 space-y-3">
               <p className="text-xs text-muted-foreground font-medium">Description Translations (optional)</p>
-              {SITE_LANGUAGES.filter(l => l.code !== 'en').map(lang => (
+              {SITE_LANGUAGES.filter(l => l.code !== defaultLangCode).map(lang => (
                 <div key={lang.code}>
                   <label className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
                     <span>{lang.flag}</span> {lang.name}

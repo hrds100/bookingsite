@@ -35,24 +35,46 @@ export interface NfsLegalProtectedBlock {
  *
  * When operatorId is null/undefined (main nfstay.app), returns platform content.
  */
-/** Pick the best translation, always falling back to English content. */
+/**
+ * Pick the best content for the viewer's language.
+ *
+ * `content` is stored in `operatorDefaultLang` (defaults to 'en').
+ * Resolution:
+ *   1. If viewer's lang matches the operator's default → return content directly.
+ *   2. Try exact viewer lang from translations.
+ *   3. Try base lang (e.g. 'pt' from 'pt-BR') from translations.
+ *   4. If operator's default isn't English, try 'en' from translations as universal bridge.
+ *   5. Fall back to content (operator's default language).
+ */
 function resolveContent(
   content: string,
   translations: Record<string, string> | null | undefined,
   lang?: string,
+  operatorDefaultLang?: string | null,
 ): string {
-  if (lang && lang !== "en") {
-    if (translations?.[lang]) return translations[lang];
-    // Try base language: "pt" from "pt-BR"
-    const base = lang.split("-")[0];
-    if (base !== lang && translations?.[base]) return translations[base];
-  }
-  return content; // English fallback
+  // Normalize operator default: DB stores 'pt', locale is 'pt-BR'
+  const defaultLocale = operatorDefaultLang === 'pt' ? 'pt-BR' : (operatorDefaultLang ?? 'en');
+  const defaultBase = defaultLocale.split('-')[0];
+
+  if (!lang) return content;
+  const viewerBase = lang.split('-')[0];
+
+  // Viewer's language matches operator's default → content is already correct
+  if (lang === defaultLocale || viewerBase === defaultBase) return content;
+
+  // Try exact viewer language
+  if (translations?.[lang]) return translations[lang];
+  // Try base viewer language (e.g. 'pt' from 'pt-BR')
+  if (viewerBase !== lang && translations?.[viewerBase]) return translations[viewerBase];
+  // Try English as universal bridge when operator's default isn't English
+  if (defaultBase !== 'en' && translations?.['en']) return translations['en'];
+
+  return content; // last resort: operator's default language
 }
 
-export function useNfsLegalPage(pageType: LegalPageType, operatorId?: string | null, lang?: string) {
+export function useNfsLegalPage(pageType: LegalPageType, operatorId?: string | null, lang?: string, operatorDefaultLang?: string | null) {
   return useQuery({
-    queryKey: ["nfs-legal-page", pageType, operatorId ?? "platform", lang ?? "en"],
+    queryKey: ["nfs-legal-page", pageType, operatorId ?? "platform", lang ?? "en", operatorDefaultLang ?? "en"],
     queryFn: async (): Promise<string> => {
       if (!SUPABASE_CONFIGURED) return "";
 
@@ -71,6 +93,7 @@ export function useNfsLegalPage(pageType: LegalPageType, operatorId?: string | n
             custom.content,
             custom.content_translations as Record<string, string> | null,
             lang,
+            operatorDefaultLang,
           );
         }
 

@@ -8,7 +8,7 @@ export default function PrivacyPage() {
   const { i18n } = useTranslation();
   const operatorId = isWhiteLabel ? operator?.id : undefined;
 
-  const { data: content = "", isLoading } = useNfsLegalPage("privacy", operatorId, i18n.language);
+  const { data: content = "", isLoading } = useNfsLegalPage("privacy", operatorId, i18n.language, operator?.default_language);
   const { data: protectedBlock = "" } = useNfsLegalProtectedBlock("privacy");
 
   const brand = isWhiteLabel && operator?.brand_name ? operator.brand_name : "nfstay";
