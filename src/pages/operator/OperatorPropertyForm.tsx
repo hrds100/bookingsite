@@ -36,6 +36,7 @@ import {
 } from "@/hooks/useNfsHospitable";
 import { SITE_LANGUAGES, dbLangToLocale } from "@/components/nfs/NfsLanguageSelector";
 import { useNfsOperator } from "@/hooks/useNfsOperator";
+import { useNfsIcalProperty, useNfsIcalFeedsUpdate, useNfsIcalSync, buildIcalExportUrl, type IcalFeed } from "@/hooks/useNfsIcal";
 
 // --- Constants ---
 
@@ -156,6 +157,13 @@ export default function OperatorPropertyForm() {
 
   const { connecting, error: connectError, initiateConnect, triggerResync } = useNfsHospitableConnect();
   const importMutation = useNfsHospitableImport();
+
+  // ── iCal sync state ──
+  const { data: icalData, refetch: refetchIcal } = useNfsIcalProperty(isEdit ? id : null);
+  const icalFeedsUpdate = useNfsIcalFeedsUpdate();
+  const icalSyncMutation = useNfsIcalSync();
+  const [newFeedName, setNewFeedName] = useState("");
+  const [newFeedUrl, setNewFeedUrl] = useState("");
 
   const togglePropertySelection = (propertyId: string) => {
     setSelectedPropertyIds((prev) => {
@@ -1458,6 +1466,224 @@ export default function OperatorPropertyForm() {
             })()
           )}
         </section>
+
+        {/* ── iCal / Calendar Sync ── (edit mode only) */}
+        {isEdit && (
+        <section className="bg-card border border-border rounded-2xl p-4 md:p-6 space-y-5">
+          <div>
+            <h2 className="text-lg font-semibold flex items-center gap-2">
+              <CalendarRange className="w-5 h-5 text-primary" />
+              Calendar Sync (iCal)
+            </h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              Export your calendar to Airbnb, Booking.com, VRBO and more. Import external calendars to auto-block dates.
+            </p>
+          </div>
+
+          {/* Export */}
+          <div className="space-y-2">
+            <h3 className="text-sm font-semibold">Export your calendar</h3>
+            <p className="text-xs text-muted-foreground">
+              Add this URL on any platform that supports iCal. It updates automatically with new bookings and blocked dates.
+            </p>
+            {icalData ? (
+              <div className="flex items-center gap-2">
+                <input
+                  readOnly
+                  value={buildIcalExportUrl(id!, icalData.ical_token)}
+                  className="flex-1 text-xs bg-muted border border-border rounded-lg px-3 py-2 font-mono truncate"
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="rounded-lg shrink-0"
+                  onClick={() => {
+                    navigator.clipboard.writeText(buildIcalExportUrl(id!, icalData.ical_token));
+                    toast({ title: "Copied!", description: "iCal URL copied to clipboard." });
+                  }}
+                >
+                  Copy
+                </Button>
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground">Save the property first to get your iCal URL.</p>
+            )}
+            <div className="flex flex-wrap gap-2 pt-1">
+              {[
+                { name: "Airbnb", color: "bg-[#FF5A5F]/10 text-[#FF5A5F] border-[#FF5A5F]/30" },
+                { name: "Booking.com", color: "bg-blue-50 text-blue-600 border-blue-200" },
+                { name: "VRBO", color: "bg-blue-50 text-blue-700 border-blue-200" },
+                { name: "Google Calendar", color: "bg-green-50 text-green-700 border-green-200" },
+                { name: "Apple Calendar", color: "bg-gray-50 text-gray-700 border-gray-200" },
+              ].map((p) => (
+                <span key={p.name} className={`text-xs px-2 py-0.5 rounded-full border font-medium ${p.color}`}>
+                  {p.name}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* Import feeds */}
+          <div className="space-y-3">
+            <h3 className="text-sm font-semibold">Import external calendars</h3>
+            <p className="text-xs text-muted-foreground">
+              Paste the iCal URL from Airbnb, VRBO, Booking.com, Google Calendar, or any platform. Dates will be auto-blocked on sync.
+            </p>
+
+            {/* Existing feeds */}
+            {(icalData?.ical_feeds ?? []).length > 0 && (
+              <div className="space-y-2">
+                {(icalData!.ical_feeds).map((feed, idx) => (
+                  <div key={idx} className="flex items-center gap-2 bg-muted/50 border border-border rounded-lg px-3 py-2">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{feed.name}</p>
+                      <p className="text-xs text-muted-foreground truncate">{feed.url}</p>
+                      {feed.last_synced && (
+                        <p className="text-xs text-muted-foreground">
+                          Last synced: {new Date(feed.last_synced).toLocaleString()}
+                        </p>
+                      )}
+                      {!feed.last_synced && (
+                        <p className="text-xs text-amber-600">Never synced</p>
+                      )}
+                    </div>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="rounded-lg shrink-0"
+                      disabled={icalSyncMutation.isPending}
+                      onClick={async () => {
+                        try {
+                          const result = await icalSyncMutation.mutateAsync(id!);
+                          toast({ title: "Synced!", description: `${result.imported} dates imported.` });
+                          refetchIcal();
+                        } catch (e) {
+                          toast({ title: "Sync failed", description: String(e), variant: "destructive" });
+                        }
+                      }}
+                    >
+                      {icalSyncMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      className="rounded-lg shrink-0 text-destructive hover:text-destructive"
+                      onClick={async () => {
+                        const updated = icalData!.ical_feeds.filter((_, i) => i !== idx);
+                        try {
+                          await icalFeedsUpdate.mutateAsync({ propertyId: id!, feeds: updated });
+                          toast({ title: "Feed removed" });
+                        } catch (e) {
+                          toast({ title: "Error", description: String(e), variant: "destructive" });
+                        }
+                      }}
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
+                ))}
+
+                {/* Sync all button */}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="rounded-lg"
+                  disabled={icalSyncMutation.isPending}
+                  onClick={async () => {
+                    try {
+                      const result = await icalSyncMutation.mutateAsync(id!);
+                      const errMsg = result.errors.length ? ` (${result.errors.length} error${result.errors.length > 1 ? "s" : ""})` : "";
+                      toast({ title: "Sync complete", description: `${result.imported} dates imported${errMsg}.` });
+                      refetchIcal();
+                    } catch (e) {
+                      toast({ title: "Sync failed", description: String(e), variant: "destructive" });
+                    }
+                  }}
+                >
+                  {icalSyncMutation.isPending
+                    ? <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />Syncing…</>
+                    : <><RefreshCw className="w-3.5 h-3.5 mr-1.5" />Sync All Feeds</>}
+                </Button>
+              </div>
+            )}
+
+            {/* Quick-add platform presets */}
+            <div className="space-y-1">
+              <p className="text-xs text-muted-foreground font-medium">Quick-add from:</p>
+              <div className="flex flex-wrap gap-1.5">
+                {[
+                  { name: "Airbnb", hint: "www.airbnb.com/calendar/ical/…" },
+                  { name: "VRBO", hint: "www.vrbo.com/…/ical" },
+                  { name: "Booking.com", hint: "admin.booking.com/…/ical" },
+                  { name: "Google Calendar", hint: "calendar.google.com/calendar/ical/…" },
+                  { name: "Other", hint: "" },
+                ].map((preset) => (
+                  <button
+                    key={preset.name}
+                    type="button"
+                    className="text-xs px-2.5 py-1 rounded-full border border-border bg-background hover:bg-muted transition-colors"
+                    onClick={() => {
+                      setNewFeedName(preset.name);
+                      setNewFeedUrl("");
+                    }}
+                  >
+                    + {preset.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Add feed form */}
+            <div className="grid grid-cols-1 sm:grid-cols-[1fr_1.5fr_auto] gap-2 items-end">
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Calendar name</label>
+                <input
+                  value={newFeedName}
+                  onChange={(e) => setNewFeedName(e.target.value)}
+                  placeholder="e.g. Airbnb"
+                  className="w-full text-sm border border-border rounded-lg px-3 py-2 bg-background"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">iCal URL (.ics)</label>
+                <input
+                  value={newFeedUrl}
+                  onChange={(e) => setNewFeedUrl(e.target.value)}
+                  placeholder="https://www.airbnb.com/calendar/ical/..."
+                  className="w-full text-sm border border-border rounded-lg px-3 py-2 bg-background"
+                />
+              </div>
+              <Button
+                type="button"
+                className="rounded-lg"
+                size="sm"
+                disabled={!newFeedName.trim() || !newFeedUrl.trim() || icalFeedsUpdate.isPending}
+                onClick={async () => {
+                  const updated: IcalFeed[] = [
+                    ...(icalData?.ical_feeds ?? []),
+                    { name: newFeedName.trim(), url: newFeedUrl.trim(), last_synced: null },
+                  ];
+                  try {
+                    await icalFeedsUpdate.mutateAsync({ propertyId: id!, feeds: updated });
+                    setNewFeedName("");
+                    setNewFeedUrl("");
+                    toast({ title: "Feed added", description: "Click Sync to import dates." });
+                  } catch (e) {
+                    toast({ title: "Error", description: String(e), variant: "destructive" });
+                  }
+                }}
+              >
+                {icalFeedsUpdate.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5 mr-1" />}
+                Add
+              </Button>
+            </div>
+          </div>
+        </section>
+        )}
 
         {/* Availability modal */}
         <Dialog
