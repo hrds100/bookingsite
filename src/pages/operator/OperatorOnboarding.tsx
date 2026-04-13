@@ -264,16 +264,16 @@ export default function OperatorOnboarding() {
         )}
 
         {/* Navigation */}
-        {step < 3 && (
-          <div className="flex items-center justify-between mt-6">
-            <Button data-feature="NFSTAY__OP_ONBOARDING_BACK" variant="ghost" onClick={prev} disabled={step === 0} className="gap-2 rounded-lg">
-              <ArrowLeft className="w-4 h-4" /> Back
-            </Button>
+        <div className="flex items-center justify-between mt-6">
+          <Button data-feature="NFSTAY__OP_ONBOARDING_BACK" variant="ghost" onClick={prev} disabled={step === 0} className="gap-2 rounded-lg">
+            <ArrowLeft className="w-4 h-4" /> Back
+          </Button>
+          {step < 3 && (
             <Button data-feature="NFSTAY__OP_ONBOARDING_NEXT" onClick={next} className="rounded-lg gap-2">
               Continue <ArrowRight className="w-4 h-4" />
             </Button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );
