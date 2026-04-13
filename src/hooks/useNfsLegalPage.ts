@@ -35,6 +35,21 @@ export interface NfsLegalProtectedBlock {
  *
  * When operatorId is null/undefined (main nfstay.app), returns platform content.
  */
+/** Pick the best translation, always falling back to English content. */
+function resolveContent(
+  content: string,
+  translations: Record<string, string> | null | undefined,
+  lang?: string,
+): string {
+  if (lang && lang !== "en") {
+    if (translations?.[lang]) return translations[lang];
+    // Try base language: "pt" from "pt-BR"
+    const base = lang.split("-")[0];
+    if (base !== lang && translations?.[base]) return translations[base];
+  }
+  return content; // English fallback
+}
+
 export function useNfsLegalPage(pageType: LegalPageType, operatorId?: string | null, lang?: string) {
   return useQuery({
     queryKey: ["nfs-legal-page", pageType, operatorId ?? "platform", lang ?? "en"],
@@ -42,7 +57,7 @@ export function useNfsLegalPage(pageType: LegalPageType, operatorId?: string | n
       if (!SUPABASE_CONFIGURED) return "";
 
       if (operatorId) {
-        // Try operator's own custom content first (includes translations)
+        // 1. Operator's own custom content
         const { data: custom } = await supabase
           .from("nfs_legal_pages")
           .select("content, content_translations")
@@ -52,34 +67,49 @@ export function useNfsLegalPage(pageType: LegalPageType, operatorId?: string | n
           .maybeSingle();
 
         if (custom?.content) {
-          // Return translated version if available
-          const translations = (custom as any).content_translations as Record<string, string> | null;
-          if (lang && lang !== 'en' && translations?.[lang]) return translations[lang];
-          return custom.content;
+          return resolveContent(
+            custom.content,
+            custom.content_translations as Record<string, string> | null,
+            lang,
+          );
         }
 
-        // Fall back to operator default template
+        // 2. Operator default template
         const { data: defaultOp } = await supabase
           .from("nfs_legal_pages")
-          .select("content")
+          .select("content, content_translations")
           .eq("owner_type", "operator")
           .eq("owner_id", "default")
           .eq("page_type", pageType)
           .maybeSingle();
 
-        if (defaultOp?.content) return defaultOp.content;
+        if (defaultOp?.content) {
+          return resolveContent(
+            defaultOp.content,
+            (defaultOp as any).content_translations as Record<string, string> | null,
+            lang,
+          );
+        }
       }
 
-      // Platform content (nfstay.app or final fallback for operator)
+      // 3. Platform content — final fallback (always English)
       const { data: platform } = await supabase
         .from("nfs_legal_pages")
-        .select("content")
+        .select("content, content_translations")
         .eq("owner_type", "platform")
         .eq("owner_id", "nfstay")
         .eq("page_type", pageType)
         .maybeSingle();
 
-      return platform?.content ?? "";
+      if (platform?.content) {
+        return resolveContent(
+          platform.content,
+          (platform as any).content_translations as Record<string, string> | null,
+          lang,
+        );
+      }
+
+      return "";
     },
     staleTime: 5 * 60_000,
   });
