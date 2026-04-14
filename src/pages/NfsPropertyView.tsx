@@ -197,21 +197,27 @@ export default function NfsPropertyView() {
           {/* Room info merged into title area above */}
           <hr className="border-border" />
 
-          {/* Bed & Bathroom breakdown */}
-          {(() => {
-            const rc = property.room_counts as any;
-            const bedDetails: { type: string; count: number }[] = Array.isArray(rc?.bed_details) ? rc.bed_details : [];
-            const bathroomDetails: { type: string }[] = Array.isArray(rc?.bathroom_details) ? rc.bathroom_details : [];
-            if (bedDetails.length === 0 && bathroomDetails.length === 0) return null;
+          <div>
+            <h2 className="text-lg font-semibold mb-3">{t('property.about')}</h2>
+            <p className="text-sm text-foreground whitespace-pre-line">
+              {showMore ? displayDescription : displayDescription.slice(0, 300)}{displayDescription.length > 300 && !showMore && '...'}
+            </p>
+            {displayDescription.length > 300 && (
+              <button onClick={() => setShowMore(!showMore)} className="text-sm font-semibold text-primary mt-2 hover:underline">{showMore ? t('property.show_less') : t('property.show_more')}</button>
+            )}
 
-            const ensuiteCount = bathroomDetails.filter(b => b.type === 'ensuite').length;
-            const sharedCount = bathroomDetails.filter(b => b.type === 'shared').length;
-
-            return (
-              <>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Bed & Bathroom breakdown — shown under description */}
+            {(() => {
+              const rc = property.room_counts as any;
+              const bedDetails: { type: string; count: number }[] = Array.isArray(rc?.bed_details) ? rc.bed_details : [];
+              const bathroomDetails: { type: string }[] = Array.isArray(rc?.bathroom_details) ? rc.bathroom_details : [];
+              if (bedDetails.length === 0 && bathroomDetails.length === 0) return null;
+              const ensuiteCount = bathroomDetails.filter(b => b.type === 'ensuite').length;
+              const sharedCount = bathroomDetails.filter(b => b.type === 'shared').length;
+              return (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
                   {bedDetails.length > 0 && (
-                    <div className="bg-card border border-border rounded-xl p-4">
+                    <div className="bg-muted/50 border border-border rounded-xl p-3">
                       <div className="flex items-center gap-2 mb-2">
                         <BedDouble className="w-4 h-4 text-primary" />
                         <span className="text-sm font-semibold">Beds</span>
@@ -227,7 +233,7 @@ export default function NfsPropertyView() {
                     </div>
                   )}
                   {bathroomDetails.length > 0 && (
-                    <div className="bg-card border border-border rounded-xl p-4">
+                    <div className="bg-muted/50 border border-border rounded-xl p-3">
                       <div className="flex items-center gap-2 mb-2">
                         <Bath className="w-4 h-4 text-primary" />
                         <span className="text-sm font-semibold">Bathrooms</span>
@@ -235,33 +241,20 @@ export default function NfsPropertyView() {
                       <ul className="space-y-1">
                         {ensuiteCount > 0 && (
                           <li className="text-sm text-muted-foreground flex justify-between">
-                            <span>Ensuite</span>
-                            <span className="font-medium text-foreground">×{ensuiteCount}</span>
+                            <span>Ensuite</span><span className="font-medium text-foreground">×{ensuiteCount}</span>
                           </li>
                         )}
                         {sharedCount > 0 && (
                           <li className="text-sm text-muted-foreground flex justify-between">
-                            <span>Shared</span>
-                            <span className="font-medium text-foreground">×{sharedCount}</span>
+                            <span>Shared</span><span className="font-medium text-foreground">×{sharedCount}</span>
                           </li>
                         )}
                       </ul>
                     </div>
                   )}
                 </div>
-                <hr className="border-border" />
-              </>
-            );
-          })()}
-
-          <div>
-            <h2 className="text-lg font-semibold mb-3">{t('property.about')}</h2>
-            <p className="text-sm text-foreground whitespace-pre-line">
-              {showMore ? displayDescription : displayDescription.slice(0, 300)}{displayDescription.length > 300 && !showMore && '...'}
-            </p>
-            {displayDescription.length > 300 && (
-              <button onClick={() => setShowMore(!showMore)} className="text-sm font-semibold text-primary mt-2 hover:underline">{showMore ? t('property.show_less') : t('property.show_more')}</button>
-            )}
+              );
+            })()}
           </div>
           <hr className="border-border" />
           <div data-feature="NFSTAY__PROPERTY_AMENITIES">

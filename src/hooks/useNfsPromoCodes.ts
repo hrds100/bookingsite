@@ -9,6 +9,8 @@ export interface NfsPromoCode {
   operator_id: string;
   name: string | null;
   code: string;
+  discount_type: 'percent' | 'fixed';
+  value: number;
   discount_percent: number;
   max_uses: number | null;
   current_uses: number;
@@ -20,7 +22,8 @@ export interface NfsPromoCode {
 export interface PromoCodeInput {
   name?: string;
   code: string;
-  discount_percent: number;
+  discount_type: 'percent' | 'fixed';
+  value: number;
   max_uses?: number | null;
   expires_at?: string | null;
 }
@@ -35,7 +38,7 @@ export function useNfsPromoCodes() {
       if (!SUPABASE_CONFIGURED || !operatorId) return [];
       const { data, error } = await supabase
         .from("nfs_promo_codes")
-        .select("id, operator_id, name, code, discount_percent, max_uses, current_uses, expires_at, active, created_at")
+        .select("id, operator_id, name, code, discount_type, value, discount_percent, max_uses, current_uses, expires_at, active, created_at")
         .eq("operator_id", operatorId)
         .order("created_at", { ascending: false });
       if (error || !data) return [];
@@ -57,7 +60,9 @@ export function useNfsPromoCodeCreate() {
         operator_id: operator.id,
         name: input.name ?? null,
         code: input.code.toUpperCase().trim(),
-        discount_percent: input.discount_percent,
+        discount_type: input.discount_type,
+        value: input.value,
+        discount_percent: input.discount_type === 'percent' ? input.value : 0,
         max_uses: input.max_uses ?? null,
         expires_at: input.expires_at ?? null,
         active: true,

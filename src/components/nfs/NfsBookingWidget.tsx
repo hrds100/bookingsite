@@ -53,7 +53,7 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
   const [adults, setAdults] = useState(1);
   const [children, setChildren] = useState(0);
   const [promoCode, setPromoCode] = useState('');
-  const [promoApplied, setPromoApplied] = useState<{ code: string; discount: number; label: string } | null>(null);
+  const [promoApplied, setPromoApplied] = useState<{ code: string; discount: number; discountType: 'percent' | 'fixed'; label: string } | null>(null);
   const [promoError, setPromoError] = useState('');
   const [promoLoading, setPromoLoading] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
@@ -102,7 +102,11 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
     ? Math.round(subtotal * property.monthly_discount.percentage / 100)
     : 0;
   const discount = monthlyDiscount || weeklyDiscount;
-  const promoDiscount = promoApplied ? Math.round(subtotal * promoApplied.discount / 100) : 0;
+  const promoDiscount = promoApplied
+    ? promoApplied.discountType === 'fixed'
+      ? Math.min(convert(promoApplied.discount, 'GBP'), subtotal)
+      : Math.round(subtotal * promoApplied.discount / 100)
+    : 0;
   const serviceFee = Math.round((subtotal - discount) * 0.05);
   const taxes = 0; // placeholder
   const addonsTotal = addons
@@ -121,7 +125,8 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
         setPromoApplied({
           code: result.code || promoCode.toUpperCase().trim(),
           discount: result.discount,
-          label: `${result.discount}% off`,
+          discountType: result.discountType,
+          label: result.discountType === 'fixed' ? `£${result.discount} off` : `${result.discount}% off`,
         });
         setPromoError('');
       } else {
