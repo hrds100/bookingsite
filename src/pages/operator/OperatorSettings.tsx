@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
 import { useNfsOperator, useNfsOperatorUpdate } from "@/hooks/useNfsOperator";
+import { useNfsPromoCodes, useNfsPromoCodeCreate, useNfsPromoCodeToggle, useNfsPromoCodeDelete } from "@/hooks/useNfsPromoCodes";
 import { useNfsOperatorLegalPage, useNfsOperatorLegalPageUpdate, type LegalPageType } from "@/hooks/useNfsLegalPage";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabase";
@@ -451,6 +452,7 @@ export default function OperatorSettings() {
           <TabsTrigger value="payout">Payout</TabsTrigger>
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
           <TabsTrigger value="legal">Legal Pages</TabsTrigger>
+          <TabsTrigger value="promo">Promo Codes</TabsTrigger>
           <TabsTrigger value="preferences">Preferences</TabsTrigger>
         </TabsList>
 
@@ -1112,6 +1114,11 @@ export default function OperatorSettings() {
           <LegalPagesTab />
         </TabsContent>
 
+        {/* Tab: Promo Codes */}
+        <TabsContent value="promo" className="mt-6">
+          <PromoCodesTab />
+        </TabsContent>
+
         {/* Tab: Preferences */}
         <TabsContent value="preferences" className="mt-6 space-y-6">
           <section className="bg-card border border-border rounded-2xl p-6 space-y-5">
@@ -1287,6 +1294,168 @@ function LegalPageEditor({ pageType, label, path, baseUrl, defaultLangCode, defa
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+// ── Promo Codes Tab ──────────────────────────────────────────────────────────
+
+function PromoCodesTab() {
+  const { data: codes = [], isLoading } = useNfsPromoCodes();
+  const createCode = useNfsPromoCodeCreate();
+  const toggleCode = useNfsPromoCodeToggle();
+  const deleteCode = useNfsPromoCodeDelete();
+
+  const [form, setForm] = useState({ name: '', code: '', discount_percent: 10, max_uses: '', expires_at: '' });
+  const [saving, setSaving] = useState(false);
+
+  const handleCreate = async () => {
+    if (!form.code.trim() || !form.discount_percent) return;
+    setSaving(true);
+    try {
+      await createCode.mutateAsync({
+        name: form.name || undefined,
+        code: form.code,
+        discount_percent: Number(form.discount_percent),
+        max_uses: form.max_uses ? Number(form.max_uses) : null,
+        expires_at: form.expires_at || null,
+      });
+      setForm({ name: '', code: '', discount_percent: 10, max_uses: '', expires_at: '' });
+      toast({ title: 'Promo code created' });
+    } catch (e: any) {
+      toast({ title: 'Error', description: e?.message ?? 'Failed to create', variant: 'destructive' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Create form */}
+      <section className="bg-card border border-border rounded-2xl p-6 space-y-4">
+        <h2 className="text-lg font-semibold">Create Promo Code</h2>
+        <p className="text-sm text-muted-foreground -mt-2">Guests enter the code at checkout to get a percentage discount.</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <Label>Code *</Label>
+            <Input
+              className="mt-1.5 uppercase"
+              placeholder="e.g. SUMMER20"
+              value={form.code}
+              onChange={e => setForm(p => ({ ...p, code: e.target.value.toUpperCase() }))}
+            />
+          </div>
+          <div>
+            <Label>Name / Description</Label>
+            <Input
+              className="mt-1.5"
+              placeholder="e.g. Summer sale"
+              value={form.name}
+              onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
+            />
+          </div>
+          <div>
+            <Label>Discount % *</Label>
+            <Input
+              type="number"
+              min={1}
+              max={100}
+              className="mt-1.5"
+              value={form.discount_percent}
+              onChange={e => setForm(p => ({ ...p, discount_percent: Number(e.target.value) }))}
+            />
+          </div>
+          <div>
+            <Label>Max Uses <span className="text-muted-foreground font-normal">(leave blank for unlimited)</span></Label>
+            <Input
+              type="number"
+              min={1}
+              className="mt-1.5"
+              placeholder="Unlimited"
+              value={form.max_uses}
+              onChange={e => setForm(p => ({ ...p, max_uses: e.target.value }))}
+            />
+          </div>
+          <div>
+            <Label>Expires <span className="text-muted-foreground font-normal">(optional)</span></Label>
+            <Input
+              type="date"
+              className="mt-1.5"
+              value={form.expires_at}
+              onChange={e => setForm(p => ({ ...p, expires_at: e.target.value }))}
+            />
+          </div>
+        </div>
+        <Button onClick={handleCreate} disabled={saving || !form.code.trim()} className="rounded-lg">
+          {saving ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Creating…</> : 'Create Code'}
+        </Button>
+      </section>
+
+      {/* Existing codes */}
+      <section className="bg-card border border-border rounded-2xl p-6 space-y-4">
+        <h2 className="text-lg font-semibold">Your Promo Codes</h2>
+        {isLoading && <div className="flex justify-center py-6"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>}
+        {!isLoading && codes.length === 0 && (
+          <p className="text-sm text-muted-foreground py-4 text-center">No promo codes yet. Create one above.</p>
+        )}
+        {codes.length > 0 && (
+          <div className="space-y-2">
+            {codes.map(c => {
+              const expired = c.expires_at ? new Date(c.expires_at) < new Date() : false;
+              const exhausted = c.max_uses != null && c.current_uses >= c.max_uses;
+              return (
+                <div key={c.id} className={`flex items-center gap-3 rounded-xl border px-4 py-3 ${!c.active || expired || exhausted ? 'opacity-60 bg-muted/30' : 'bg-background'} border-border`}>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-mono font-semibold text-sm tracking-widest">{c.code}</span>
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">{c.discount_percent}% off</span>
+                      {!c.active && <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">Inactive</span>}
+                      {expired && <span className="text-xs px-2 py-0.5 rounded-full bg-destructive/10 text-destructive">Expired</span>}
+                      {exhausted && <span className="text-xs px-2 py-0.5 rounded-full bg-destructive/10 text-destructive">Exhausted</span>}
+                    </div>
+                    <div className="flex gap-3 mt-0.5 flex-wrap">
+                      {c.name && <span className="text-xs text-muted-foreground">{c.name}</span>}
+                      <span className="text-xs text-muted-foreground">
+                        {c.current_uses} use{c.current_uses !== 1 ? 's' : ''}{c.max_uses ? ` / ${c.max_uses} max` : ''}
+                      </span>
+                      {c.expires_at && (
+                        <span className="text-xs text-muted-foreground">
+                          Expires {new Date(c.expires_at).toLocaleDateString()}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  {/* Toggle active */}
+                  <Switch
+                    checked={c.active}
+                    onCheckedChange={async (v) => {
+                      try {
+                        await toggleCode.mutateAsync({ id: c.id, active: v });
+                      } catch {
+                        toast({ title: 'Error', variant: 'destructive' });
+                      }
+                    }}
+                  />
+                  {/* Delete */}
+                  <button
+                    className="p-1.5 rounded-lg hover:bg-destructive/10 text-destructive transition-colors"
+                    onClick={async () => {
+                      try {
+                        await deleteCode.mutateAsync(c.id);
+                        toast({ title: 'Code deleted' });
+                      } catch {
+                        toast({ title: 'Error', variant: 'destructive' });
+                      }
+                    }}
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
     </div>
   );
 }
