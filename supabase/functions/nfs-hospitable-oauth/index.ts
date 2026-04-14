@@ -250,10 +250,10 @@ serve(async (req) => {
           return new Response(JSON.stringify({ error: 'operator_id and profile_id required' }), { status: 400, headers: corsHeaders });
         }
 
-        // If already connected, don't reset — just regenerate the auth URL
+        // Fetch existing connection including connected_platforms to detect incomplete connections
         const { data: existingConn } = await supabase
           .from('nfs_hospitable_connections')
-          .select('id, hospitable_customer_id, status, is_active')
+          .select('id, hospitable_customer_id, status, is_active, connected_platforms')
           .eq('operator_id', operatorId)
           .order('connected_at', { ascending: false })
           .limit(1)
@@ -339,8 +339,13 @@ serve(async (req) => {
 
         const state = crypto.randomUUID();
 
-        if (existingConn?.id && existingConn.status !== 'connected') {
-          // Update existing pending row
+        // Determine if this is an incomplete connection (connected but no Airbnb linked)
+        const isIncompleteConnection = existingConn?.status === 'connected' &&
+          Array.isArray(existingConn.connected_platforms) &&
+          existingConn.connected_platforms.length === 0;
+
+        if (existingConn?.id && (existingConn.status !== 'connected' || isIncompleteConnection)) {
+          // Update existing row to pending so callback can re-process it
           await supabase.from('nfs_hospitable_connections').update({
             hospitable_customer_id: customerId,
             auth_code: state,
@@ -368,7 +373,7 @@ serve(async (req) => {
             user_metadata: { redirect_origin: origin },
           });
         }
-        // If already connected, just return the auth URL without resetting status
+        // If already connected with Airbnb linked, just return the auth URL (for adding another account)
 
         return new Response(JSON.stringify({ url: returnUrl }), { status: 200, headers: corsHeaders });
       }
@@ -510,7 +515,15 @@ serve(async (req) => {
           const custRes = await fetch(`${HOSPITABLE_CONNECT_BASE}/customers/${customerId}`, { method: 'GET', headers: connectHeaders() });
           const custText = await custRes.text();
           console.log(`[Hospitable] Customer info → ${custRes.status}: ${custText.slice(0, 500)}`);
-          if (custRes.ok) customerInfo = JSON.parse(custText);
+          if (custRes.ok) {
+            customerInfo = JSON.parse(custText);
+            // Update connected_platforms with fresh data from Hospitable
+            const freshPlatforms: string[] = (customerInfo.connected_platforms as string[]) ||
+              ((customerInfo.data as Record<string, unknown>)?.connected_platforms as string[]) || [];
+            await supabase.from('nfs_hospitable_connections').update({
+              connected_platforms: freshPlatforms,
+            }).eq('id', connectionRow.id as string);
+          }
         } catch (e) {
           console.log('[Hospitable] Could not fetch customer info:', e);
         }

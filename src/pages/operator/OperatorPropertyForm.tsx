@@ -738,31 +738,53 @@ export default function OperatorPropertyForm() {
                     </div>
                   ) : (syncedProperties || []).length === 0 ? (
                     <div className="py-6 text-center space-y-3">
-                      <div className="flex items-center justify-center gap-2">
-                        {autoCheckCount < MAX_AUTO_CHECKS ? (
-                          <Loader2 className="w-4 h-4 animate-spin text-primary shrink-0" />
-                        ) : (
-                          <AlertCircle className="w-4 h-4 text-amber-500 shrink-0" />
-                        )}
-                        <p className="text-sm text-muted-foreground">
-                          {autoCheckCount < MAX_AUTO_CHECKS
-                            ? "Importing listings from Airbnb — this can take a few minutes."
-                            : "No listings found. Make sure your Airbnb listings are active."}
-                        </p>
-                      </div>
-                      {autoCheckCount < MAX_AUTO_CHECKS && (
-                        <p className="text-xs text-muted-foreground">
-                          Checking automatically every 30s (attempt {autoCheckCount + 1}/{MAX_AUTO_CHECKS})
-                        </p>
+                      {conn.connected_platforms?.length === 0 ? (
+                        <>
+                          <AlertCircle className="w-5 h-5 text-amber-500 mx-auto" />
+                          <p className="text-sm font-medium text-amber-700">Airbnb not linked in Hospitable</p>
+                          <p className="text-xs text-muted-foreground max-w-xs mx-auto">
+                            Your Hospitable account is connected but no Airbnb channel is linked yet.
+                            Click Reconnect below — when Hospitable opens, add your Airbnb account there.
+                          </p>
+                          <Button
+                            size="sm"
+                            className="rounded-lg"
+                            onClick={() => initiateConnect()}
+                            disabled={connecting}
+                          >
+                            {connecting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Wifi className="w-4 h-4 mr-2" />}
+                            Reconnect &amp; Link Airbnb
+                          </Button>
+                        </>
+                      ) : (
+                        <>
+                          <div className="flex items-center justify-center gap-2">
+                            {autoCheckCount < MAX_AUTO_CHECKS ? (
+                              <Loader2 className="w-4 h-4 animate-spin text-primary shrink-0" />
+                            ) : (
+                              <AlertCircle className="w-4 h-4 text-amber-500 shrink-0" />
+                            )}
+                            <p className="text-sm text-muted-foreground">
+                              {autoCheckCount < MAX_AUTO_CHECKS
+                                ? "Importing listings from Airbnb — this can take a few minutes."
+                                : "No listings found. Make sure your Airbnb listings are active."}
+                            </p>
+                          </div>
+                          {autoCheckCount < MAX_AUTO_CHECKS && (
+                            <p className="text-xs text-muted-foreground">
+                              Checking automatically every 30s (attempt {autoCheckCount + 1}/{MAX_AUTO_CHECKS})
+                            </p>
+                          )}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="rounded-lg"
+                            onClick={() => { setAutoCheckCount(0); handleResync(conn.id); }}
+                          >
+                            <RefreshCw className="w-4 h-4 mr-2" /> Check Now
+                          </Button>
+                        </>
                       )}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="rounded-lg"
-                        onClick={() => { setAutoCheckCount(0); handleResync(conn.id); }}
-                      >
-                        <RefreshCw className="w-4 h-4 mr-2" /> Check Now
-                      </Button>
                     </div>
                   ) : (
                     <>
