@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { ChevronLeft, ChevronRight, Search, Star, Shield, CreditCard, Globe, Clock, MessageCircle, Headphones } from "lucide-react";
@@ -13,6 +13,7 @@ import { useRecentlyViewed } from "@/hooks/useRecentlyViewed";
 import { useWhiteLabel } from "@/contexts/WhiteLabelContext";
 import { useWhiteLabelProperties } from "@/hooks/useWhiteLabelProperties";
 import { useNfsOperatorDomains } from "@/hooks/useNfsOperator";
+import { useNfsProperties } from "@/hooks/useNfsProperties";
 
 function FaqItem({ q, a, value }: { q: string; a: string; value: string }) {
   return (
@@ -43,13 +44,51 @@ export default function NfsMainLanding() {
     testimonialRef.current?.scrollBy({ left: dir * 340, behavior: 'smooth' });
   };
 
-  // Use white-label properties if available, otherwise mock
+  // Real properties from DB (falls back to mock when DB is empty)
+  const { data: dbProperties = [] } = useNfsProperties();
+  // Mock IDs start with 'prop-' — if all IDs match that pattern we're on mock data
+  const hasRealProperties = dbProperties.some(p => !p.id.startsWith('prop-'));
+
+  // Featured: use real DB properties on main site, white-label properties on operator sites
   const featuredProperties = isWhiteLabel
     ? (wlProperties ?? []).slice(0, 8)
-    : mockProperties.slice(0, 8);
+    : dbProperties.slice(0, 8);
+
   const { recentIds } = useRecentlyViewed();
-  const allProperties = isWhiteLabel ? (wlProperties ?? []) : mockProperties;
+  const allProperties = isWhiteLabel ? (wlProperties ?? []) : dbProperties;
   const recentProperties = recentIds.map(id => allProperties.find(p => p.id === id)).filter(Boolean);
+
+  // Popular Destinations: derived from real property cities, fallback to mock
+  const displayDestinations = useMemo(() => {
+    if (!hasRealProperties) return mockDestinations;
+
+    const cityMap = new Map<string, { count: number; country: string; image: string | null }>();
+    for (const p of dbProperties) {
+      if (!p.city) continue;
+      const existing = cityMap.get(p.city);
+      const img = Array.isArray(p.images) && p.images.length > 0 ? (p.images[0] as any)?.url ?? null : null;
+      if (existing) {
+        existing.count++;
+        if (!existing.image && img) existing.image = img;
+      } else {
+        cityMap.set(p.city, { count: 1, country: p.country ?? '', image: img });
+      }
+    }
+
+    return Array.from(cityMap.entries())
+      .map(([city, { count, country, image }]) => {
+        // Reuse mock destination image if city name matches
+        const mockDest = mockDestinations.find(d => d.city.toLowerCase() === city.toLowerCase());
+        return {
+          city,
+          country,
+          propertyCount: count,
+          image: mockDest?.image ?? image ?? 'https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=400&h=500&fit=crop',
+        };
+      })
+      .sort((a, b) => b.propertyCount - a.propertyCount)
+      .slice(0, 10);
+  }, [dbProperties, hasRealProperties]);
 
   // Hero content
   const heroHeadline = wlOperator?.hero_headline_translations?.[currentLang]
@@ -109,7 +148,7 @@ export default function NfsMainLanding() {
           </div>
 
           <div ref={scrollRef} className="flex gap-4 overflow-x-auto scrollbar-hide pb-2" style={{ scrollbarWidth: 'none' }}>
-            {mockDestinations.map((dest) => (
+            {displayDestinations.map((dest) => (
               <button
                 key={dest.city}
                 onClick={() => navigate(`/search?query=${dest.city}`)}
