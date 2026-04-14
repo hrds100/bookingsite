@@ -43,19 +43,45 @@ export interface HospitableSyncedProperty {
   images: { url: string; caption?: string; order?: number }[] | null;
 }
 
-// ── useNfsHospitableConnection ──
+// ── useNfsHospitableConnections (returns ALL connections for operator) ──
+
+export function useNfsHospitableConnections() {
+  const { data: operator } = useNfsOperator();
+
+  return useQuery({
+    queryKey: ["nfs-hospitable-connection", operator?.id],
+    queryFn: async (): Promise<HospitableConnection[]> => {
+      if (!operator?.id) return [];
+
+      const { data, error } = await (supabase.from("nfs_hospitable_connections") as any)
+        .select("*")
+        .eq("operator_id", operator.id)
+        .order("connected_at", { ascending: false });
+
+      if (error) throw new Error(error.message);
+      return (data || []) as HospitableConnection[];
+    },
+    enabled: !!operator?.id,
+    staleTime: 10_000,
+  });
+}
+
+// ── useNfsHospitableConnection (legacy: returns first active connection or null) ──
 
 export function useNfsHospitableConnection() {
   const { data: operator } = useNfsOperator();
 
   return useQuery({
-    queryKey: ["nfs-hospitable-connection", operator?.id],
+    queryKey: ["nfs-hospitable-connection-single", operator?.id],
     queryFn: async (): Promise<HospitableConnection | null> => {
       if (!operator?.id) return null;
 
       const { data, error } = await (supabase.from("nfs_hospitable_connections") as any)
         .select("*")
         .eq("operator_id", operator.id)
+        .eq("is_active", true)
+        .order("connected_at", { ascending: false })
+        .limit(1)
         .maybeSingle();
 
       if (error) throw new Error(error.message);
@@ -133,7 +159,7 @@ export function useNfsHospitableConnect() {
     }
   }, [operator?.id, operator?.profile_id]);
 
-  const triggerResync = useCallback(async (): Promise<boolean> => {
+  const triggerResync = useCallback(async (connectionId?: string): Promise<boolean> => {
     if (!operator?.id) {
       setError("No operator found");
       return false;
@@ -143,7 +169,7 @@ export function useNfsHospitableConnect() {
       setError(null);
 
       const { error: fnError } = await supabase.functions.invoke("nfs-hospitable-oauth", {
-        body: { action: "resync", operator_id: operator.id },
+        body: { action: "resync", operator_id: operator.id, connection_id: connectionId },
       });
 
       if (fnError) {
@@ -151,7 +177,6 @@ export function useNfsHospitableConnect() {
         return false;
       }
 
-      // Refresh connection + properties data after short delay
       setTimeout(() => {
         queryClient.invalidateQueries({ queryKey: ["nfs-hospitable-connection"] });
         queryClient.invalidateQueries({ queryKey: ["nfs-hospitable-properties"] });
@@ -165,6 +190,29 @@ export function useNfsHospitableConnect() {
   }, [operator?.id, queryClient]);
 
   return { connecting, error, initiateConnect, triggerResync };
+}
+
+// ── useNfsHospitableDisconnect ──
+
+export function useNfsHospitableDisconnect() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (connectionId: string) => {
+      const { error } = await (supabase.from("nfs_hospitable_connections") as any)
+        .update({
+          is_active: false,
+          status: "disconnected",
+          disconnected_at: new Date().toISOString(),
+        })
+        .eq("id", connectionId);
+
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["nfs-hospitable-connection"] });
+    },
+  });
 }
 
 // ── useNfsHospitableImport (activate selected properties) ──
