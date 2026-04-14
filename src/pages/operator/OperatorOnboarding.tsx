@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Navigate } from "react-router-dom";
-import { Building2, Palette, User, CheckCircle2, ArrowRight, ArrowLeft, Globe } from "lucide-react";
+import { Building2, Palette, User, CheckCircle2, ArrowRight, ArrowLeft, Globe, Loader2, XCircle } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { NfsLogo } from "@/components/nfs/NfsLogo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +10,7 @@ import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useNfsOperatorCreate, useNfsOperator } from "@/hooks/useNfsOperator";
 import { notifyNewOperator } from "@/lib/email";
+import { supabase } from "@/lib/supabase";
 
 const ACCENT_COLORS = [
   { label: "Green", value: "#22c55e" },
@@ -41,6 +43,27 @@ export default function OperatorOnboarding() {
   const [subdomain, setSubdomain] = useState("");
   const [accentColor, setAccentColor] = useState("#22c55e");
 
+  // Debounced subdomain for availability check
+  const [debouncedSubdomain, setDebouncedSubdomain] = useState("");
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSubdomain(subdomain.toLowerCase().replace(/[^a-z0-9-]/g, "")), 400);
+    return () => clearTimeout(t);
+  }, [subdomain]);
+
+  const { data: subdomainTaken, isFetching: checkingSubdomain } = useQuery({
+    queryKey: ["subdomain-check", debouncedSubdomain],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("nfs_operators")
+        .select("id")
+        .eq("subdomain", debouncedSubdomain)
+        .maybeSingle();
+      return !!data;
+    },
+    enabled: debouncedSubdomain.length >= 2,
+    staleTime: 30_000,
+  });
+
   if (loading || (!!user && !operatorChecked)) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -61,7 +84,8 @@ export default function OperatorOnboarding() {
 
   const subdomainSlug = subdomain.toLowerCase().replace(/[^a-z0-9-]/g, "");
 
-  const canFinish = brandName.trim().length >= 2 && subdomainSlug.length >= 2;
+  const subdomainAvailable = debouncedSubdomain.length >= 2 && !subdomainTaken && !checkingSubdomain;
+  const canFinish = brandName.trim().length >= 2 && subdomainSlug.length >= 2 && subdomainAvailable;
 
   const finish = async () => {
     if (!canFinish) {
@@ -185,15 +209,38 @@ export default function OperatorOnboarding() {
                   value={subdomain}
                   onChange={e => setSubdomain(e.target.value)}
                   placeholder="sunset"
-                  className="rounded-r-none"
+                  className={`rounded-r-none ${
+                    subdomainSlug.length >= 2 && !checkingSubdomain
+                      ? subdomainTaken
+                        ? "border-destructive focus-visible:ring-destructive"
+                        : "border-green-500 focus-visible:ring-green-500"
+                      : ""
+                  }`}
                 />
                 <span className="inline-flex items-center px-3 h-9 border border-l-0 border-border rounded-r-md bg-muted text-sm text-muted-foreground whitespace-nowrap">
                   .nfstay.app
                 </span>
+                {/* Availability indicator */}
+                <span className="ml-2 flex items-center w-5">
+                  {subdomainSlug.length >= 2 && checkingSubdomain && (
+                    <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                  )}
+                  {subdomainSlug.length >= 2 && !checkingSubdomain && subdomainTaken && (
+                    <XCircle className="w-4 h-4 text-destructive" />
+                  )}
+                  {subdomainSlug.length >= 2 && !checkingSubdomain && subdomainTaken === false && (
+                    <CheckCircle2 className="w-4 h-4 text-green-500" />
+                  )}
+                </span>
               </div>
-              {subdomainSlug && (
-                <p className="text-xs text-muted-foreground mt-2">
-                  Your site: <span className="font-medium text-foreground">{subdomainSlug}.nfstay.app</span>
+              {subdomainSlug.length >= 2 && !checkingSubdomain && subdomainTaken && (
+                <p className="text-xs text-destructive mt-1 font-medium">
+                  "{subdomainSlug}" is already taken. Please choose a different subdomain.
+                </p>
+              )}
+              {subdomainSlug.length >= 2 && !checkingSubdomain && subdomainTaken === false && (
+                <p className="text-xs text-green-600 mt-1 font-medium">
+                  ✓ {subdomainSlug}.nfstay.app is available!
                 </p>
               )}
               {subdomain && subdomainSlug.length < 2 && (
@@ -269,7 +316,12 @@ export default function OperatorOnboarding() {
             <ArrowLeft className="w-4 h-4" /> Back
           </Button>
           {step < 3 && (
-            <Button data-feature="NFSTAY__OP_ONBOARDING_NEXT" onClick={next} className="rounded-lg gap-2">
+            <Button
+              data-feature="NFSTAY__OP_ONBOARDING_NEXT"
+              onClick={next}
+              className="rounded-lg gap-2"
+              disabled={step === 1 && (subdomainSlug.length < 2 || !!subdomainTaken || checkingSubdomain)}
+            >
               Continue <ArrowRight className="w-4 h-4" />
             </Button>
           )}
