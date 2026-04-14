@@ -398,10 +398,17 @@ export default function OperatorPropertyForm() {
     }
   }, [totalBedsFromDetails, bedDetails.length]);
 
+  // Sync bathroom count to number of detail entries (mirrors how beds work)
+  useEffect(() => {
+    if (bathroomDetails.length > 0) {
+      setBathrooms(bathroomDetails.length);
+    }
+  }, [bathroomDetails.length]);
+
   // Bathroom details handlers
   const addBathroomDetail = () => {
     setBathroomDetails((prev) => [...prev, { type: "ensuite" }]);
-    setBathrooms((prev) => prev + 1);
+    // count synced by useEffect above — do NOT increment here
   };
 
   const updateBathroomDetail = (idx: number, type: "ensuite" | "shared") => {
@@ -410,7 +417,7 @@ export default function OperatorPropertyForm() {
 
   const removeBathroomDetail = (idx: number) => {
     setBathroomDetails((prev) => prev.filter((_, i) => i !== idx));
-    setBathrooms((prev) => Math.max(0, prev - 1));
+    // count synced by useEffect above — do NOT decrement here
   };
 
   // Extra rooms handler
