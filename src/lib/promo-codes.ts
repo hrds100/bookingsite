@@ -3,6 +3,7 @@ import { supabase } from "@/lib/supabase";
 export interface PromoResult {
   valid: boolean;
   discount: number;
+  discountType: 'percent' | 'fixed';
   code?: string;
   message?: string;
 }
@@ -12,7 +13,7 @@ export async function validatePromoCode(
 ): Promise<PromoResult> {
   const trimmed = code.toUpperCase().trim();
   if (!trimmed) {
-    return { valid: false, discount: 0, message: "Please enter a promo code" };
+    return { valid: false, discount: 0, discountType: 'percent', message: "Please enter a promo code" };
   }
 
   try {
@@ -23,28 +24,34 @@ export async function validatePromoCode(
       .single();
 
     if (error || !data) {
-      return { valid: false, discount: 0, message: "Invalid promo code" };
+      return { valid: false, discount: 0, discountType: 'percent', message: "Invalid promo code" };
     }
 
     if (data.expires_at && new Date(data.expires_at) < new Date()) {
-      return { valid: false, discount: 0, message: "This code has expired" };
+      return { valid: false, discount: 0, discountType: 'percent', message: "This code has expired" };
     }
 
     if (data.max_uses && data.current_uses >= data.max_uses) {
       return {
         valid: false,
         discount: 0,
+        discountType: 'percent',
         message: "This code has been fully redeemed",
       };
     }
 
+    const discountType: 'percent' | 'fixed' = data.discount_type === 'fixed' ? 'fixed' : 'percent';
+    const discount = discountType === 'fixed' ? data.value : (data.value ?? data.discount_percent);
+    const label = discountType === 'fixed' ? `£${discount} off` : `${discount}% discount applied!`;
+
     return {
       valid: true,
-      discount: data.discount_percent,
+      discount,
+      discountType,
       code: data.code,
-      message: `${data.discount_percent}% discount applied!`,
+      message: label,
     };
   } catch {
-    return { valid: false, discount: 0, message: "Could not validate code. Try again." };
+    return { valid: false, discount: 0, discountType: 'percent', message: "Could not validate code. Try again." };
   }
 }

@@ -1306,21 +1306,22 @@ function PromoCodesTab() {
   const toggleCode = useNfsPromoCodeToggle();
   const deleteCode = useNfsPromoCodeDelete();
 
-  const [form, setForm] = useState({ name: '', code: '', discount_percent: 10, max_uses: '', expires_at: '' });
+  const [form, setForm] = useState({ name: '', code: '', discount_type: 'percent' as 'percent' | 'fixed', value: 10, max_uses: '', expires_at: '' });
   const [saving, setSaving] = useState(false);
 
   const handleCreate = async () => {
-    if (!form.code.trim() || !form.discount_percent) return;
+    if (!form.code.trim() || !form.value) return;
     setSaving(true);
     try {
       await createCode.mutateAsync({
         name: form.name || undefined,
         code: form.code,
-        discount_percent: Number(form.discount_percent),
+        discount_type: form.discount_type,
+        value: Number(form.value),
         max_uses: form.max_uses ? Number(form.max_uses) : null,
         expires_at: form.expires_at || null,
       });
-      setForm({ name: '', code: '', discount_percent: 10, max_uses: '', expires_at: '' });
+      setForm({ name: '', code: '', discount_type: 'percent', value: 10, max_uses: '', expires_at: '' });
       toast({ title: 'Promo code created' });
     } catch (e: any) {
       toast({ title: 'Error', description: e?.message ?? 'Failed to create', variant: 'destructive' });
@@ -1334,7 +1335,7 @@ function PromoCodesTab() {
       {/* Create form */}
       <section className="bg-card border border-border rounded-2xl p-6 space-y-4">
         <h2 className="text-lg font-semibold">Create Promo Code</h2>
-        <p className="text-sm text-muted-foreground -mt-2">Guests enter the code at checkout to get a percentage discount.</p>
+        <p className="text-sm text-muted-foreground -mt-2">Guests enter the code at checkout to get a discount.</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <Label>Code *</Label>
@@ -1355,14 +1356,33 @@ function PromoCodesTab() {
             />
           </div>
           <div>
-            <Label>Discount % *</Label>
+            <Label>Discount Type *</Label>
+            <div className="flex gap-2 mt-1.5">
+              <button
+                type="button"
+                onClick={() => setForm(p => ({ ...p, discount_type: 'percent' }))}
+                className={`flex-1 py-2 text-sm rounded-lg border font-medium transition-colors ${form.discount_type === 'percent' ? 'bg-primary text-primary-foreground border-primary' : 'border-border hover:bg-secondary'}`}
+              >
+                % Percent
+              </button>
+              <button
+                type="button"
+                onClick={() => setForm(p => ({ ...p, discount_type: 'fixed' }))}
+                className={`flex-1 py-2 text-sm rounded-lg border font-medium transition-colors ${form.discount_type === 'fixed' ? 'bg-primary text-primary-foreground border-primary' : 'border-border hover:bg-secondary'}`}
+              >
+                £ Fixed
+              </button>
+            </div>
+          </div>
+          <div>
+            <Label>{form.discount_type === 'percent' ? 'Discount % *' : 'Fixed Amount (£) *'}</Label>
             <Input
               type="number"
               min={1}
-              max={100}
+              max={form.discount_type === 'percent' ? 100 : undefined}
               className="mt-1.5"
-              value={form.discount_percent}
-              onChange={e => setForm(p => ({ ...p, discount_percent: Number(e.target.value) }))}
+              value={form.value}
+              onChange={e => setForm(p => ({ ...p, value: Number(e.target.value) }))}
             />
           </div>
           <div>
@@ -1408,7 +1428,9 @@ function PromoCodesTab() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-mono font-semibold text-sm tracking-widest">{c.code}</span>
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">{c.discount_percent}% off</span>
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
+                        {c.discount_type === 'fixed' ? `£${c.value} off` : `${c.value ?? c.discount_percent}% off`}
+                      </span>
                       {!c.active && <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">Inactive</span>}
                       {expired && <span className="text-xs px-2 py-0.5 rounded-full bg-destructive/10 text-destructive">Expired</span>}
                       {exhausted && <span className="text-xs px-2 py-0.5 rounded-full bg-destructive/10 text-destructive">Exhausted</span>}
