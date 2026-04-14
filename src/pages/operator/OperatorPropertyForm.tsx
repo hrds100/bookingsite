@@ -28,10 +28,11 @@ import { supabase } from "@/lib/supabase";
 import { notifyNewProperty } from "@/lib/email";
 import { useNfsPropertyBlockedDatesList, useNfsBlockDateRange } from "@/hooks/useNfsBlockedDates";
 import {
-  useNfsHospitableConnection,
+  useNfsHospitableConnections,
   useNfsHospitableSyncedProperties,
   useNfsHospitableConnect,
   useNfsHospitableImport,
+  useNfsHospitableDisconnect,
   type HospitableSyncedProperty,
 } from "@/hooks/useNfsHospitable";
 import { SITE_LANGUAGES, dbLangToLocale } from "@/components/nfs/NfsLanguageSelector";
@@ -148,15 +149,18 @@ export default function OperatorPropertyForm() {
   // ── Hospitable sync state ──
   const [syncMode, setSyncMode] = useState<"manual" | "airbnb">("manual");
   const [selectedPropertyIds, setSelectedPropertyIds] = useState<Set<string>>(new Set());
+  const [disconnectConfirmId, setDisconnectConfirmId] = useState<string | null>(null);
 
-  const { data: hospConnection, isLoading: hospLoading } = useNfsHospitableConnection();
-  const isHospConnected = hospConnection?.status === "connected" && hospConnection?.is_active;
+  const { data: hospConnections = [], isLoading: hospLoading } = useNfsHospitableConnections();
+  const activeConnections = hospConnections.filter(c => c.is_active && c.status === "connected");
+  const isHospConnected = activeConnections.length > 0;
 
   const { data: syncedProperties, isLoading: propsLoading, refetch: refetchSyncedProps } =
-    useNfsHospitableSyncedProperties(operatorId, syncMode === "airbnb" && !!isHospConnected);
+    useNfsHospitableSyncedProperties(operatorId, syncMode === "airbnb" && isHospConnected);
 
   const { connecting, error: connectError, initiateConnect, triggerResync } = useNfsHospitableConnect();
   const importMutation = useNfsHospitableImport();
+  const disconnectMutation = useNfsHospitableDisconnect();
 
   // ── iCal sync state ──
   const { data: icalData, refetch: refetchIcal } = useNfsIcalProperty(isEdit ? id : null);
@@ -192,11 +196,22 @@ export default function OperatorPropertyForm() {
     }
   };
 
-  const handleResync = async () => {
-    const ok = await triggerResync();
+  const handleResync = async (connectionId?: string) => {
+    const ok = await triggerResync(connectionId);
     if (ok) {
       toast({ title: "Sync triggered", description: "Properties are being refreshed from Airbnb." });
       setTimeout(() => refetchSyncedProps(), 2000);
+    }
+  };
+
+  const handleDisconnect = async (connectionId: string) => {
+    try {
+      await disconnectMutation.mutateAsync(connectionId);
+      setDisconnectConfirmId(null);
+      toast({ title: "Disconnected", description: "Airbnb account has been removed." });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed to disconnect";
+      toast({ title: "Disconnect failed", description: msg, variant: "destructive" });
     }
   };
 
@@ -660,143 +675,183 @@ export default function OperatorPropertyForm() {
             <div className="flex items-center justify-center py-12">
               <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
             </div>
-          ) : !isHospConnected ? (
-            /* ── Not connected ── */
-            <div data-feature="NFSTAY__OP_PROPERTY_SYNC_CONNECT" className="rounded-2xl border border-border bg-card p-6 text-center space-y-4">
-              <div className="w-12 h-12 rounded-full bg-muted mx-auto flex items-center justify-center">
-                <WifiOff className="w-6 h-6 text-muted-foreground" />
-              </div>
-              <div>
-                <p className="font-medium text-sm">Connect your Airbnb account</p>
-                <p className="text-xs text-muted-foreground max-w-sm mx-auto mt-1">
-                  Import your listings automatically from Airbnb via Hospitable.
-                </p>
-              </div>
-
-              {connectError && (
-                <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 px-4 py-3 rounded-lg">
-                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                  {connectError}
-                </div>
-              )}
-
-              <Button onClick={initiateConnect} disabled={connecting} className="w-full max-w-xs rounded-lg">
-                {connecting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Wifi className="w-4 h-4 mr-2" />}
-                {connecting ? "Connecting..." : "Connect Airbnb"}
-              </Button>
-
-              {hospConnection?.status === "failed" && hospConnection?.last_error && (
-                <div className="text-xs text-red-600 bg-red-50 px-3 py-2 rounded-lg text-left">
-                  <p className="font-medium">Previous connection failed:</p>
-                  <p>
-                    {typeof hospConnection.last_error === "object" && hospConnection.last_error !== null
-                      ? (hospConnection.last_error as Record<string, unknown>).message as string || "Unknown error"
-                      : String(hospConnection.last_error)}
-                  </p>
-                </div>
-              )}
-            </div>
           ) : (
-            /* ── Connected: show synced properties ── */
-            <div data-feature="NFSTAY__OP_PROPERTY_SYNC_LIST" className="rounded-2xl border border-border bg-card p-4 md:p-6 space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
-                  <CheckCircle className="w-5 h-5 text-green-600" />
+            <>
+              {/* ── Connected accounts list ── */}
+              {activeConnections.map((conn) => (
+                <div key={conn.id} data-feature="NFSTAY__OP_PROPERTY_SYNC_LIST" className="rounded-2xl border border-border bg-card p-4 md:p-6 space-y-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+                        <CheckCircle className="w-5 h-5 text-green-600" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm">Connected to Airbnb</p>
+                        <p className="text-xs text-muted-foreground">
+                          {conn.total_properties ?? 0} properties synced
+                          {conn.last_sync_at ? ` · ${new Date(conn.last_sync_at).toLocaleDateString()}` : ""}
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-red-500 hover:text-red-600 hover:bg-red-50 rounded-lg shrink-0"
+                      onClick={() => setDisconnectConfirmId(conn.id)}
+                    >
+                      <X className="w-4 h-4 mr-1" /> Remove
+                    </Button>
+                  </div>
+
+                  {propsLoading ? (
+                    <div className="flex items-center justify-center py-6">
+                      <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                      <span className="ml-2 text-sm text-muted-foreground">Loading properties...</span>
+                    </div>
+                  ) : (syncedProperties || []).length === 0 ? (
+                    <div className="py-4 text-center space-y-3">
+                      <p className="text-sm text-muted-foreground">
+                        No properties found. Make sure your listings are active on Airbnb.
+                      </p>
+                      <Button variant="outline" size="sm" className="rounded-lg" onClick={() => handleResync(conn.id)}>
+                        <RefreshCw className="w-4 h-4 mr-2" /> Refresh
+                      </Button>
+                    </div>
+                  ) : (
+                    <>
+                      <p className="text-sm font-medium">Select properties to import:</p>
+
+                      <div className="space-y-2 max-h-80 overflow-y-auto">
+                        {/* Already imported */}
+                        {alreadyImported.map((prop) => (
+                          <div key={prop.id} className="flex items-center gap-3 p-3 rounded-lg border border-border bg-muted/40">
+                            {prop.images?.[0]?.url ? (
+                              <img src={prop.images[0].url} alt="" className="w-12 h-12 rounded-lg object-cover" />
+                            ) : (
+                              <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center text-xs text-muted-foreground">
+                                No img
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium truncate">{prop.public_title || "Untitled property"}</p>
+                              <p className="text-xs text-muted-foreground">{[prop.city, prop.country].filter(Boolean).join(", ") || "No location"}</p>
+                            </div>
+                            <span className="flex items-center gap-1 text-xs text-green-600 font-medium whitespace-nowrap">
+                              <CheckCircle className="w-3.5 h-3.5" /> Imported
+                            </span>
+                          </div>
+                        ))}
+
+                        {/* Importable */}
+                        {importableProperties.map((prop) => (
+                          <label
+                            key={prop.id}
+                            className="flex items-center gap-3 p-3 rounded-lg border border-border hover:bg-accent/10 cursor-pointer transition-colors"
+                          >
+                            <Checkbox
+                              checked={selectedPropertyIds.has(prop.id)}
+                              onCheckedChange={() => togglePropertySelection(prop.id)}
+                            />
+                            {prop.images?.[0]?.url ? (
+                              <img src={prop.images[0].url} alt="" className="w-12 h-12 rounded-lg object-cover" />
+                            ) : (
+                              <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center text-xs text-muted-foreground">
+                                No img
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium truncate">{prop.public_title || "Untitled property"}</p>
+                              <p className="text-xs text-muted-foreground">{[prop.city, prop.country].filter(Boolean).join(", ") || "No location"}</p>
+                            </div>
+                            <span className="text-xs text-muted-foreground whitespace-nowrap">
+                              {prop.property_type || "Property"}
+                            </span>
+                          </label>
+                        ))}
+                      </div>
+
+                      <div className="flex items-center gap-3 pt-2">
+                        <Button
+                          data-feature="NFSTAY__OP_PROPERTY_SYNC_IMPORT"
+                          onClick={handleImportSelected}
+                          disabled={!selectedImportable.length || importMutation.isPending}
+                          className="rounded-lg"
+                        >
+                          {importMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                          Import Selected{selectedImportable.length > 0 ? ` (${selectedImportable.length})` : ""}
+                        </Button>
+                        <Button variant="outline" size="sm" className="rounded-lg" onClick={() => handleResync(conn.id)}>
+                          <RefreshCw className="w-4 h-4 mr-2" /> Refresh
+                        </Button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              ))}
+
+              {/* ── Connect (another) account ── */}
+              <div data-feature="NFSTAY__OP_PROPERTY_SYNC_CONNECT" className="rounded-2xl border border-dashed border-border bg-card p-6 text-center space-y-4">
+                <div className="w-12 h-12 rounded-full bg-muted mx-auto flex items-center justify-center">
+                  {isHospConnected ? <Plus className="w-6 h-6 text-muted-foreground" /> : <WifiOff className="w-6 h-6 text-muted-foreground" />}
                 </div>
                 <div>
-                  <p className="font-medium text-sm">Connected to Airbnb</p>
-                  <p className="text-xs text-muted-foreground">
-                    {hospConnection.total_properties ?? 0} properties synced from Hospitable
+                  <p className="font-medium text-sm">
+                    {isHospConnected ? "Connect another Airbnb account" : "Connect your Airbnb account"}
+                  </p>
+                  <p className="text-xs text-muted-foreground max-w-sm mx-auto mt-1">
+                    Import your listings automatically from Airbnb via Hospitable.
                   </p>
                 </div>
+
+                {connectError && (
+                  <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 px-4 py-3 rounded-lg">
+                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                    {connectError}
+                  </div>
+                )}
+
+                <Button onClick={initiateConnect} disabled={connecting} className="w-full max-w-xs rounded-lg">
+                  {connecting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Wifi className="w-4 h-4 mr-2" />}
+                  {connecting ? "Connecting..." : isHospConnected ? "Connect Another" : "Connect Airbnb"}
+                </Button>
+
+                {hospConnections.some(c => c.status === "failed" && c.last_error) && (
+                  <div className="text-xs text-red-600 bg-red-50 px-3 py-2 rounded-lg text-left">
+                    <p className="font-medium">Previous connection failed:</p>
+                    {hospConnections.filter(c => c.status === "failed").map(c => (
+                      <p key={c.id}>
+                        {typeof c.last_error === "object" && c.last_error !== null
+                          ? (c.last_error as Record<string, unknown>).message as string || "Unknown error"
+                          : String(c.last_error ?? "Unknown error")}
+                      </p>
+                    ))}
+                  </div>
+                )}
               </div>
 
-              {propsLoading ? (
-                <div className="flex items-center justify-center py-6">
-                  <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-                  <span className="ml-2 text-sm text-muted-foreground">Loading properties...</span>
-                </div>
-              ) : (syncedProperties || []).length === 0 ? (
-                <div className="py-6 text-center space-y-3">
-                  <p className="text-sm text-muted-foreground">
-                    No properties found. Make sure your listings are active on Airbnb.
-                  </p>
-                  <Button variant="outline" size="sm" className="rounded-lg" onClick={handleResync}>
-                    <RefreshCw className="w-4 h-4 mr-2" /> Refresh
-                  </Button>
-                </div>
-              ) : (
-                <>
-                  <p className="text-sm font-medium">Select properties to import:</p>
-
-                  <div className="space-y-2 max-h-80 overflow-y-auto">
-                    {/* Already imported */}
-                    {alreadyImported.map((prop) => (
-                      <div key={prop.id} className="flex items-center gap-3 p-3 rounded-lg border border-border bg-muted/40">
-                        {prop.images?.[0]?.url ? (
-                          <img src={prop.images[0].url} alt="" className="w-12 h-12 rounded-lg object-cover" />
-                        ) : (
-                          <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center text-xs text-muted-foreground">
-                            No img
-                          </div>
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">{prop.public_title || "Untitled property"}</p>
-                          <p className="text-xs text-muted-foreground">{[prop.city, prop.country].filter(Boolean).join(", ") || "No location"}</p>
-                        </div>
-                        <span className="flex items-center gap-1 text-xs text-green-600 font-medium whitespace-nowrap">
-                          <CheckCircle className="w-3.5 h-3.5" /> Already imported
-                        </span>
-                      </div>
-                    ))}
-
-                    {/* Importable */}
-                    {importableProperties.map((prop) => (
-                      <label
-                        key={prop.id}
-                        className="flex items-center gap-3 p-3 rounded-lg border border-border hover:bg-accent/10 cursor-pointer transition-colors"
-                      >
-                        <Checkbox
-                          checked={selectedPropertyIds.has(prop.id)}
-                          onCheckedChange={() => togglePropertySelection(prop.id)}
-                        />
-                        {prop.images?.[0]?.url ? (
-                          <img src={prop.images[0].url} alt="" className="w-12 h-12 rounded-lg object-cover" />
-                        ) : (
-                          <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center text-xs text-muted-foreground">
-                            No img
-                          </div>
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">{prop.public_title || "Untitled property"}</p>
-                          <p className="text-xs text-muted-foreground">{[prop.city, prop.country].filter(Boolean).join(", ") || "No location"}</p>
-                        </div>
-                        <span className="text-xs text-muted-foreground whitespace-nowrap">
-                          {prop.property_type || "Property"}
-                        </span>
-                      </label>
-                    ))}
-                  </div>
-
-                  <div className="flex items-center gap-3 pt-2">
+              {/* ── Disconnect confirmation dialog ── */}
+              <Dialog open={!!disconnectConfirmId} onOpenChange={() => setDisconnectConfirmId(null)}>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Remove Airbnb account?</DialogTitle>
+                    <DialogDescription>
+                      This will disconnect the Airbnb account from NFStay. Your imported properties will remain but will no longer sync automatically.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setDisconnectConfirmId(null)}>Cancel</Button>
                     <Button
-                      data-feature="NFSTAY__OP_PROPERTY_SYNC_IMPORT"
-                      onClick={handleImportSelected}
-                      disabled={!selectedImportable.length || importMutation.isPending}
-                      className="rounded-lg"
+                      variant="destructive"
+                      onClick={() => disconnectConfirmId && handleDisconnect(disconnectConfirmId)}
+                      disabled={disconnectMutation.isPending}
                     >
-                      {importMutation.isPending ? (
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      ) : null}
-                      Import Selected{selectedImportable.length > 0 ? ` (${selectedImportable.length})` : ""}
+                      {disconnectMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                      Remove
                     </Button>
-                    <Button variant="outline" size="sm" className="rounded-lg" onClick={handleResync}>
-                      <RefreshCw className="w-4 h-4 mr-2" /> Refresh
-                    </Button>
-                  </div>
-                </>
-              )}
-            </div>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </>
           )}
         </div>
       )}
