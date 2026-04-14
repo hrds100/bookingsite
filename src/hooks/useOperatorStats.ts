@@ -22,19 +22,10 @@ export function useOperatorMonthlyRevenue(operatorId: string | null) {
       if (!operatorId) return mockMonthlyRevenue;
 
       try {
-        // Get operator's property IDs first
-        const { data: props } = await (supabase.from("nfs_properties") as any)
-          .select("id")
-          .eq("operator_id", operatorId);
-
-        if (!props || props.length === 0) return mockMonthlyRevenue;
-
-        const propIds = props.map((p: { id: string }) => p.id);
-
-        // Get reservations for those properties
+        // Query directly by operator_id — matches RLS policy, avoids extra round-trip
         const { data: reservations, error } = await (supabase.from("nfs_reservations") as any)
           .select("created_at, total_amount")
-          .in("property_id", propIds)
+          .eq("operator_id", operatorId)
           .order("created_at", { ascending: true });
 
         if (error || !reservations || reservations.length === 0) return mockMonthlyRevenue;
@@ -56,7 +47,7 @@ export function useOperatorMonthlyRevenue(operatorId: string | null) {
         return mockMonthlyRevenue;
       }
     },
-    staleTime: 60_000,
+    staleTime: 0,
   });
 }
 
@@ -69,18 +60,17 @@ export function useOperatorOccupancy(operatorId: string | null) {
       if (!operatorId) return mockOccupancyData;
 
       try {
+        // Get property count for this operator
         const { data: props } = await (supabase.from("nfs_properties") as any)
           .select("id")
           .eq("operator_id", operatorId);
 
-        if (!props || props.length === 0) return mockOccupancyData;
+        const propCount = props?.length ?? 1;
 
-        const propIds = props.map((p: { id: string }) => p.id);
-        const propCount = propIds.length;
-
+        // Query directly by operator_id
         const { data: reservations, error } = await (supabase.from("nfs_reservations") as any)
           .select("check_in, check_out, created_at")
-          .in("property_id", propIds)
+          .eq("operator_id", operatorId)
           .not("status", "eq", "cancelled");
 
         if (error || !reservations || reservations.length === 0) return mockOccupancyData;
@@ -107,7 +97,7 @@ export function useOperatorOccupancy(operatorId: string | null) {
         return mockOccupancyData;
       }
     },
-    staleTime: 60_000,
+    staleTime: 0,
   });
 }
 
@@ -120,17 +110,10 @@ export function useOperatorTotalRevenue(operatorId: string | null) {
       if (!operatorId) return 0;
 
       try {
-        const { data: props } = await (supabase.from("nfs_properties") as any)
-          .select("id")
-          .eq("operator_id", operatorId);
-
-        if (!props || props.length === 0) return 0;
-
-        const propIds = props.map((p: { id: string }) => p.id);
-
+        // Query directly by operator_id — matches RLS policy
         const { data: reservations } = await (supabase.from("nfs_reservations") as any)
           .select("total_amount")
-          .in("property_id", propIds)
+          .eq("operator_id", operatorId)
           .not("status", "eq", "cancelled");
 
         if (!reservations) return 0;
@@ -140,6 +123,6 @@ export function useOperatorTotalRevenue(operatorId: string | null) {
         return 0;
       }
     },
-    staleTime: 60_000,
+    staleTime: 0,
   });
 }

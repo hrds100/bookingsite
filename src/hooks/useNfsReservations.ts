@@ -32,10 +32,10 @@ export function useNfsReservations(guestEmail?: string) {
         .eq("guest_email", guestEmail)
         .order("created_at", { ascending: false });
 
-      if (error || !data) return [];
-      return data as unknown as ReservationWithProperty[];
+      if (error) throw new Error(error.message);
+      return (data ?? []) as unknown as ReservationWithProperty[];
     },
-    staleTime: 30_000,
+    staleTime: 0,
   });
 }
 
@@ -54,11 +54,11 @@ export function useNfsOperatorReservations(operatorId?: string | null) {
         .eq("operator_id", operatorId)
         .order("created_at", { ascending: false });
 
-      if (error || !data) return [];
-      return data as unknown as ReservationWithProperty[];
+      if (error) throw new Error(error.message);
+      return (data ?? []) as unknown as ReservationWithProperty[];
     },
     enabled: !!operatorId,
-    staleTime: 30_000,
+    staleTime: 0,
   });
 }
 
