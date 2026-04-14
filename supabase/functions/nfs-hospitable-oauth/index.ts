@@ -63,52 +63,39 @@ async function syncListingsFromHospitable(
     .update({ sync_status: 'syncing', last_sync_error: null })
     .eq('id', connectionRowId);
 
-  // Try multiple known Hospitable Connect API listing endpoints
+  // Confirmed working endpoint: /customers/{id}/listings (returns {data: [...], meta, links})
+  // /customers/{id}/properties and /listings?customer_id= both return 404 on this API version
   let listings: Record<string, unknown>[] = [];
-  const endpointCandidates = [
-    `${HOSPITABLE_CONNECT_BASE}/customers/${customerId}/properties`,
-    `${HOSPITABLE_CONNECT_BASE}/customers/${customerId}/listings`,
-    `${HOSPITABLE_CONNECT_BASE}/listings?customer_id=${customerId}`,
-  ];
+  let pageUrl: string | null = `${HOSPITABLE_CONNECT_BASE}/customers/${customerId}/listings`;
 
-  for (const endpoint of endpointCandidates) {
+  while (pageUrl) {
     try {
-      const res = await fetch(endpoint, { method: 'GET', headers: connectHeaders() });
+      const res = await fetch(pageUrl, { method: 'GET', headers: connectHeaders() });
       const text = await res.text();
-      let json: unknown = null;
-      try { json = JSON.parse(text); } catch { json = text; }
+      console.log(`[Hospitable] ${pageUrl} → ${res.status}: ${text.slice(0, 500)}`);
+      (debug.endpoints as unknown[]).push({ url: pageUrl, status: res.status, body: text.slice(0, 300) });
 
-      console.log(`[Hospitable] ${endpoint} → ${res.status}: ${text.slice(0, 500)}`);
-      (debug.endpoints as unknown[]).push({ url: endpoint, status: res.status, body: text.slice(0, 500) });
+      if (!res.ok) { pageUrl = null; break; }
 
-      if (res.ok && json) {
-        const parsed = json as Record<string, unknown>;
-        const raw = Array.isArray(json) ? json : (
-          Array.isArray(parsed.data) ? parsed.data :
-          Array.isArray(parsed.listings) ? parsed.listings :
-          Array.isArray(parsed.properties) ? parsed.properties :
-          Array.isArray(parsed.results) ? parsed.results :
-          Array.isArray(parsed.items) ? parsed.items :
-          []
-        );
-        if (Array.isArray(raw) && raw.length > 0) {
-          listings = raw as Record<string, unknown>[];
-          console.log(`[Hospitable] Got ${listings.length} listings from ${endpoint}`);
-          debug.successEndpoint = endpoint;
-          debug.listingCount = listings.length;
-          break;
-        } else if (Array.isArray(raw) && raw.length === 0) {
-          console.log(`[Hospitable] ${endpoint} returned empty array`);
-        }
-      }
+      const parsed = JSON.parse(text) as Record<string, unknown>;
+      const page = Array.isArray(parsed.data) ? parsed.data as Record<string, unknown>[] : [];
+      listings = listings.concat(page);
+
+      // Follow pagination
+      const links = parsed.links as Record<string, string | null> | null;
+      pageUrl = links?.next ?? null;
     } catch (e) {
-      console.log(`[Hospitable] ${endpoint} threw: ${e}`);
-      (debug.endpoints as unknown[]).push({ url: endpoint, error: String(e) });
+      console.log(`[Hospitable] listings fetch error: ${e}`);
+      (debug.endpoints as unknown[]).push({ url: pageUrl, error: String(e) });
+      pageUrl = null;
     }
   }
 
+  debug.listingCount = listings.length;
+  if (listings.length > 0) debug.successEndpoint = `${HOSPITABLE_CONNECT_BASE}/customers/${customerId}/listings`;
+
   if (listings.length === 0) {
-    const syncError = 'No listings returned from Hospitable API. Ensure your Airbnb account is connected in Hospitable.';
+    const syncError = 'No listings found in Hospitable. Please reconnect and link your Airbnb account on the Hospitable authorization page.';
     await supabase
       .from('nfs_hospitable_connections')
       .update({
@@ -116,6 +103,7 @@ async function syncListingsFromHospitable(
         last_sync_at: new Date().toISOString(),
         total_properties: 0,
         last_sync_error: syncError,
+        connected_platforms: [],
       })
       .eq('id', connectionRowId);
     return { synced: 0, errors: [syncError], debug };
@@ -215,6 +203,7 @@ async function syncListingsFromHospitable(
       last_sync_at: new Date().toISOString(),
       total_properties: synced,
       last_sync_error: errors.length > 0 ? errors.slice(0, 3).join('; ') : null,
+      connected_platforms: synced > 0 ? ['airbnb'] : [],
     })
     .eq('id', connectionRowId);
 
@@ -320,7 +309,8 @@ serve(async (req) => {
         const authCodeRes = await fetch(`${HOSPITABLE_CONNECT_BASE}/auth-codes`, {
           method: 'POST',
           headers: connectHeaders(),
-          body: JSON.stringify({ customer_id: customerId, redirect_url: callbackUrl }),
+          // channels instructs Hospitable's Connect page to prompt the user to link Airbnb
+          body: JSON.stringify({ customer_id: customerId, redirect_url: callbackUrl, channels: ['airbnb'] }),
         });
 
         const authCodeText = await authCodeRes.text();
@@ -430,34 +420,18 @@ serve(async (req) => {
         }
 
         const resolvedCustomerId = customerId || (connectionRow.hospitable_customer_id as string);
-        let connectionId = '';
-        let connectedPlatforms: string[] = [];
 
-        if (resolvedCustomerId) {
-          try {
-            const verifyRes = await fetch(`${HOSPITABLE_CONNECT_BASE}/customers/${resolvedCustomerId}`, { method: 'GET', headers: connectHeaders() });
-            const verifyText = await verifyRes.text();
-            console.log(`[Hospitable] Verify customer ${resolvedCustomerId} → ${verifyRes.status}: ${verifyText.slice(0, 500)}`);
-            if (verifyRes.ok) {
-              const verifyData = JSON.parse(verifyText);
-              connectionId = verifyData.connection_id || verifyData.data?.connection_id || '';
-              connectedPlatforms = verifyData.connected_platforms || verifyData.data?.connected_platforms || [];
-            }
-          } catch (e) {
-            console.error('[Hospitable] Customer verify error:', e);
-          }
-        }
+        // NOTE: Hospitable Connect customer GET only returns {id, email, name, phone, timezone, ip_address}
+        // It does NOT return connection_id or connected_platforms — those are determined by syncing listings
 
         const existingMeta = (connectionRow.user_metadata && typeof connectionRow.user_metadata === 'object')
           ? connectionRow.user_metadata as Record<string, unknown> : {};
 
         await supabase.from('nfs_hospitable_connections').update({
           hospitable_customer_id: resolvedCustomerId,
-          hospitable_connection_id: connectionId,
           status: 'connected',
           is_active: true,
           connected_at: new Date().toISOString(),
-          connected_platforms: connectedPlatforms,
           user_metadata: existingMeta,
           auth_code: null,
           auth_code_expires_at: null,
@@ -517,12 +491,8 @@ serve(async (req) => {
           console.log(`[Hospitable] Customer info → ${custRes.status}: ${custText.slice(0, 500)}`);
           if (custRes.ok) {
             customerInfo = JSON.parse(custText);
-            // Update connected_platforms with fresh data from Hospitable
-            const freshPlatforms: string[] = (customerInfo.connected_platforms as string[]) ||
-              ((customerInfo.data as Record<string, unknown>)?.connected_platforms as string[]) || [];
-            await supabase.from('nfs_hospitable_connections').update({
-              connected_platforms: freshPlatforms,
-            }).eq('id', connectionRow.id as string);
+            // NOTE: Hospitable customer object does NOT include connected_platforms or connection_id
+            // Those are derived from whether listings sync returns results
           }
         } catch (e) {
           console.log('[Hospitable] Could not fetch customer info:', e);
@@ -563,6 +533,33 @@ serve(async (req) => {
         }).eq('id', connectionRow?.id ?? '');
 
         return new Response(JSON.stringify({ success: true }), { status: 200, headers: corsHeaders });
+      }
+
+      // ══ DEBUG: inspect raw Hospitable customer response ══
+      if (body.action === 'debug_customer') {
+        const customerId = body.customer_id;
+        if (!customerId) return new Response(JSON.stringify({ error: 'customer_id required' }), { status: 400, headers: corsHeaders });
+
+        const results: Record<string, unknown> = {};
+        const custRes = await fetch(`${HOSPITABLE_CONNECT_BASE}/customers/${customerId}`, { method: 'GET', headers: connectHeaders() });
+        const custText = await custRes.text();
+        results.customer = { status: custRes.status, body: JSON.parse(custText.length ? custText : '{}') };
+
+        const endpoints = [
+          `${HOSPITABLE_CONNECT_BASE}/customers/${customerId}/properties`,
+          `${HOSPITABLE_CONNECT_BASE}/customers/${customerId}/listings`,
+          `${HOSPITABLE_CONNECT_BASE}/listings?customer_id=${customerId}`,
+          `${HOSPITABLE_CONNECT_BASE}/customers/${customerId}/connections`,
+        ];
+        const endpointResults: unknown[] = [];
+        for (const ep of endpoints) {
+          const r = await fetch(ep, { method: 'GET', headers: connectHeaders() });
+          const t = await r.text();
+          endpointResults.push({ url: ep, status: r.status, body: t.slice(0, 800) });
+        }
+        results.endpoints = endpointResults;
+
+        return new Response(JSON.stringify(results), { status: 200, headers: corsHeaders });
       }
     }
 
