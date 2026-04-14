@@ -46,10 +46,12 @@ export function useNfsOperatorReservations(operatorId?: string | null) {
     queryFn: async (): Promise<ReservationWithProperty[]> => {
       if (!SUPABASE_CONFIGURED || !operatorId) return [];
 
+      // Filter directly on nfs_reservations.operator_id (the column exists and is indexed)
+      // rather than through the embedded join — simpler, faster, consistent with RLS policy
       const { data, error } = await supabase
         .from("nfs_reservations")
-        .select("*, nfs_properties!inner(operator_id, public_title, city, country, images)")
-        .eq("nfs_properties.operator_id", operatorId)
+        .select("*, nfs_properties(operator_id, public_title, city, country, images)")
+        .eq("operator_id", operatorId)
         .order("created_at", { ascending: false });
 
       if (error || !data) return [];
@@ -157,7 +159,7 @@ export function useNfsReservationWithProperty(id: string | undefined) {
 
 /** Fetch confirmed/blocked date ranges for a property (used by booking calendar).
  *  Merges two sources:
- *  1. Confirmed/pending reservations from nfs_reservations
+ *  1. Confirmed/pending reservations via RPC (SECURITY DEFINER — works for unauthenticated guests)
  *  2. Manually blocked dates from nfs_blocked_dates
  */
 export function useNfsPropertyBlockedDates(propertyId: string | undefined) {
@@ -167,11 +169,8 @@ export function useNfsPropertyBlockedDates(propertyId: string | undefined) {
       if (!propertyId || !SUPABASE_CONFIGURED) return [];
 
       const [resResult, blockedResult] = await Promise.all([
-        supabase
-          .from("nfs_reservations")
-          .select("check_in, check_out")
-          .eq("property_id", propertyId)
-          .in("status", ["confirmed", "pending_approval"]),
+        // RPC bypasses RLS so unauthenticated guests on property pages can see booked dates
+        supabase.rpc("get_property_blocked_dates", { p_property_id: propertyId }),
         supabase
           .from("nfs_blocked_dates")
           .select("date")
@@ -181,9 +180,9 @@ export function useNfsPropertyBlockedDates(propertyId: string | undefined) {
       const ranges: { from: Date; to: Date }[] = [];
 
       if (resResult.data) {
-        for (const r of resResult.data) {
-          const from = new Date(r.check_in);
-          const to = new Date(r.check_out);
+        for (const r of resResult.data as { date_from: string; date_to: string }[]) {
+          const from = new Date(r.date_from);
+          const to = new Date(r.date_to);
           if (!isNaN(from.getTime()) && !isNaN(to.getTime())) {
             ranges.push({ from, to });
           }
