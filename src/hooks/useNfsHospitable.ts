@@ -35,7 +35,7 @@ export interface HospitableConnection {
 export interface HospitableSyncedProperty {
   id: string;
   public_title: string;
-  hospitable_listing_id: string | null;
+  hospitable_property_id: string | null;
   status: string;
   city: string | null;
   country: string | null;
@@ -75,9 +75,9 @@ export function useNfsHospitableSyncedProperties(operatorId: string | null | und
       if (!operatorId) return [];
 
       const { data, error } = await (supabase.from("nfs_properties") as any)
-        .select("id, public_title, hospitable_listing_id, status, city, country, property_type, images")
+        .select("id, public_title, hospitable_property_id, status, city, country, property_type, images")
         .eq("operator_id", operatorId)
-        .not("hospitable_listing_id", "is", null);
+        .not("hospitable_property_id", "is", null);
 
       if (error) return [];
       return (data || []) as HospitableSyncedProperty[];
