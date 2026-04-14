@@ -64,7 +64,8 @@ serve(async (req) => {
     }
 
     // Idempotency: if already processed, return success without re-sending email
-    if (reservation.payment_status === "paid") {
+    // Also catch case where operator manually confirmed before webhook fired (status = confirmed but payment_status still pending)
+    if (reservation.payment_status === "paid" || reservation.status === "confirmed") {
       console.log("Already processed, skipping:", reservation.id);
       return new Response(JSON.stringify({ received: true, status: reservation.status }), {
         status: 200,
@@ -104,9 +105,14 @@ serve(async (req) => {
       / (1000 * 60 * 60 * 24)
     ));
 
+    const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
     fetch(sendEmailUrl, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${ANON_KEY}`,
+        "apikey": ANON_KEY,
+      },
       body: JSON.stringify({
         type: emailType,
         guestName,
