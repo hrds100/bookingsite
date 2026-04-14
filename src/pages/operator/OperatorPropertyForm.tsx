@@ -150,6 +150,9 @@ export default function OperatorPropertyForm() {
   const [syncMode, setSyncMode] = useState<"manual" | "airbnb">("manual");
   const [selectedPropertyIds, setSelectedPropertyIds] = useState<Set<string>>(new Set());
   const [disconnectConfirmId, setDisconnectConfirmId] = useState<string | null>(null);
+  const [autoCheckCount, setAutoCheckCount] = useState(0);
+  const MAX_AUTO_CHECKS = 10;
+  const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const { data: hospConnections = [], isLoading: hospLoading } = useNfsHospitableConnections();
   const activeConnections = hospConnections.filter(c => c.is_active && c.status === "connected");
@@ -161,6 +164,31 @@ export default function OperatorPropertyForm() {
   const { connecting, error: connectError, initiateConnect, triggerResync } = useNfsHospitableConnect();
   const importMutation = useNfsHospitableImport();
   const disconnectMutation = useNfsHospitableDisconnect();
+
+  // Keep a ref to activeConnections to avoid stale closures in interval
+  const activeConnectionsRef = useRef(activeConnections);
+  useEffect(() => { activeConnectionsRef.current = activeConnections; });
+
+  // Auto-poll Hospitable when connected but no listings imported yet
+  const noListingsYet = syncMode === "airbnb" && isHospConnected && (syncedProperties ?? []).length === 0 && !propsLoading;
+  useEffect(() => {
+    if (!noListingsYet || autoCheckCount >= MAX_AUTO_CHECKS) {
+      if (pollIntervalRef.current) { clearInterval(pollIntervalRef.current); pollIntervalRef.current = null; }
+      return;
+    }
+    if (pollIntervalRef.current) return;
+    pollIntervalRef.current = setInterval(async () => {
+      setAutoCheckCount(c => c + 1);
+      for (const conn of activeConnectionsRef.current) {
+        triggerResync(conn.id).catch(() => {});
+      }
+      setTimeout(() => refetchSyncedProps(), 4000);
+    }, 30_000);
+    return () => { if (pollIntervalRef.current) { clearInterval(pollIntervalRef.current); pollIntervalRef.current = null; } };
+  }, [noListingsYet, autoCheckCount, triggerResync, refetchSyncedProps]);
+
+  // Reset counter when connection changes
+  useEffect(() => { setAutoCheckCount(0); }, [isHospConnected]);
 
   // ── iCal sync state ──
   const { data: icalData, refetch: refetchIcal } = useNfsIcalProperty(isEdit ? id : null);
@@ -709,12 +737,31 @@ export default function OperatorPropertyForm() {
                       <span className="ml-2 text-sm text-muted-foreground">Loading properties...</span>
                     </div>
                   ) : (syncedProperties || []).length === 0 ? (
-                    <div className="py-4 text-center space-y-3">
-                      <p className="text-sm text-muted-foreground">
-                        No properties found. Make sure your listings are active on Airbnb.
-                      </p>
-                      <Button variant="outline" size="sm" className="rounded-lg" onClick={() => handleResync(conn.id)}>
-                        <RefreshCw className="w-4 h-4 mr-2" /> Refresh
+                    <div className="py-6 text-center space-y-3">
+                      <div className="flex items-center justify-center gap-2">
+                        {autoCheckCount < MAX_AUTO_CHECKS ? (
+                          <Loader2 className="w-4 h-4 animate-spin text-primary shrink-0" />
+                        ) : (
+                          <AlertCircle className="w-4 h-4 text-amber-500 shrink-0" />
+                        )}
+                        <p className="text-sm text-muted-foreground">
+                          {autoCheckCount < MAX_AUTO_CHECKS
+                            ? "Importing listings from Airbnb — this can take a few minutes."
+                            : "No listings found. Make sure your Airbnb listings are active."}
+                        </p>
+                      </div>
+                      {autoCheckCount < MAX_AUTO_CHECKS && (
+                        <p className="text-xs text-muted-foreground">
+                          Checking automatically every 30s (attempt {autoCheckCount + 1}/{MAX_AUTO_CHECKS})
+                        </p>
+                      )}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="rounded-lg"
+                        onClick={() => { setAutoCheckCount(0); handleResync(conn.id); }}
+                      >
+                        <RefreshCw className="w-4 h-4 mr-2" /> Check Now
                       </Button>
                     </div>
                   ) : (
