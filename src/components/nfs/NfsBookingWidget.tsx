@@ -92,6 +92,9 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
     return [];
   }, [(property as any).addons]);
 
+  // Base rate for headline display (before dates selected)
+  const rate = convert(property.base_rate_amount ?? 0, fromCur);
+
   // ── override map: date string → override ──
   const overrideMap = useMemo(() => {
     const m = new Map<string, typeof dateOverrides[0]>();
@@ -481,7 +484,12 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
       {nights > 0 && (
         <div data-feature="NFSTAY__WIDGET_BREAKDOWN" className="space-y-2 mb-4 text-sm">
           <div className="flex justify-between">
-            <span className="text-muted-foreground">{sym}{rate} × {nights} {nights === 1 ? t('widget.night_label') : t('widget.nights_label_plural')}</span>
+            <span className="text-muted-foreground">
+              {nightlyRates.length > 0 && nightlyRates.some(r => r !== nightlyRates[0])
+                ? `${sym}${Math.round(subtotal / nights)} avg`
+                : `${sym}${rate}`
+              } × {nights} {nights === 1 ? t('widget.night_label') : t('widget.nights_label_plural')}
+            </span>
             <span>{sym}{subtotal}</span>
           </div>
           {cleaningFee > 0 && (
