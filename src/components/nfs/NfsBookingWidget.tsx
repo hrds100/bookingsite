@@ -125,7 +125,7 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
         if (dp !== null && dp !== "" && dp !== undefined) return Number(dp);
       }
       // 3. Base rate
-      return property.base_rate_amount;
+      return property.base_rate_amount ?? 0;
     });
   }, [dateRange, nights, overrideMap, property]);
 
@@ -135,8 +135,8 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
     [nightlyRates, convert, fromCur],
   );
 
-  const cleaningFee = property.cleaning_fee.enabled
-    ? convert(property.cleaning_fee.amount, fromCur)
+  const cleaningFee = property.cleaning_fee?.enabled
+    ? convert(property.cleaning_fee.amount ?? 0, fromCur)
     : 0;
 
   // Support both new DB integer format (0–99) and legacy mock { enabled, percentage }
@@ -157,10 +157,10 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
 
   // ── effective min stay: per check-in date override, else property default ──
   const effectiveMinStay = useMemo(() => {
-    if (!dateRange?.from) return property.minimum_stay;
+    if (!dateRange?.from) return property.minimum_stay ?? 1;
     const dateStr  = format(dateRange.from, "yyyy-MM-dd");
     const override = overrideMap.get(dateStr);
-    return override?.min_stay ?? property.minimum_stay;
+    return override?.min_stay ?? property.minimum_stay ?? 1;
   }, [dateRange?.from, overrideMap, property.minimum_stay]);
   const promoDiscount = promoApplied
     ? promoApplied.discountType === 'fixed'
@@ -260,7 +260,7 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
     const intent = {
       propertyId: property.id,
       propertyTitle: property.public_title,
-      propertyImage: property.images.find(i => i.is_cover)?.url || property.images[0]?.url,
+      propertyImage: property.images?.find(i => i.is_cover)?.url || property.images?.[0]?.url,
       propertyCity: property.city,
       propertyCountry: property.country,
       checkIn: dateRange?.from ? format(dateRange.from, 'yyyy-MM-dd') : '',
