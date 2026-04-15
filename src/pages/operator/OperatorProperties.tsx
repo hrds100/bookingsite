@@ -111,6 +111,7 @@ export default function OperatorProperties() {
     if (term) {
       props = props.filter(p =>
         (String(p.public_title ?? "").toLowerCase().includes(term)) ||
+        (String(p.internal_name ?? "").toLowerCase().includes(term)) ||
         (String(p.city ?? "").toLowerCase().includes(term))
       );
     }
@@ -439,6 +440,11 @@ export default function OperatorProperties() {
                               </Link>
                               <SourceBadge property={p} />
                             </div>
+                            {p.internal_name && (
+                              <p className="text-xs text-muted-foreground/70 italic mt-0.5 truncate">
+                                {String(p.internal_name)}
+                              </p>
+                            )}
                             <p className="text-xs text-muted-foreground mt-0.5">
                               {rc?.bedrooms != null ? `${rc.bedrooms} bed · ` : ""}
                               {rc?.bathrooms != null ? `${rc.bathrooms} bath · ` : ""}

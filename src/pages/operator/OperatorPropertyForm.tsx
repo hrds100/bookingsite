@@ -245,6 +245,7 @@ export default function OperatorPropertyForm() {
 
   // Form state
   const [publicTitle, setPublicTitle] = useState("");
+  const [internalName, setInternalName] = useState("");
   const [propertyType, setPropertyType] = useState("");
   const [rentalType, setRentalType] = useState("");
   const [description, setDescription] = useState("");
@@ -290,6 +291,10 @@ export default function OperatorPropertyForm() {
   const [availRange, setAvailRange] = useState<DateRange | undefined>(undefined);
   const [availSubmitting, setAvailSubmitting] = useState(false);
 
+  // Drag-to-select refs for availability calendar
+  const isDragCalRef = useRef(false);
+  const dragCalStartRef = useRef<Date | null>(null);
+
   const saving = createMutation.isPending || updateMutation.isPending;
 
   // Fetch property for edit mode
@@ -315,6 +320,7 @@ export default function OperatorPropertyForm() {
         }
 
         setPublicTitle(data.public_title || "");
+        setInternalName(data.internal_name || "");
         setTitleTranslations(data.title_translations && typeof data.title_translations === 'object' ? data.title_translations : {});
         setDescriptionTranslations(data.description_translations && typeof data.description_translations === 'object' ? data.description_translations : {});
         setPropertyType(data.property_type || "");
@@ -364,6 +370,16 @@ export default function OperatorPropertyForm() {
     fetchProperty();
     return () => { cancelled = true; };
   }, [id, isEdit, navigate]);
+
+  // Drag-to-select: release drag on mouseup anywhere in doc
+  useEffect(() => {
+    const onMouseUp = () => {
+      isDragCalRef.current = false;
+      dragCalStartRef.current = null;
+    };
+    document.addEventListener("mouseup", onMouseUp);
+    return () => document.removeEventListener("mouseup", onMouseUp);
+  }, []);
 
   // --- Handlers ---
 
@@ -472,6 +488,7 @@ export default function OperatorPropertyForm() {
 
   const buildFields = (): PropertyFields => ({
     public_title: publicTitle.trim(),
+    internal_name: internalName.trim() || null,
     property_type: propertyType,
     rental_type: rentalType,
     description: description.trim(),
@@ -587,6 +604,27 @@ export default function OperatorPropertyForm() {
       return `${fmtDate(f, "MMM d")} – ${fmtDate(t, "MMM d, yyyy")}`;
     return `${fmtDate(f, "MMM d, yyyy")} – ${fmtDate(t, "MMM d, yyyy")}`;
   }
+
+  /** Drag-to-select on availability calendar: mousedown on a day button */
+  const handleCalMouseDown = (e: React.MouseEvent) => {
+    const btn = (e.target as Element).closest('button[aria-label]') as HTMLElement | null;
+    if (!btn) return;
+    const label = btn.getAttribute('aria-label') ?? '';
+    const parsed = new Date(label);
+    if (isNaN(parsed.getTime())) return;
+    const day = startOfDay(parsed);
+    isDragCalRef.current = true;
+    dragCalStartRef.current = day;
+    setAvailRange({ from: day, to: day });
+  };
+
+  /** Drag-to-select on availability calendar: mouse enters a new day while dragging */
+  const handleCalDayMouseEnter = (day: Date) => {
+    if (!isDragCalRef.current || !dragCalStartRef.current) return;
+    const start = dragCalStartRef.current;
+    const end = startOfDay(day);
+    setAvailRange(start <= end ? { from: start, to: end } : { from: end, to: start });
+  };
 
   /** Handle block/unblock from the modal — edit mode */
   const handleAvailEditConfirm = async (block: boolean) => {
@@ -944,6 +982,20 @@ export default function OperatorPropertyForm() {
                 onChange={(e) => setPublicTitle(e.target.value)}
                 required
               />
+              {/* Internal name (dashboard-only nickname) */}
+              <div className="mt-3">
+                <Label htmlFor="internal-name" className="text-xs text-muted-foreground font-medium flex items-center gap-1">
+                  Internal name <span className="bg-muted text-muted-foreground text-[10px] px-1.5 py-0.5 rounded-full font-normal">Dashboard only</span>
+                </Label>
+                <Input
+                  id="internal-name"
+                  placeholder="e.g., Manchester Skyscraper 2Bed — private nickname for easy search"
+                  className="mt-1 h-8 text-sm"
+                  value={internalName}
+                  onChange={(e) => setInternalName(e.target.value)}
+                />
+              </div>
+
               {/* Translations for other languages */}
               <div className="mt-3 space-y-2">
                 <p className="text-xs text-muted-foreground font-medium">Translations (optional)</p>
@@ -1850,28 +1902,35 @@ export default function OperatorPropertyForm() {
                   Your selection
                 </span>
               </div>
-              <DayCalendar
-                mode="range"
-                selected={availRange}
-                onSelect={setAvailRange}
-                numberOfMonths={1}
-                disabled={{ before: startOfDay(new Date()) }}
-                modifiers={{
-                  blocked: isEdit
-                    ? existingBlockedDates.map((d) => {
-                        const [y, m, day] = d.split("-").map(Number);
-                        return new Date(y, m - 1, day);
-                      })
-                    : pendingBlockedDates.map((d) => {
-                        const [y, m, day] = d.split("-").map(Number);
-                        return new Date(y, m - 1, day);
-                      }),
-                }}
-                modifiersClassNames={{
-                  blocked: "bg-rose-100 text-rose-700 font-semibold rounded-md",
-                }}
-                className="rounded-md border"
-              />
+              {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions */}
+              <div
+                onMouseDown={handleCalMouseDown}
+                className="select-none"
+              >
+                <DayCalendar
+                  mode="range"
+                  selected={availRange}
+                  onSelect={setAvailRange}
+                  onDayMouseEnter={handleCalDayMouseEnter}
+                  numberOfMonths={1}
+                  disabled={{ before: startOfDay(new Date()) }}
+                  modifiers={{
+                    blocked: isEdit
+                      ? existingBlockedDates.map((d) => {
+                          const [y, m, day] = d.split("-").map(Number);
+                          return new Date(y, m - 1, day);
+                        })
+                      : pendingBlockedDates.map((d) => {
+                          const [y, m, day] = d.split("-").map(Number);
+                          return new Date(y, m - 1, day);
+                        }),
+                  }}
+                  modifiersClassNames={{
+                    blocked: "bg-rose-100 text-rose-700 font-semibold rounded-md",
+                  }}
+                  className="rounded-md border"
+                />
+              </div>
               {availRange?.from && (
                 <p className="text-sm text-muted-foreground">
                   {availDayCount === 1
