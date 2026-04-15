@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { format, differenceInDays, startOfDay, addDays } from "date-fns";
+import { format, differenceInDays, startOfDay, addDays, eachDayOfInterval } from "date-fns";
 import { CalendarDays, Users, Minus, Plus, Lock, Clock, Car, Gift, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -12,6 +12,7 @@ import { useWhiteLabel } from "@/contexts/WhiteLabelContext";
 import { supabase } from "@/lib/supabase";
 import { validatePromoCode as validatePromoCodeReal } from "@/lib/promo-codes";
 import { useNfsPropertyBlockedDates } from "@/hooks/useNfsReservations";
+import { useNfsPropertyDateOverrides } from "@/hooks/useNfsDateOverrides";
 import type { MockProperty } from "@/data/mock-properties";
 import type { DateRange } from "react-day-picker";
 
@@ -30,7 +31,8 @@ interface NfsBookingWidgetProps {
 export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
   const navigate = useNavigate();
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
-  const { data: blockedRanges = [] } = useNfsPropertyBlockedDates(property.id);
+  const { data: blockedRanges = [] }  = useNfsPropertyBlockedDates(property.id);
+  const { data: dateOverrides = [] }  = useNfsPropertyDateOverrides(property.id);
 
   // When check-in is selected but check-out isn't yet, find the earliest blocked
   // date after check-in and disable everything from there onwards — prevents
@@ -90,18 +92,76 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
     return [];
   }, [(property as any).addons]);
 
-  // Convert all prices from property's native currency to user's selected currency
-  const rate = convert(property.base_rate_amount, fromCur);
-  const nights = dateRange?.from && dateRange?.to ? differenceInDays(dateRange.to, dateRange.from) : 0;
-  const subtotal = rate * nights;
-  const cleaningFee = property.cleaning_fee.enabled ? convert(property.cleaning_fee.amount, fromCur) : 0;
-  const weeklyDiscount = property.weekly_discount.enabled && nights >= 7
-    ? Math.round(subtotal * property.weekly_discount.percentage / 100)
+  // ── override map: date string → override ──
+  const overrideMap = useMemo(() => {
+    const m = new Map<string, typeof dateOverrides[0]>();
+    dateOverrides.forEach((o) => m.set(o.date, o));
+    return m;
+  }, [dateOverrides]);
+
+  const nights = dateRange?.from && dateRange?.to
+    ? differenceInDays(dateRange.to, dateRange.from)
     : 0;
-  const monthlyDiscount = property.monthly_discount.enabled && nights >= 28
-    ? Math.round(subtotal * property.monthly_discount.percentage / 100)
+
+  // ── per-night rates: calendar override > day-of-week price > base rate ──
+  const nightlyRates = useMemo(() => {
+    if (!dateRange?.from || !dateRange?.to || nights <= 0) return [];
+    const days = eachDayOfInterval({
+      start: dateRange.from,
+      end:   addDays(dateRange.to, -1), // each night = the day it starts
+    });
+    const p          = property as any;
+    const dpEnabled  = p.day_prices_enabled ?? false;
+    const dayPrices  = p.day_prices ?? {};
+    return days.map((day) => {
+      const dateStr  = format(day, "yyyy-MM-dd");
+      const override = overrideMap.get(dateStr);
+      // 1. Calendar custom price
+      if (override?.custom_price != null) return override.custom_price as number;
+      // 2. Day-of-week price
+      if (dpEnabled) {
+        const key = String(day.getDay()); // "0"=Sun … "6"=Sat
+        const dp  = dayPrices[key];
+        if (dp !== null && dp !== "" && dp !== undefined) return Number(dp);
+      }
+      // 3. Base rate
+      return property.base_rate_amount;
+    });
+  }, [dateRange, nights, overrideMap, property]);
+
+  // ── subtotal ──
+  const subtotal = useMemo(
+    () => nightlyRates.reduce((sum, r) => sum + convert(r, fromCur), 0),
+    [nightlyRates, convert, fromCur],
+  );
+
+  const cleaningFee = property.cleaning_fee.enabled
+    ? convert(property.cleaning_fee.amount, fromCur)
     : 0;
+
+  // Support both new DB integer format (0–99) and legacy mock { enabled, percentage }
+  const weeklyDiscountPct = useMemo(() => {
+    const raw = (property as any).weekly_discount;
+    return typeof raw === "number" ? raw : (raw?.percentage ?? 0);
+  }, [property]);
+  const monthlyDiscountPct = useMemo(() => {
+    const raw = (property as any).monthly_discount;
+    return typeof raw === "number" ? raw : (raw?.percentage ?? 0);
+  }, [property]);
+
+  const weeklyDiscount  = weeklyDiscountPct  > 0 && nights >= 7
+    ? Math.round(subtotal * weeklyDiscountPct  / 100) : 0;
+  const monthlyDiscount = monthlyDiscountPct > 0 && nights >= 30
+    ? Math.round(subtotal * monthlyDiscountPct / 100) : 0;
   const discount = monthlyDiscount || weeklyDiscount;
+
+  // ── effective min stay: per check-in date override, else property default ──
+  const effectiveMinStay = useMemo(() => {
+    if (!dateRange?.from) return property.minimum_stay;
+    const dateStr  = format(dateRange.from, "yyyy-MM-dd");
+    const override = overrideMap.get(dateStr);
+    return override?.min_stay ?? property.minimum_stay;
+  }, [dateRange?.from, overrideMap, property.minimum_stay]);
   const promoDiscount = promoApplied
     ? promoApplied.discountType === 'fixed'
       ? Math.min(convert(promoApplied.discount, 'GBP'), subtotal)
@@ -236,7 +296,7 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
   const totalGuests = adults + children;
   const atMaxGuests = totalGuests >= property.max_guests;
 
-  const belowMinStay = nights > 0 && nights < property.minimum_stay;
+  const belowMinStay = nights > 0 && nights < effectiveMinStay;
 
   const Stepper = ({ label, sub, value, onChange, min = 0, disableIncrement = false }: { label: string; sub: string; value: number; onChange: (v: number) => void; min?: number; disableIncrement?: boolean }) => (
     <div className="flex items-center justify-between py-2">
@@ -501,7 +561,7 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
 
       {belowMinStay && (
         <p className="text-center text-xs text-destructive mb-2 font-medium">
-          {t('widget.min_stay_error', { n: property.minimum_stay })}
+          {t('widget.min_stay_error', { n: effectiveMinStay })}
         </p>
       )}
 
@@ -516,8 +576,8 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
 
       <p className="text-center text-xs text-muted-foreground mt-3">{t('widget.no_charge')}</p>
 
-      {property.minimum_stay > 1 && (
-        <p className="text-center text-xs text-muted-foreground mt-1">{t('widget.min_stay', { n: property.minimum_stay })}</p>
+      {effectiveMinStay > 1 && (
+        <p className="text-center text-xs text-muted-foreground mt-1">{t('widget.min_stay', { n: effectiveMinStay })}</p>
       )}
 
       {/* Cash booking option */}
