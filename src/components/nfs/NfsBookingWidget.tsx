@@ -485,9 +485,11 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
         <div data-feature="NFSTAY__WIDGET_BREAKDOWN" className="space-y-2 mb-4 text-sm">
           <div className="flex justify-between">
             <span className="text-muted-foreground">
-              {nightlyRates.length > 0 && nightlyRates.some(r => r !== nightlyRates[0])
-                ? `${sym}${Math.round(subtotal / nights)} avg`
-                : `${sym}${rate}`
+              {nightlyRates.length > 0
+                ? nightlyRates.some(r => r !== nightlyRates[0])
+                  ? `${sym}${Math.round(subtotal / nights)} avg`   // mixed rates — show average
+                  : `${sym}${convert(nightlyRates[0], fromCur)}`   // uniform rate — show it exactly
+                : `${sym}${rate}`                                  // no dates yet — show base rate
               } × {nights} {nights === 1 ? t('widget.night_label') : t('widget.nights_label_plural')}
             </span>
             <span>{sym}{subtotal}</span>
