@@ -182,9 +182,14 @@ export function useNfsPropertyBlockedDates(propertyId: string | undefined) {
       if (resResult.data) {
         for (const r of resResult.data as { date_from: string; date_to: string }[]) {
           const from = new Date(r.date_from);
-          const to = new Date(r.date_to);
+          const to   = new Date(r.date_to);
           if (!isNaN(from.getTime()) && !isNaN(to.getTime())) {
-            ranges.push({ from, to });
+            // check_out day is available for new check-in (guest leaves that morning).
+            // Block only up to the day before check_out.
+            const blockTo = new Date(to);
+            blockTo.setDate(blockTo.getDate() - 1);
+            // Guard: if reservation is 0 or 1 night, blockTo may equal or precede from
+            ranges.push({ from, to: blockTo >= from ? blockTo : from });
           }
         }
       }
