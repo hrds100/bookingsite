@@ -132,7 +132,7 @@ export default function OperatorCalendar() {
 
   const activeFilters = activeFilterCount(filters);
 
-  /* ── range block handler ── */
+  /* ── single-property range block handler ── */
   const handleRangeBlock = async (
     propertyId: string,
     fromDate: string,
@@ -156,6 +156,36 @@ export default function OperatorCalendar() {
         err instanceof Error ? err.message : "Failed to update availability",
       );
       throw err; // re-throw so dialog stays open on error
+    }
+  };
+
+  /* ── multi-property bulk block handler ── */
+  const handleMultiRangeBlock = async (
+    propertyIds: string[],
+    fromDate: string,
+    toDate: string,
+    block: boolean,
+  ) => {
+    const from  = parseISO(fromDate);
+    const to    = parseISO(toDate);
+    const dates = eachDayOfInterval({ start: from, end: to }).map((d) =>
+      format(d, "yyyy-MM-dd"),
+    );
+    let success = 0;
+    for (const propertyId of propertyIds) {
+      try {
+        await blockRange.mutateAsync({ propertyId, dates, block });
+        success++;
+      } catch { /* continue with remaining */ }
+    }
+    if (success > 0) {
+      toast.success(
+        block
+          ? `${dates.length} date${dates.length === 1 ? "" : "s"} blocked across ${success} ${success === 1 ? "property" : "properties"}`
+          : `${dates.length} date${dates.length === 1 ? "" : "s"} unblocked across ${success} ${success === 1 ? "property" : "properties"}`,
+      );
+    } else {
+      toast.error("Failed to update availability");
     }
   };
 
@@ -326,6 +356,7 @@ export default function OperatorCalendar() {
         reservations={reservations}
         blockedDates={blockedDates}
         onRangeBlock={handleRangeBlock}
+        onMultiRangeBlock={handleMultiRangeBlock}
         loading={isLoading}
       />
     </div>

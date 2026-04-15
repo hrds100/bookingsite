@@ -1,10 +1,13 @@
 import { useState, useMemo, useCallback } from "react";
 import {
   format, addDays, startOfDay, parseISO,
-  differenceInDays, isToday, isBefore,
+  differenceInDays, isToday, isBefore, eachDayOfInterval,
 } from "date-fns";
 import type { DateRange } from "react-day-picker";
-import { ChevronLeft, ChevronRight, CalendarDays, Ban, Unlock, Loader2 } from "lucide-react";
+import {
+  ChevronLeft, ChevronRight, CalendarDays, Ban, Unlock,
+  Loader2, LayoutList, X,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -50,6 +53,13 @@ export interface NfsMultiCalendarProps {
     toDate: string,
     block: boolean,
   ) => Promise<void>;
+  /** Optional: handle block/unblock across multiple properties at once */
+  onMultiRangeBlock?: (
+    propertyIds: string[],
+    fromDate: string,
+    toDate: string,
+    block: boolean,
+  ) => Promise<void>;
   loading?: boolean;
 }
 
@@ -59,15 +69,23 @@ export function NfsMultiCalendar({
   reservations,
   blockedDates,
   onRangeBlock,
+  onMultiRangeBlock,
   loading,
 }: NfsMultiCalendarProps) {
   const [startDate, setStartDate] = useState(() => startOfDay(new Date()));
   const today = startOfDay(new Date());
 
-  /* ── range-block dialog state ── */
+  /* ── single-property range-block dialog ── */
   const [rangeModal, setRangeModal] = useState<RangeModal | null>(null);
   const [rangeSelection, setRangeSelection] = useState<DateRange | undefined>(undefined);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  /* ── multi-property bulk edit ── */
+  const [multiMode, setMultiMode] = useState(false);
+  const [multiStart, setMultiStart] = useState<Date | null>(null);
+  const [multiEnd, setMultiEnd] = useState<Date | null>(null);
+  const [multiAction, setMultiAction] = useState<"block" | "unblock">("block");
+  const [isMultiSubmitting, setIsMultiSubmitting] = useState(false);
 
   const dates = useMemo(
     () => Array.from({ length: DAYS }, (_, i) => addDays(startDate, i)),
@@ -109,7 +127,7 @@ export function NfsMultiCalendar({
 
   const goToday = () => setStartDate(today);
 
-  /* open range dialog when a cell is clicked */
+  /* ── single-property cell click ── */
   const handleCellClick = useCallback(
     (property: MockProperty, date: Date, inRes: boolean) => {
       if (inRes) return;
@@ -123,7 +141,80 @@ export function NfsMultiCalendar({
     [],
   );
 
-  /* submit block/unblock for the selected range */
+  /* ── multi-property cell click ── */
+  const handleMultiCellClick = useCallback((date: Date, inRes: boolean) => {
+    if (inRes) return;
+    setMultiStart(prev => {
+      if (!prev || (prev && multiEnd)) {
+        // start fresh
+        setMultiEnd(null);
+        return date;
+      }
+      // set end — ensure chronological order
+      if (format(date, "yyyy-MM-dd") === format(prev, "yyyy-MM-dd")) {
+        setMultiEnd(date);
+      } else if (date < prev) {
+        setMultiEnd(prev);
+        return date;
+      } else {
+        setMultiEnd(date);
+      }
+      return prev;
+    });
+  }, [multiEnd]);
+
+  /* check if a date falls within the multi-select range */
+  const isInMultiRange = useCallback((date: Date): boolean => {
+    if (!multiStart) return false;
+    const end = multiEnd ?? multiStart;
+    const from = startOfDay(multiStart <= end ? multiStart : end);
+    const to   = startOfDay(multiStart <= end ? end : multiStart);
+    const d    = startOfDay(date);
+    return d >= from && d <= to;
+  }, [multiStart, multiEnd]);
+
+  /* toggle multi-mode — reset selection when switching */
+  const toggleMultiMode = () => {
+    setMultiMode(prev => !prev);
+    setMultiStart(null);
+    setMultiEnd(null);
+  };
+
+  /* multi range info */
+  const multiFromDate  = multiStart && multiEnd
+    ? (multiStart <= multiEnd ? multiStart : multiEnd)
+    : multiStart;
+  const multiToDate    = multiStart && multiEnd
+    ? (multiStart <= multiEnd ? multiEnd : multiStart)
+    : multiStart;
+  const multiDayCount  = multiFromDate && multiToDate
+    ? differenceInDays(multiToDate, multiFromDate) + 1
+    : multiFromDate ? 1 : 0;
+
+  /* submit multi block/unblock */
+  const handleMultiConfirm = async () => {
+    if (!multiFromDate) return;
+    const fromStr = format(multiFromDate, "yyyy-MM-dd");
+    const toStr   = format(multiToDate ?? multiFromDate, "yyyy-MM-dd");
+    const block   = multiAction === "block";
+    setIsMultiSubmitting(true);
+    try {
+      if (onMultiRangeBlock) {
+        await onMultiRangeBlock(properties.map(p => p.id), fromStr, toStr, block);
+      } else {
+        // fallback: call per-property
+        await Promise.all(
+          properties.map(p => onRangeBlock(p.id, fromStr, toStr, block))
+        );
+      }
+      setMultiStart(null);
+      setMultiEnd(null);
+    } finally {
+      setIsMultiSubmitting(false);
+    }
+  };
+
+  /* submit single block/unblock */
   const handleRangeConfirm = async (block: boolean) => {
     if (!rangeModal || !rangeSelection?.from) return;
     const from = rangeSelection.from;
@@ -143,7 +234,7 @@ export function NfsMultiCalendar({
     }
   };
 
-  /* day count label */
+  /* day count label for single dialog */
   const dayCount = useMemo(() => {
     if (!rangeSelection?.from) return 0;
     const to = rangeSelection.to ?? rangeSelection.from;
@@ -185,26 +276,30 @@ export function NfsMultiCalendar({
             Today
           </Button>
           <div className="flex items-center gap-1">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 rounded-full"
-              onClick={() => navigate(-1)}
-            >
+            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={() => navigate(-1)}>
               <ChevronLeft className="w-4 h-4" />
             </Button>
             <span className="text-sm font-medium min-w-[186px] text-center select-none">
               {rangeLabel}
             </span>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 rounded-full"
-              onClick={() => navigate(1)}
-            >
+            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={() => navigate(1)}>
               <ChevronRight className="w-4 h-4" />
             </Button>
           </div>
+
+          {/* Bulk edit toggle */}
+          <Button
+            variant={multiMode ? "default" : "outline"}
+            size="sm"
+            onClick={toggleMultiMode}
+            className={cn(
+              "rounded-full h-8 px-3 gap-1.5 text-xs",
+              multiMode && "bg-primary text-white",
+            )}
+          >
+            <LayoutList className="w-3.5 h-3.5" />
+            Bulk edit
+          </Button>
 
           {/* legend */}
           <div className="ml-auto hidden sm:flex items-center gap-4 text-xs text-muted-foreground">
@@ -222,6 +317,104 @@ export function NfsMultiCalendar({
             </span>
           </div>
         </div>
+
+        {/* ── multi-mode selection panel ── */}
+        {multiMode && (
+          <div className="flex flex-wrap items-center gap-4 rounded-xl border border-primary/30 bg-primary/5 px-4 py-3">
+            {/* Date range display */}
+            <div className="flex items-center gap-2 text-sm">
+              <span className="font-semibold text-primary">Selected dates</span>
+              {multiFromDate ? (
+                <span className="text-foreground font-medium">
+                  {format(multiFromDate, "dd/MM/yyyy")}
+                  {multiToDate && format(multiToDate, "yyyy-MM-dd") !== format(multiFromDate, "yyyy-MM-dd") && (
+                    <> → {format(multiToDate, "dd/MM/yyyy")}</>
+                  )}
+                </span>
+              ) : (
+                <span className="text-muted-foreground italic">Click a date to start</span>
+              )}
+              {multiFromDate && multiEnd && (
+                <span className="text-xs text-muted-foreground">
+                  ({multiDayCount} {multiDayCount === 1 ? "day" : "days"})
+                </span>
+              )}
+            </div>
+
+            {/* Properties count */}
+            {multiFromDate && (
+              <span className="text-sm text-muted-foreground">
+                <strong className="text-foreground">{properties.length}</strong>{" "}
+                {properties.length === 1 ? "listing" : "listings"}
+              </span>
+            )}
+
+            {/* Availability radio */}
+            {multiFromDate && (
+              <div className="flex items-center gap-3 text-sm">
+                <label className="flex items-center gap-1.5 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="multi-action"
+                    value="block"
+                    checked={multiAction === "block"}
+                    onChange={() => setMultiAction("block")}
+                    className="accent-primary"
+                  />
+                  <Ban className="w-3.5 h-3.5 text-rose-500" />
+                  Block
+                </label>
+                <label className="flex items-center gap-1.5 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="multi-action"
+                    value="unblock"
+                    checked={multiAction === "unblock"}
+                    onChange={() => setMultiAction("unblock")}
+                    className="accent-primary"
+                  />
+                  <Unlock className="w-3.5 h-3.5 text-primary" />
+                  Unblock
+                </label>
+              </div>
+            )}
+
+            {/* Action buttons */}
+            <div className="flex items-center gap-2 ml-auto">
+              {multiFromDate && (
+                <>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 text-xs rounded-full text-muted-foreground"
+                    onClick={() => { setMultiStart(null); setMultiEnd(null); }}
+                    disabled={isMultiSubmitting}
+                  >
+                    Clear
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="h-7 text-xs rounded-full"
+                    onClick={handleMultiConfirm}
+                    disabled={isMultiSubmitting}
+                  >
+                    {isMultiSubmitting
+                      ? <><Loader2 className="w-3.5 h-3.5 animate-spin mr-1" /> Saving…</>
+                      : "Save"}
+                  </Button>
+                </>
+              )}
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 w-7 p-0 rounded-full text-muted-foreground"
+                onClick={toggleMultiMode}
+              >
+                <X className="w-3.5 h-3.5" />
+              </Button>
+            </div>
+          </div>
+        )}
 
         {/* ── calendar grid ── */}
         <div className="border border-border rounded-xl overflow-x-auto">
@@ -246,6 +439,7 @@ export function NfsMultiCalendar({
                   className={cn(
                     "flex flex-col items-center justify-center py-2 border-r border-border last:border-r-0 flex-shrink-0",
                     isToday(date) && "bg-primary/10",
+                    multiMode && multiStart && isInMultiRange(date) && "bg-primary/15",
                   )}
                 >
                   <span className="text-[9px] text-muted-foreground uppercase tracking-wider">
@@ -326,6 +520,7 @@ export function NfsMultiCalendar({
                           const co = parseISO(r.check_out);
                           return date >= ci && date < co;
                         });
+                        const inMultiRange = multiMode && isInMultiRange(date);
 
                         return (
                           <div
@@ -334,21 +529,38 @@ export function NfsMultiCalendar({
                             className={cn(
                               "border-r border-border last:border-r-0 h-full flex items-center justify-center flex-shrink-0",
                               "text-[10px] select-none transition-colors",
-                              blocked && "bg-rose-50 dark:bg-rose-950/20",
-                              isToday(date) && !blocked && "bg-primary/5",
-                              isPast && !blocked && !inRes && "opacity-50",
-                              !inRes && !isPast && "cursor-pointer",
-                              !inRes && !blocked && !isPast && "hover:bg-muted/60",
-                              !inRes && blocked && !isPast && "hover:bg-rose-100",
+                              blocked && !inMultiRange && "bg-rose-50 dark:bg-rose-950/20",
+                              isToday(date) && !blocked && !inMultiRange && "bg-primary/5",
+                              isPast && !blocked && !inRes && !inMultiRange && "opacity-50",
+                              inMultiRange && "bg-primary/20 ring-1 ring-inset ring-primary/30",
+                              // cursors
+                              multiMode && !inRes && !isPast && "cursor-crosshair",
+                              !multiMode && !inRes && !isPast && "cursor-pointer",
+                              // hover tints (only when not already selected)
+                              multiMode && !inMultiRange && !inRes && !isPast && "hover:bg-primary/10",
+                              !multiMode && !inRes && !blocked && !isPast && "hover:bg-muted/60",
+                              !multiMode && !inRes && blocked && !isPast && "hover:bg-rose-100",
                             )}
-                            onClick={() => handleCellClick(property, date, inRes)}
+                            onClick={() =>
+                              multiMode
+                                ? handleMultiCellClick(date, inRes)
+                                : handleCellClick(property, date, inRes)
+                            }
                             title={
-                              inRes
-                                ? undefined
-                                : "Click to select date range"
+                              multiMode
+                                ? multiStart
+                                  ? "Click to set end date"
+                                  : "Click to set start date"
+                                : inRes
+                                  ? undefined
+                                  : "Click to select date range"
                             }
                           >
-                            {blocked ? (
+                            {inMultiRange ? (
+                              <span className="text-primary/60 font-medium text-[9px]">
+                                {multiAction === "block" ? "●" : "○"}
+                              </span>
+                            ) : blocked ? (
                               <Ban className="w-3 h-3 text-rose-400" />
                             ) : !inRes ? (
                               <span className="text-muted-foreground/50">
@@ -443,19 +655,28 @@ export function NfsMultiCalendar({
         </div>
 
         {/* help text */}
-        <div className="flex items-center gap-4 text-xs text-muted-foreground px-1">
-          <span className="flex items-center gap-1">
-            <Ban className="w-3 h-3 text-rose-400" />
-            Click a date to select a range to block or unblock
-          </span>
-          <span className="flex items-center gap-1">
-            <Unlock className="w-3 h-3 text-primary" />
-            Blocked dates show in red — click to unblock via range picker
-          </span>
+        <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground px-1">
+          {multiMode ? (
+            <span className="flex items-center gap-1">
+              <LayoutList className="w-3 h-3 text-primary" />
+              Bulk edit mode — click a start date then an end date to select a range across all properties
+            </span>
+          ) : (
+            <>
+              <span className="flex items-center gap-1">
+                <Ban className="w-3 h-3 text-rose-400" />
+                Click a date to select a range to block or unblock for a single property
+              </span>
+              <span className="flex items-center gap-1">
+                <Unlock className="w-3 h-3 text-primary" />
+                Use "Bulk edit" to apply changes across all properties at once
+              </span>
+            </>
+          )}
         </div>
       </div>
 
-      {/* ── Range Block Dialog ── */}
+      {/* ── Single-property Range Block Dialog ── */}
       <Dialog
         open={!!rangeModal}
         onOpenChange={(open) => {
