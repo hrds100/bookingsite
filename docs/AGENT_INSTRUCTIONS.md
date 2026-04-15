@@ -56,6 +56,7 @@ Claude acts as **AI Developer** for the nfstay booking site (nfstay.app).
 12. **Playwright e2e test is mandatory before marking DONE.** After every fix or feature, write a Playwright test that verifies the change works, run it with `npx playwright test`, and include the pass/fail result in the report. No exceptions. Do not claim something is "working" or "fixed" without a passing Playwright test. Use the existing `playwright-fixture.ts` for imports (`test`, `expect`). Config is in `playwright.config.ts`.
 13. **Do NOT revert or overwrite existing styles** unless the task explicitly requires it. AI agents tend to "clean up" styles and accidentally undo previous fixes. Preserve all existing CSS/Tailwind classes unless Hugo specifically asks to change them.
 14. **DONE format required.** Every completed task must end with this exact report:
+15. **No conflict PRs — ever.** Always `git fetch origin && git rebase origin/main` before every push. Never share a PR URL until GitHub confirms "no conflicts". See Section 4b for the full workflow. This rule cannot be skipped.
     ```
     DONE
     What: [one sentence]
@@ -63,6 +64,52 @@ Claude acts as **AI Developer** for the nfstay booking site (nfstay.app).
     Build: pass/fail
     Test: [Playwright result + preview URL]
     ```
+
+---
+
+## 4b. MANDATORY GIT WORKFLOW — NO CONFLICT PRs EVER
+
+**Hugo must never see a "This branch has conflicts" message on any PR. Ever. This is a zero-tolerance rule.**
+
+### Before creating a branch
+
+```bash
+git fetch origin
+git checkout main
+git pull origin main
+git checkout -b feature/your-branch-name
+```
+
+### Before every single push (non-negotiable)
+
+```bash
+git fetch origin
+git rebase origin/main
+# if conflicts arise: resolve them, then git rebase --continue
+git push --force origin feature/your-branch-name
+```
+
+### Before sharing any PR URL with Hugo
+
+1. Run `git fetch origin && git rebase origin/main` — if main moved, rebase first.
+2. Run `git push --force` — update the remote branch.
+3. Confirm on GitHub that the PR shows **"This branch has no conflicts with the base branch"**.
+4. Only THEN paste the PR URL in chat.
+
+### If a conflict is detected at any point
+
+- **Do not ask Hugo to report it.** Fix it immediately without being told.
+- `git fetch origin && git rebase origin/main`, resolve conflicts, `git push --force`.
+- Never send a URL that shows a conflict indicator.
+
+### Force-push rules
+
+- Force-push is **always allowed** on feature branches after a rebase.
+- Force-push to `main` is **never allowed**.
+
+### The rule in one sentence
+
+> Always rebase before pushing. Never give Hugo a PR URL until GitHub confirms there are no conflicts.
 
 ---
 
