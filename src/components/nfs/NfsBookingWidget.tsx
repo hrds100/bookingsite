@@ -253,7 +253,9 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
       const checkIn  = dateRange?.from ? format(dateRange.from, 'yyyy-MM-dd') : '';
       const checkOut = dateRange?.to   ? format(dateRange.to,   'yyyy-MM-dd') : '';
 
-      const { data: inserted, error } = await supabase.from('nfs_reservations').insert({
+      // Insert without .select() — avoids RLS SELECT policy blocking the response
+      // on unauthenticated guest sessions. Insert-only RLS policy is always enough here.
+      const { error: insertError } = await supabase.from('nfs_reservations').insert({
         property_id: property.id,
         guest_first_name: nameParts[0] || cashName,
         guest_last_name: nameParts.slice(1).join(' ') || '',
@@ -270,27 +272,30 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
         total_amount: total,
         payment_currency: currency.code,
         booking_reference: ref,
-      }).select('id').single();
+      });
 
-      if (!error) {
-        // Fire email notification — non-blocking
-        notifyCashBookingRequest({
-          reservationId: inserted?.id ?? ref,
-          guestName: cashName.trim(),
-          guestEmail: cashEmail.trim(),
-          propertyTitle: property.public_title,
-          propertyCity: property.city ?? '',
-          propertyCountry: property.country ?? '',
-          checkIn,
-          checkOut,
-          nights,
-          adults,
-          children,
-          total,
-          currency: currency.code,
-          operatorEmail: (operator as any)?.contact_email ?? operatorPublic?.contact_email ?? undefined,
-        });
+      if (insertError) {
+        console.error('[cash booking] insert failed:', insertError.message);
       }
+
+      // Always fire email regardless of insert result — non-blocking, fire-and-forget.
+      // Guest and operator must receive the notification even if DB had an edge case.
+      notifyCashBookingRequest({
+        reservationId: ref,
+        guestName: cashName.trim(),
+        guestEmail: cashEmail.trim(),
+        propertyTitle: property.public_title,
+        propertyCity: property.city ?? '',
+        propertyCountry: property.country ?? '',
+        checkIn,
+        checkOut,
+        nights,
+        adults,
+        children,
+        total,
+        currency: currency.code,
+        operatorEmail: (operator as any)?.contact_email ?? operatorPublic?.contact_email ?? undefined,
+      });
 
       const confirmation = {
         ref,
