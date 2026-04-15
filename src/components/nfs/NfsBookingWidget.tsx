@@ -42,15 +42,32 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
     if (!dateRange?.from || dateRange?.to) return base;
 
     const from = startOfDay(dateRange.from);
-    const firstBlockedAfter = blockedRanges
-      .map((r) => startOfDay(r.from))
-      .filter((d) => d > from)
-      .sort((a, b) => a.getTime() - b.getTime())[0];
 
-    if (!firstBlockedAfter) return base;
-    // Allow check-out ON the first blocked day (guest leaves that morning),
-    // but disable the day after it and everything beyond.
-    return [...base, { from: addDays(firstBlockedAfter, 1), to: addDays(new Date(9999, 0, 1), 0) }];
+    // Find the first blocked range that starts after check-in
+    const firstBlockedRange = blockedRanges
+      .map((r) => ({ ...r, fromDay: startOfDay(r.from) }))
+      .filter((r) => r.fromDay > from)
+      .sort((a, b) => a.fromDay.getTime() - b.fromDay.getTime())[0];
+
+    if (!firstBlockedRange) return base;
+
+    const firstBlockedAfter = firstBlockedRange.fromDay;
+
+    // Allow check-out ON firstBlockedAfter (guest leaves that morning, new guest
+    // arrives same day). Remove that range from disabled so the day is clickable,
+    // then block everything from the day AFTER it onwards.
+    const filteredRanges = blockedRanges.filter((r) => {
+      const rFrom = startOfDay(r.from);
+      const rTo   = startOfDay(r.to);
+      // Drop whichever range contains firstBlockedAfter
+      return !(rFrom <= firstBlockedAfter && rTo >= firstBlockedAfter);
+    });
+
+    return [
+      { before: startOfDay(new Date()) },
+      ...filteredRanges,
+      { from: addDays(firstBlockedAfter, 1), to: new Date(9999, 0, 1) },
+    ] as Parameters<typeof Calendar>[0]["disabled"];
   }, [dateRange?.from, dateRange?.to, blockedRanges]);
   const [adults, setAdults] = useState(1);
   const [children, setChildren] = useState(0);
