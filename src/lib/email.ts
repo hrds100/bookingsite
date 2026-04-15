@@ -46,6 +46,16 @@ export function notifyBookingConfirmed(data: BookingNotification): void {
   post({ type: "booking_confirmed", ...data });
 }
 
+/** Sent when a guest submits a cash / pay-on-arrival booking request */
+export function notifyCashBookingRequest(data: BookingNotification): void {
+  post({ type: "cash_booking_request", ...data });
+}
+
+/** Sent when an operator accepts a cash booking */
+export function notifyCashBookingConfirmed(data: BookingNotification): void {
+  post({ type: "cash_booking_confirmed", ...data });
+}
+
 export function notifyBookingCancelled(data: BookingNotification): void {
   post({ type: "booking_cancelled", ...data });
 }

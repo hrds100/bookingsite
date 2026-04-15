@@ -107,7 +107,14 @@ export default function OperatorReservations() {
                     <td className="p-4 text-muted-foreground">{r.adults + r.children}</td>
                     <td className="p-4 font-medium">{formatPrice(r.total_amount)}</td>
                     <td className="p-4"><NfsStatusBadge status={r.status} /></td>
-                    <td className="p-4"><NfsStatusBadge status={r.payment_status} /></td>
+                    <td className="p-4">
+                      <div className="flex flex-wrap gap-1 items-center">
+                        <NfsStatusBadge status={r.payment_status} />
+                        {(r as any).payment_method === 'cash' && (
+                          <NfsStatusBadge status="cash" />
+                        )}
+                      </div>
+                    </td>
                     <td className="p-4">
                       <Button variant="ghost" size="sm" asChild className="h-8 w-8 p-0">
                         <Link to={`/nfstay/reservations/${r.id}`}><Eye className="w-4 h-4" /></Link>

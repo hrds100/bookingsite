@@ -19,6 +19,7 @@ const statusStyles: Record<string, string> = {
   no_show: 'bg-muted text-muted-foreground',
   expired: 'bg-muted text-muted-foreground',
   draft: 'bg-muted text-muted-foreground',
+  cash: 'bg-amber-50 text-amber-800 border border-amber-200',
 };
 
 export function NfsStatusBadge({ status, className }: NfsStatusBadgeProps) {

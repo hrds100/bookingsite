@@ -108,6 +108,119 @@ Deno.serve(async (req: Request) => {
       await Promise.all(sendsReq);
     }
 
+    /* ── cash_booking_request ──────────────────────────── */
+    if (type === "cash_booking_request") {
+      const {
+        guestName, guestEmail, propertyTitle, propertyCity, propertyCountry,
+        checkIn, checkOut, nights, adults, children, total, currency, reservationId,
+        operatorEmail,
+      } = body;
+
+      const guestHtml = wrap(`
+        <div class="hd"><h1>Booking Request Received 💵</h1></div>
+        <div class="bd">
+          <p style="color:#444;margin:0 0 20px">Hi ${guestName}, your booking request has been received. <strong>No payment is needed now</strong> — you'll pay on arrival. The host will review and confirm shortly.</p>
+          <p class="lbl">Property</p><p class="val">${propertyTitle}</p>
+          <p class="lbl">Location</p><p class="val">${propertyCity}, ${propertyCountry}</p>
+          <p class="lbl">Check-in</p><p class="val">${checkIn}</p>
+          <p class="lbl">Check-out</p><p class="val">${checkOut}</p>
+          <p class="lbl">Duration</p><p class="val">${nights} night${nights !== 1 ? "s" : ""}</p>
+          <p class="lbl">Guests</p><p class="val">${adults} adult${adults !== 1 ? "s" : ""}${children > 0 ? `, ${children} children` : ""}</p>
+          <hr>
+          <p class="lbl">Amount due on arrival</p><p class="big">${fmt(total, currency)}</p>
+          ${reservationId ? `<p style="color:#999;font-size:12px;margin-top:12px">Reservation: ${String(reservationId).slice(0, 8).toUpperCase()}</p>` : ""}
+          <hr>
+          <p style="color:#444;font-size:14px">You'll receive a confirmation email once the host approves your request.</p>
+        </div>`);
+
+      const operatorHtml = wrap(`
+        <div class="hd" style="background:linear-gradient(270deg,#f59e0b 0%,#d97706 100%)"><h1>💵 New Cash Booking Request</h1></div>
+        <div class="bd">
+          <p style="color:#444;margin:0 0 20px">You have a new <strong>Cash / Pay on Arrival</strong> booking request. The guest will pay you directly on check-in.</p>
+          <p class="lbl">Guest</p><p class="val">${guestName} &lt;${guestEmail}&gt;</p>
+          <p class="lbl">Property</p><p class="val">${propertyTitle}</p>
+          <p class="lbl">Check-in</p><p class="val">${checkIn}</p>
+          <p class="lbl">Check-out</p><p class="val">${checkOut}</p>
+          <p class="lbl">Duration</p><p class="val">${nights} night${nights !== 1 ? "s" : ""}</p>
+          <p class="lbl">Guests</p><p class="val">${adults} adult${adults !== 1 ? "s" : ""}${children > 0 ? `, ${children} children` : ""}</p>
+          <hr>
+          <p class="lbl">Amount to collect on arrival</p><p class="big">${fmt(total, currency)}</p>
+          ${reservationId ? `<p style="color:#999;font-size:12px;margin-top:12px">Reservation: ${String(reservationId).slice(0, 8).toUpperCase()}</p>` : ""}
+          <hr>
+          <p style="color:#444;font-size:14px">Accept or reject at <a href="https://nfstay.app/nfstay/reservations">nfstay.app/nfstay/reservations</a></p>
+        </div>`);
+
+      const adminHtml = wrap(`
+        <div class="hd" style="background:linear-gradient(270deg,#f59e0b 0%,#d97706 100%)"><h1>💵 Cash Booking Request</h1></div>
+        <div class="bd">
+          <p class="lbl">Guest</p><p class="val">${guestName} &lt;${guestEmail}&gt;</p>
+          <p class="lbl">Property</p><p class="val">${propertyTitle} — ${propertyCity}, ${propertyCountry}</p>
+          <p class="lbl">Check-in</p><p class="val">${checkIn}</p>
+          <p class="lbl">Check-out</p><p class="val">${checkOut}</p>
+          <p class="lbl">Nights / Guests</p><p class="val">${nights}n · ${adults} adults${children > 0 ? `, ${children} children` : ""}</p>
+          <hr>
+          <p class="lbl">Amount due on arrival</p><p class="big">${fmt(total, currency)}</p>
+        </div>`);
+
+      const gNormC = guestEmail.trim().toLowerCase();
+      const aNormC = ADMIN_EMAIL.trim().toLowerCase();
+      const oNormC = operatorEmail ? operatorEmail.trim().toLowerCase() : null;
+
+      const cashSends = [sendEmail(guestEmail, `Booking Request Received — ${propertyTitle}`, guestHtml)];
+      if (aNormC !== gNormC) cashSends.push(sendEmail(ADMIN_EMAIL, `Cash Booking Request: ${propertyTitle} — ${guestName}`, adminHtml));
+      if (oNormC && oNormC !== aNormC && oNormC !== gNormC) cashSends.push(sendEmail(operatorEmail, `💵 Cash Booking Request: ${propertyTitle} — ${guestName}`, operatorHtml));
+      await Promise.all(cashSends);
+    }
+
+    /* ── cash_booking_confirmed ─────────────────────────── */
+    if (type === "cash_booking_confirmed") {
+      const {
+        guestName, guestEmail, propertyTitle, propertyCity, propertyCountry,
+        checkIn, checkOut, nights, adults, children, total, currency, reservationId,
+        operatorEmail,
+      } = body;
+
+      const guestHtml = wrap(`
+        <div class="hd"><h1>Booking Confirmed 🎉</h1></div>
+        <div class="bd">
+          <p style="color:#444;margin:0 0 20px">Hi ${guestName}, your booking has been confirmed!</p>
+          <p class="lbl">Property</p><p class="val">${propertyTitle}</p>
+          <p class="lbl">Location</p><p class="val">${propertyCity}, ${propertyCountry}</p>
+          <p class="lbl">Check-in</p><p class="val">${checkIn}</p>
+          <p class="lbl">Check-out</p><p class="val">${checkOut}</p>
+          <p class="lbl">Duration</p><p class="val">${nights} night${nights !== 1 ? "s" : ""}</p>
+          <p class="lbl">Guests</p><p class="val">${adults} adult${adults !== 1 ? "s" : ""}${children > 0 ? `, ${children} children` : ""}</p>
+          <hr>
+          <p class="lbl">Payment method</p><p class="val" style="color:#d97706">💵 Cash / Pay on Arrival</p>
+          <p class="lbl">Amount due on arrival</p><p class="big">${fmt(total, currency)}</p>
+          ${reservationId ? `<p style="color:#999;font-size:12px;margin-top:12px">Reservation: ${String(reservationId).slice(0, 8).toUpperCase()}</p>` : ""}
+          <hr>
+          <p style="color:#444;font-size:14px">Please bring the full amount in cash on check-in. Need help? Reply to this email.</p>
+        </div>`);
+
+      const operatorHtml = wrap(`
+        <div class="hd"><h1>Cash Booking Confirmed 🏠</h1></div>
+        <div class="bd">
+          <p style="color:#444;margin:0 0 20px">You accepted a cash booking. Remember to collect payment on arrival.</p>
+          <p class="lbl">Guest</p><p class="val">${guestName} &lt;${guestEmail}&gt;</p>
+          <p class="lbl">Property</p><p class="val">${propertyTitle}</p>
+          <p class="lbl">Check-in</p><p class="val">${checkIn}</p>
+          <p class="lbl">Check-out</p><p class="val">${checkOut}</p>
+          <hr>
+          <p class="lbl">To collect on arrival</p><p class="big">${fmt(total, currency)}</p>
+          ${reservationId ? `<p style="color:#999;font-size:12px;margin-top:12px">Reservation: ${String(reservationId).slice(0, 8).toUpperCase()}</p>` : ""}
+        </div>`);
+
+      const gNormCA = guestEmail.trim().toLowerCase();
+      const aNormCA = ADMIN_EMAIL.trim().toLowerCase();
+      const oNormCA = operatorEmail ? operatorEmail.trim().toLowerCase() : null;
+
+      const cashConSends = [sendEmail(guestEmail, `Booking Confirmed — ${propertyTitle}`, guestHtml)];
+      if (aNormCA !== gNormCA) cashConSends.push(sendEmail(ADMIN_EMAIL, `Cash Booking Confirmed: ${propertyTitle} (${guestName})`, operatorHtml));
+      if (oNormCA && oNormCA !== aNormCA && oNormCA !== gNormCA) cashConSends.push(sendEmail(operatorEmail, `Cash Booking Confirmed: ${propertyTitle} — ${guestName}`, operatorHtml));
+      await Promise.all(cashConSends);
+    }
+
     /* ── booking_confirmed ──────────────────────────────── */
     if (type === "booking_confirmed") {
       const {
