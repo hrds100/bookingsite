@@ -306,7 +306,7 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
         total,
         currency: currency.code,
         currencySymbol: currency.symbol,
-        error: error?.message ?? null,
+        error: insertError?.message ?? null,
       };
       sessionStorage.setItem('nfs_cash_booking', JSON.stringify(confirmation));
       navigate('/cash-booking-confirmed');
