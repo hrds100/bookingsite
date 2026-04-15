@@ -1,13 +1,10 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import {
   format, addDays, startOfDay, parseISO,
-  differenceInDays, isToday, isBefore, eachDayOfInterval,
+  differenceInDays, isToday, isBefore,
 } from "date-fns";
 import type { DateRange } from "react-day-picker";
-import {
-  ChevronLeft, ChevronRight, CalendarDays, Ban, Unlock,
-  Loader2, LayoutList, X,
-} from "lucide-react";
+import { ChevronLeft, ChevronRight, CalendarDays, Ban, Unlock, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -22,44 +19,49 @@ import type { BlockedDate } from "@/hooks/useNfsBlockedDates";
 /* ── layout constants ─────────────────────────── */
 const CELL_W = 56;   // px per day column
 const ROW_H  = 64;   // px per property row
-const PROP_W = 224;  // px for the left property column
+const PROP_W = 224;  // px for left property column
 const DAYS   = 14;   // days visible at once
 
 /* ── helpers ──────────────────────────────────── */
 function resColor(status: string) {
   if (status === "pending_approval") return "bg-amber-500";
-  if (status === "cancelled") return "bg-rose-400";
+  if (status === "cancelled")        return "bg-rose-400";
   return "bg-primary";
 }
+function fmtRate(rate: number, sym = "£") { return `${sym}${rate}`; }
 
-function fmtRate(rate: number, sym = "£") {
-  return `${sym}${rate}`;
+/* ── drag-selection type ──────────────────────── */
+interface DragSelection {
+  startPropIdx: number;
+  startDateIdx: number;
+  endPropIdx:   number;
+  endDateIdx:   number;
 }
 
-/* ── types ────────────────────────────────────── */
+function getRange(sel: DragSelection) {
+  return {
+    minPropIdx: Math.min(sel.startPropIdx, sel.endPropIdx),
+    maxPropIdx: Math.max(sel.startPropIdx, sel.endPropIdx),
+    minDateIdx: Math.min(sel.startDateIdx, sel.endDateIdx),
+    maxDateIdx: Math.max(sel.startDateIdx, sel.endDateIdx),
+  };
+}
+
+/* ── single-property dialog type ─────────────── */
 interface RangeModal {
-  propertyId: string;
+  propertyId:   string;
   propertyName: string;
-  anchorDate: Date;
+  anchorDate:   Date;
 }
 
+/* ── props ────────────────────────────────────── */
 export interface NfsMultiCalendarProps {
-  properties: MockProperty[];
-  reservations: ReservationWithProperty[];
-  blockedDates: BlockedDate[];
-  onRangeBlock: (
-    propertyId: string,
-    fromDate: string,
-    toDate: string,
-    block: boolean,
-  ) => Promise<void>;
-  /** Optional: handle block/unblock across multiple properties at once */
-  onMultiRangeBlock?: (
-    propertyIds: string[],
-    fromDate: string,
-    toDate: string,
-    block: boolean,
-  ) => Promise<void>;
+  properties:    MockProperty[];
+  reservations:  ReservationWithProperty[];
+  blockedDates:  BlockedDate[];
+  onRangeBlock:  (propertyId: string, fromDate: string, toDate: string, block: boolean) => Promise<void>;
+  /** Fires when a drag selection is saved across multiple properties. If omitted, falls back to per-property onRangeBlock calls. */
+  onMultiRangeBlock?: (propertyIds: string[], fromDate: string, toDate: string, block: boolean) => Promise<void>;
   loading?: boolean;
 }
 
@@ -75,173 +77,221 @@ export function NfsMultiCalendar({
   const [startDate, setStartDate] = useState(() => startOfDay(new Date()));
   const today = startOfDay(new Date());
 
-  /* ── single-property range-block dialog ── */
-  const [rangeModal, setRangeModal] = useState<RangeModal | null>(null);
+  /* ── single-property dialog ── */
+  const [rangeModal, setRangeModal]         = useState<RangeModal | null>(null);
   const [rangeSelection, setRangeSelection] = useState<DateRange | undefined>(undefined);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSingleSubmitting, setIsSingleSubmitting] = useState(false);
 
-  /* ── multi-property bulk edit ── */
-  const [multiMode, setMultiMode] = useState(false);
-  const [multiStart, setMultiStart] = useState<Date | null>(null);
-  const [multiEnd, setMultiEnd] = useState<Date | null>(null);
-  const [multiAction, setMultiAction] = useState<"block" | "unblock">("block");
-  const [isMultiSubmitting, setIsMultiSubmitting] = useState(false);
+  /* ── drag selection state ──
+     During drag:  dragSel   is set, finalSel is null
+     After drag:   dragSel   is null, finalSel is set (shows action panel)
+     Single click: both null → single-property dialog opens instead
+  ── */
+  // refs — readable inside native event handlers without stale closures
+  const isDraggingRef  = useRef(false);
+  const dragStartRef   = useRef<{ propIdx: number; dateIdx: number } | null>(null);
+  const dragSelRef     = useRef<DragSelection | null>(null);
+  const propertiesRef  = useRef<MockProperty[]>(properties);
+  const datesRef       = useRef<Date[]>([]);
 
+  // state — drives re-renders
+  const [dragSel,   setDragSel]   = useState<DragSelection | null>(null);
+  const [finalSel,  setFinalSel]  = useState<DragSelection | null>(null);
+  const [selAction, setSelAction] = useState<"block" | "unblock">("block");
+  const [isSelSubmitting, setIsSelSubmitting] = useState(false);
+
+  // keep refs in sync with latest props/derived values
+  useEffect(() => { propertiesRef.current = properties; }, [properties]);
+
+  /* ── date array ── */
   const dates = useMemo(
     () => Array.from({ length: DAYS }, (_, i) => addDays(startDate, i)),
     [startDate],
   );
+  useEffect(() => { datesRef.current = dates; }, [dates]);
 
   const endDate = useMemo(() => addDays(startDate, DAYS), [startDate]);
 
-  /* blocked set: "propertyId::YYYY-MM-DD" */
+  /* ── blocked set: "propId::YYYY-MM-DD" ── */
   const blockedSet = useMemo(() => {
     const s = new Set<string>();
-    blockedDates.forEach((b) => s.add(`${b.property_id}::${b.date}`));
+    blockedDates.forEach(b => s.add(`${b.property_id}::${b.date}`));
     return s;
   }, [blockedDates]);
 
   const isBlocked = useCallback(
-    (pid: string, date: Date) =>
-      blockedSet.has(`${pid}::${format(date, "yyyy-MM-dd")}`),
+    (pid: string, date: Date) => blockedSet.has(`${pid}::${format(date, "yyyy-MM-dd")}`),
     [blockedSet],
   );
 
-  /* reservations per property, overlapping the visible window */
+  /* ── reservations per property ── */
   const resByProp = useMemo(() => {
     const map = new Map<string, ReservationWithProperty[]>();
-    properties.forEach((p) => map.set(p.id, []));
-    reservations.forEach((r) => {
+    properties.forEach(p => map.set(p.id, []));
+    reservations.forEach(r => {
       if (r.status === "cancelled") return;
       const ci = parseISO(r.check_in);
       const co = parseISO(r.check_out);
       if (ci >= endDate || co <= startDate) return;
-      const list = map.get(r.property_id);
-      if (list) list.push(r);
+      map.get(r.property_id)?.push(r);
     });
     return map;
   }, [properties, reservations, startDate, endDate]);
 
-  const navigate = (delta: number) =>
-    setStartDate((prev) => addDays(prev, delta * DAYS));
-
-  const goToday = () => setStartDate(today);
-
-  /* ── single-property cell click ── */
-  const handleCellClick = useCallback(
-    (property: MockProperty, date: Date, inRes: boolean) => {
-      if (inRes) return;
-      setRangeSelection({ from: date, to: date });
-      setRangeModal({
-        propertyId: property.id,
-        propertyName: property.public_title,
-        anchorDate: date,
-      });
-    },
-    [],
-  );
-
-  /* ── multi-property cell click ── */
-  const handleMultiCellClick = useCallback((date: Date, inRes: boolean) => {
+  /* ── cell mouse-down: start drag ── */
+  const handleCellMouseDown = useCallback((
+    propIdx: number,
+    dateIdx: number,
+    inRes:   boolean,
+    e:       React.MouseEvent,
+  ) => {
     if (inRes) return;
-    setMultiStart(prev => {
-      if (!prev || (prev && multiEnd)) {
-        // start fresh
-        setMultiEnd(null);
-        return date;
-      }
-      // set end — ensure chronological order
-      if (format(date, "yyyy-MM-dd") === format(prev, "yyyy-MM-dd")) {
-        setMultiEnd(date);
-      } else if (date < prev) {
-        setMultiEnd(prev);
-        return date;
+    e.preventDefault(); // prevent browser text-selection cursor during drag
+    isDraggingRef.current = true;
+    dragStartRef.current  = { propIdx, dateIdx };
+    const sel: DragSelection = { startPropIdx: propIdx, startDateIdx: dateIdx, endPropIdx: propIdx, endDateIdx: dateIdx };
+    dragSelRef.current = sel;
+    setDragSel(sel);
+    setFinalSel(null); // clear previous selection
+  }, []);
+
+  /* ── cell mouse-enter: extend drag ── */
+  const handleCellMouseEnter = useCallback((propIdx: number, dateIdx: number) => {
+    if (!isDraggingRef.current || !dragStartRef.current) return;
+    const sel: DragSelection = {
+      startPropIdx: dragStartRef.current.propIdx,
+      startDateIdx: dragStartRef.current.dateIdx,
+      endPropIdx:   propIdx,
+      endDateIdx:   dateIdx,
+    };
+    dragSelRef.current = sel;
+    setDragSel(sel);
+  }, []);
+
+  /* ── document mouse-up: finalise drag ──
+     Single click (start === end cell) → open single-property dialog.
+     Multi-cell drag → show selection panel.
+  ── */
+  useEffect(() => {
+    const onMouseUp = () => {
+      if (!isDraggingRef.current) return;
+      isDraggingRef.current = false;
+
+      const sel   = dragSelRef.current;
+      dragStartRef.current  = null;
+      dragSelRef.current    = null;
+      setDragSel(null);
+
+      if (!sel) return;
+
+      const single =
+        sel.startPropIdx === sel.endPropIdx &&
+        sel.startDateIdx === sel.endDateIdx;
+
+      if (single) {
+        // Single click → per-property calendar dialog
+        const property = propertiesRef.current[sel.startPropIdx];
+        const date     = datesRef.current[sel.startDateIdx];
+        if (property && date) {
+          setRangeSelection({ from: date, to: date });
+          setRangeModal({ propertyId: property.id, propertyName: property.public_title, anchorDate: date });
+        }
+        setFinalSel(null);
       } else {
-        setMultiEnd(date);
+        setFinalSel(sel);
       }
-      return prev;
-    });
-  }, [multiEnd]);
+    };
 
-  /* check if a date falls within the multi-select range */
-  const isInMultiRange = useCallback((date: Date): boolean => {
-    if (!multiStart) return false;
-    const end = multiEnd ?? multiStart;
-    const from = startOfDay(multiStart <= end ? multiStart : end);
-    const to   = startOfDay(multiStart <= end ? end : multiStart);
-    const d    = startOfDay(date);
-    return d >= from && d <= to;
-  }, [multiStart, multiEnd]);
+    document.addEventListener("mouseup", onMouseUp);
+    return () => document.removeEventListener("mouseup", onMouseUp);
+  }, []); // stable — all values accessed via refs
 
-  /* toggle multi-mode — reset selection when switching */
-  const toggleMultiMode = () => {
-    setMultiMode(prev => !prev);
-    setMultiStart(null);
-    setMultiEnd(null);
+  /* ── active selection range (memo, O(1) per cell lookup) ── */
+  const selRange = useMemo(() => {
+    const sel = dragSel ?? finalSel;
+    return sel ? getRange(sel) : null;
+  }, [dragSel, finalSel]);
+
+  const isSelected = (propIdx: number, dateIdx: number): boolean => {
+    if (!selRange) return false;
+    return (
+      propIdx >= selRange.minPropIdx && propIdx <= selRange.maxPropIdx &&
+      dateIdx >= selRange.minDateIdx && dateIdx <= selRange.maxDateIdx
+    );
   };
 
-  /* multi range info */
-  const multiFromDate  = multiStart && multiEnd
-    ? (multiStart <= multiEnd ? multiStart : multiEnd)
-    : multiStart;
-  const multiToDate    = multiStart && multiEnd
-    ? (multiStart <= multiEnd ? multiEnd : multiStart)
-    : multiStart;
-  const multiDayCount  = multiFromDate && multiToDate
-    ? differenceInDays(multiToDate, multiFromDate) + 1
-    : multiFromDate ? 1 : 0;
+  /* ── selection panel info ── */
+  const selPanelInfo = useMemo(() => {
+    if (!finalSel) return null;
+    const r = getRange(finalSel);
+    return {
+      selectedProps: properties.slice(r.minPropIdx, r.maxPropIdx + 1),
+      fromDate:      dates[r.minDateIdx],
+      toDate:        dates[r.maxDateIdx],
+      numDates:      r.maxDateIdx - r.minDateIdx + 1,
+    };
+  }, [finalSel, properties, dates]);
 
-  /* submit multi block/unblock */
-  const handleMultiConfirm = async () => {
-    if (!multiFromDate) return;
-    const fromStr = format(multiFromDate, "yyyy-MM-dd");
-    const toStr   = format(multiToDate ?? multiFromDate, "yyyy-MM-dd");
-    const block   = multiAction === "block";
-    setIsMultiSubmitting(true);
+  /* ── save drag selection ── */
+  const handleSelectionSave = async () => {
+    if (!selPanelInfo) return;
+    const { selectedProps, fromDate, toDate } = selPanelInfo;
+    const fromStr = format(fromDate, "yyyy-MM-dd");
+    const toStr   = format(toDate,   "yyyy-MM-dd");
+    const block   = selAction === "block";
+    setIsSelSubmitting(true);
     try {
-      if (onMultiRangeBlock) {
-        await onMultiRangeBlock(properties.map(p => p.id), fromStr, toStr, block);
+      if (onMultiRangeBlock && selectedProps.length > 1) {
+        await onMultiRangeBlock(selectedProps.map(p => p.id), fromStr, toStr, block);
       } else {
-        // fallback: call per-property
-        await Promise.all(
-          properties.map(p => onRangeBlock(p.id, fromStr, toStr, block))
-        );
+        await Promise.all(selectedProps.map(p => onRangeBlock(p.id, fromStr, toStr, block)));
       }
-      setMultiStart(null);
-      setMultiEnd(null);
+      setFinalSel(null);
     } finally {
-      setIsMultiSubmitting(false);
+      setIsSelSubmitting(false);
     }
   };
 
-  /* submit single block/unblock */
+  /* ── single-property dialog confirm ── */
   const handleRangeConfirm = async (block: boolean) => {
     if (!rangeModal || !rangeSelection?.from) return;
     const from = rangeSelection.from;
     const to   = rangeSelection.to ?? rangeSelection.from;
-    setIsSubmitting(true);
+    setIsSingleSubmitting(true);
     try {
-      await onRangeBlock(
-        rangeModal.propertyId,
-        format(from, "yyyy-MM-dd"),
-        format(to,   "yyyy-MM-dd"),
-        block,
-      );
+      await onRangeBlock(rangeModal.propertyId, format(from, "yyyy-MM-dd"), format(to, "yyyy-MM-dd"), block);
       setRangeModal(null);
       setRangeSelection(undefined);
     } finally {
-      setIsSubmitting(false);
+      setIsSingleSubmitting(false);
     }
   };
 
-  /* day count label for single dialog */
-  const dayCount = useMemo(() => {
+  const singleDayCount = useMemo(() => {
     if (!rangeSelection?.from) return 0;
     const to = rangeSelection.to ?? rangeSelection.from;
     return differenceInDays(to, rangeSelection.from) + 1;
   }, [rangeSelection]);
 
-  /* ── loading / empty states ───────────────────── */
+  /* ── shift+click: extend existing selection ── */
+  const selAnchorRef = useRef<{ propIdx: number; dateIdx: number } | null>(null);
+
+  const handleCellShiftClick = useCallback((propIdx: number, dateIdx: number, inRes: boolean) => {
+    if (inRes || !selAnchorRef.current) return;
+    const anchor = selAnchorRef.current;
+    setFinalSel({
+      startPropIdx: anchor.propIdx,
+      startDateIdx: anchor.dateIdx,
+      endPropIdx:   propIdx,
+      endDateIdx:   dateIdx,
+    });
+  }, []);
+
+  /* ── navigation ── */
+  const navigate = (delta: number) => setStartDate(prev => addDays(prev, delta * DAYS));
+  const goToday  = () => setStartDate(today);
+
+  /* ── loading / empty ── */
   if (loading) {
     return (
       <div className="flex items-center justify-center h-48">
@@ -249,7 +299,6 @@ export function NfsMultiCalendar({
       </div>
     );
   }
-
   if (properties.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-muted-foreground gap-3">
@@ -259,170 +308,110 @@ export function NfsMultiCalendar({
     );
   }
 
-  /* ── render ───────────────────────────────────── */
   const rangeLabel = `${format(startDate, "MMM d")} – ${format(addDays(startDate, DAYS - 1), "MMM d, yyyy")}`;
 
+  /* ── render ── */
   return (
     <>
       <div className="space-y-3" data-feature="NFSTAY__OP_MULTI_CALENDAR">
+
         {/* ── toolbar ── */}
         <div className="flex flex-wrap items-center gap-3">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={goToday}
-            className="rounded-full text-xs h-8 px-4"
-          >
+          <Button variant="outline" size="sm" onClick={goToday} className="rounded-full text-xs h-8 px-4">
             Today
           </Button>
           <div className="flex items-center gap-1">
             <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={() => navigate(-1)}>
               <ChevronLeft className="w-4 h-4" />
             </Button>
-            <span className="text-sm font-medium min-w-[186px] text-center select-none">
-              {rangeLabel}
-            </span>
+            <span className="text-sm font-medium min-w-[186px] text-center select-none">{rangeLabel}</span>
             <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={() => navigate(1)}>
               <ChevronRight className="w-4 h-4" />
             </Button>
           </div>
-
-          {/* Bulk edit toggle */}
-          <Button
-            variant={multiMode ? "default" : "outline"}
-            size="sm"
-            onClick={toggleMultiMode}
-            className={cn(
-              "rounded-full h-8 px-3 gap-1.5 text-xs",
-              multiMode && "bg-primary text-white",
-            )}
-          >
-            <LayoutList className="w-3.5 h-3.5" />
-            Bulk edit
-          </Button>
-
-          {/* legend */}
           <div className="ml-auto hidden sm:flex items-center gap-4 text-xs text-muted-foreground">
             <span className="flex items-center gap-1.5">
-              <span className="inline-block w-3 h-3 rounded-sm bg-primary" />
-              Confirmed
+              <span className="inline-block w-3 h-3 rounded-sm bg-primary" /> Confirmed
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="inline-block w-3 h-3 rounded-sm bg-amber-500" />
-              Pending
+              <span className="inline-block w-3 h-3 rounded-sm bg-amber-500" /> Pending
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="inline-block w-3 h-3 rounded-sm bg-rose-100 border border-rose-300" />
-              Blocked
+              <span className="inline-block w-3 h-3 rounded-sm bg-rose-100 border border-rose-300" /> Blocked
             </span>
           </div>
         </div>
 
-        {/* ── multi-mode selection panel ── */}
-        {multiMode && (
-          <div className="flex flex-wrap items-center gap-4 rounded-xl border border-primary/30 bg-primary/5 px-4 py-3">
-            {/* Date range display */}
+        {/* ── selection action panel (shown after a multi-cell drag) ── */}
+        {selPanelInfo && (
+          <div className="flex flex-wrap items-center gap-3 rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 animate-in fade-in slide-in-from-top-1 duration-150">
+            {/* Date range */}
             <div className="flex items-center gap-2 text-sm">
-              <span className="font-semibold text-primary">Selected dates</span>
-              {multiFromDate ? (
-                <span className="text-foreground font-medium">
-                  {format(multiFromDate, "dd/MM/yyyy")}
-                  {multiToDate && format(multiToDate, "yyyy-MM-dd") !== format(multiFromDate, "yyyy-MM-dd") && (
-                    <> → {format(multiToDate, "dd/MM/yyyy")}</>
-                  )}
-                </span>
-              ) : (
-                <span className="text-muted-foreground italic">Click a date to start</span>
-              )}
-              {multiFromDate && multiEnd && (
-                <span className="text-xs text-muted-foreground">
-                  ({multiDayCount} {multiDayCount === 1 ? "day" : "days"})
-                </span>
-              )}
+              <span className="font-semibold text-primary">
+                {selPanelInfo.numDates} {selPanelInfo.numDates === 1 ? "date" : "dates"}
+              </span>
+              <span className="text-foreground font-medium">
+                {format(selPanelInfo.fromDate, "MMM d")}
+                {selPanelInfo.numDates > 1 && ` – ${format(selPanelInfo.toDate, "MMM d, yyyy")}`}
+              </span>
             </div>
 
             {/* Properties count */}
-            {multiFromDate && (
-              <span className="text-sm text-muted-foreground">
-                <strong className="text-foreground">{properties.length}</strong>{" "}
-                {properties.length === 1 ? "listing" : "listings"}
-              </span>
-            )}
+            <span className="text-sm text-muted-foreground">
+              {selPanelInfo.selectedProps.length === 1 ? (
+                <span className="font-medium text-foreground truncate max-w-[160px] inline-block align-bottom">
+                  {selPanelInfo.selectedProps[0].public_title}
+                </span>
+              ) : (
+                <><span className="font-medium text-foreground">{selPanelInfo.selectedProps.length}</span> listings</>
+              )}
+            </span>
 
             {/* Availability radio */}
-            {multiFromDate && (
-              <div className="flex items-center gap-3 text-sm">
-                <label className="flex items-center gap-1.5 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="multi-action"
-                    value="block"
-                    checked={multiAction === "block"}
-                    onChange={() => setMultiAction("block")}
-                    className="accent-primary"
-                  />
-                  <Ban className="w-3.5 h-3.5 text-rose-500" />
-                  Block
-                </label>
-                <label className="flex items-center gap-1.5 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="multi-action"
-                    value="unblock"
-                    checked={multiAction === "unblock"}
-                    onChange={() => setMultiAction("unblock")}
-                    className="accent-primary"
-                  />
-                  <Unlock className="w-3.5 h-3.5 text-primary" />
-                  Unblock
-                </label>
-              </div>
-            )}
+            <div className="flex items-center gap-3 text-sm">
+              <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                <input type="radio" name="nfs-sel-action" value="block"
+                  checked={selAction === "block"} onChange={() => setSelAction("block")}
+                  className="accent-rose-500" />
+                <Ban className="w-3.5 h-3.5 text-rose-500" />
+                Block
+              </label>
+              <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                <input type="radio" name="nfs-sel-action" value="unblock"
+                  checked={selAction === "unblock"} onChange={() => setSelAction("unblock")}
+                  className="accent-primary" />
+                <Unlock className="w-3.5 h-3.5 text-primary" />
+                Unblock
+              </label>
+            </div>
 
-            {/* Action buttons */}
+            {/* Actions */}
             <div className="flex items-center gap-2 ml-auto">
-              {multiFromDate && (
-                <>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="h-7 text-xs rounded-full text-muted-foreground"
-                    onClick={() => { setMultiStart(null); setMultiEnd(null); }}
-                    disabled={isMultiSubmitting}
-                  >
-                    Clear
-                  </Button>
-                  <Button
-                    size="sm"
-                    className="h-7 text-xs rounded-full"
-                    onClick={handleMultiConfirm}
-                    disabled={isMultiSubmitting}
-                  >
-                    {isMultiSubmitting
-                      ? <><Loader2 className="w-3.5 h-3.5 animate-spin mr-1" /> Saving…</>
-                      : "Save"}
-                  </Button>
-                </>
-              )}
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-7 w-7 p-0 rounded-full text-muted-foreground"
-                onClick={toggleMultiMode}
-              >
-                <X className="w-3.5 h-3.5" />
+              <Button size="sm" variant="ghost"
+                className="h-7 text-xs rounded-full text-muted-foreground"
+                onClick={() => setFinalSel(null)} disabled={isSelSubmitting}>
+                Clear
+              </Button>
+              <Button size="sm" className="h-7 text-xs rounded-full px-4"
+                onClick={handleSelectionSave} disabled={isSelSubmitting}>
+                {isSelSubmitting
+                  ? <><Loader2 className="w-3.5 h-3.5 animate-spin mr-1" />Saving…</>
+                  : "Save"}
               </Button>
             </div>
           </div>
         )}
 
         {/* ── calendar grid ── */}
-        <div className="border border-border rounded-xl overflow-x-auto">
+        <div
+          className="border border-border rounded-xl overflow-x-auto"
+          /* Prevent native drag ghosts */
+          onDragStart={e => e.preventDefault()}
+        >
           <div style={{ minWidth: PROP_W + DAYS * CELL_W }}>
 
             {/* Header row */}
             <div className="flex border-b border-border bg-muted/30">
-              {/* Corner */}
               <div
                 className="sticky left-0 z-20 bg-muted/30 border-r border-border flex items-center px-3 flex-shrink-0"
                 style={{ width: PROP_W, minWidth: PROP_W }}
@@ -431,73 +420,64 @@ export function NfsMultiCalendar({
                   {properties.length} {properties.length === 1 ? "property" : "properties"}
                 </span>
               </div>
-              {/* Date headers */}
-              {dates.map((date) => (
-                <div
-                  key={date.toISOString()}
-                  style={{ width: CELL_W, minWidth: CELL_W }}
-                  className={cn(
-                    "flex flex-col items-center justify-center py-2 border-r border-border last:border-r-0 flex-shrink-0",
-                    isToday(date) && "bg-primary/10",
-                    multiMode && multiStart && isInMultiRange(date) && "bg-primary/15",
-                  )}
-                >
-                  <span className="text-[9px] text-muted-foreground uppercase tracking-wider">
-                    {format(date, "EEE")[0]}
-                  </span>
-                  <span
+              {dates.map((date, dateIdx) => {
+                const colSelected = selRange
+                  ? dateIdx >= selRange.minDateIdx && dateIdx <= selRange.maxDateIdx
+                  : false;
+                return (
+                  <div
+                    key={date.toISOString()}
+                    style={{ width: CELL_W, minWidth: CELL_W }}
                     className={cn(
-                      "text-xs font-bold mt-0.5 w-6 h-6 flex items-center justify-center rounded-full",
-                      isToday(date)
-                        ? "bg-primary text-white"
-                        : "text-foreground",
+                      "flex flex-col items-center justify-center py-2 border-r border-border last:border-r-0 flex-shrink-0 transition-colors",
+                      isToday(date) && !colSelected && "bg-primary/10",
+                      colSelected && "bg-primary/15",
                     )}
                   >
-                    {format(date, "d")}
-                  </span>
-                </div>
-              ))}
+                    <span className="text-[9px] text-muted-foreground uppercase tracking-wider">
+                      {format(date, "EEE")[0]}
+                    </span>
+                    <span className={cn(
+                      "text-xs font-bold mt-0.5 w-6 h-6 flex items-center justify-center rounded-full",
+                      isToday(date) ? "bg-primary text-white" : "text-foreground",
+                    )}>
+                      {format(date, "d")}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
 
             {/* Property rows */}
-            {properties.map((property, idx) => {
+            {properties.map((property, propIdx) => {
               const propReservations = resByProp.get(property.id) ?? [];
               const coverImage =
-                property.images?.find((i) => i.is_cover)?.url ??
-                property.images?.[0]?.url ??
-                "";
+                property.images?.find(i => i.is_cover)?.url ??
+                property.images?.[0]?.url ?? "";
 
               return (
                 <div
                   key={property.id}
                   className={cn(
                     "flex border-b border-border last:border-b-0",
-                    idx % 2 === 0 ? "bg-white dark:bg-card" : "bg-muted/5",
+                    propIdx % 2 === 0 ? "bg-white dark:bg-card" : "bg-muted/5",
                   )}
                   style={{ height: ROW_H }}
                 >
-                  {/* ── sticky property info ── */}
+                  {/* ── sticky property label ── */}
                   <div
                     className="sticky left-0 z-10 flex items-center gap-2.5 px-3 border-r border-border flex-shrink-0"
                     style={{
-                      width: PROP_W,
-                      minWidth: PROP_W,
-                      background: idx % 2 === 0 ? "white" : "hsl(var(--muted)/0.05)",
+                      width: PROP_W, minWidth: PROP_W,
+                      background: propIdx % 2 === 0 ? "white" : "hsl(var(--muted)/0.05)",
                     }}
                   >
-                    {coverImage ? (
-                      <img
-                        src={coverImage}
-                        alt={property.public_title}
-                        className="w-9 h-9 rounded-lg object-cover flex-shrink-0"
-                      />
-                    ) : (
-                      <div className="w-9 h-9 rounded-lg bg-muted flex-shrink-0" />
-                    )}
+                    {coverImage
+                      ? <img src={coverImage} alt={property.public_title} className="w-9 h-9 rounded-lg object-cover flex-shrink-0" />
+                      : <div className="w-9 h-9 rounded-lg bg-muted flex-shrink-0" />
+                    }
                     <div className="min-w-0 flex-1">
-                      <p className="text-xs font-semibold truncate leading-tight">
-                        {property.public_title}
-                      </p>
+                      <p className="text-xs font-semibold truncate leading-tight">{property.public_title}</p>
                       <p className="text-[10px] text-muted-foreground truncate mt-0.5">
                         {[property.city, property.country].filter(Boolean).join(", ")}
                       </p>
@@ -505,22 +485,21 @@ export function NfsMultiCalendar({
                   </div>
 
                   {/* ── date cells + reservation overlay ── */}
-                  <div
-                    className="relative flex-shrink-0"
-                    style={{ width: DAYS * CELL_W, height: ROW_H }}
-                  >
+                  <div className="relative flex-shrink-0" style={{ width: DAYS * CELL_W, height: ROW_H }}>
+
                     {/* Background cells */}
                     <div className="flex h-full">
-                      {dates.map((date) => {
-                        const blocked = isBlocked(property.id, date);
-                        const dateStr = format(date, "yyyy-MM-dd");
-                        const isPast = isBefore(date, today);
-                        const inRes = propReservations.some((r) => {
+                      {dates.map((date, dateIdx) => {
+                        const blocked    = isBlocked(property.id, date);
+                        const dateStr    = format(date, "yyyy-MM-dd");
+                        const isPast     = isBefore(date, today);
+                        const inRes      = propReservations.some(r => {
                           const ci = parseISO(r.check_in);
                           const co = parseISO(r.check_out);
                           return date >= ci && date < co;
                         });
-                        const inMultiRange = multiMode && isInMultiRange(date);
+                        const selected   = isSelected(propIdx, dateIdx);
+                        const isDragLive = !!dragSel; // true while mouse is held
 
                         return (
                           <div
@@ -528,38 +507,36 @@ export function NfsMultiCalendar({
                             style={{ width: CELL_W, minWidth: CELL_W }}
                             className={cn(
                               "border-r border-border last:border-r-0 h-full flex items-center justify-center flex-shrink-0",
-                              "text-[10px] select-none transition-colors",
-                              blocked && !inMultiRange && "bg-rose-50 dark:bg-rose-950/20",
-                              isToday(date) && !blocked && !inMultiRange && "bg-primary/5",
-                              isPast && !blocked && !inRes && !inMultiRange && "opacity-50",
-                              inMultiRange && "bg-primary/20 ring-1 ring-inset ring-primary/30",
-                              // cursors
-                              multiMode && !inRes && !isPast && "cursor-crosshair",
-                              !multiMode && !inRes && !isPast && "cursor-pointer",
-                              // hover tints (only when not already selected)
-                              multiMode && !inMultiRange && !inRes && !isPast && "hover:bg-primary/10",
-                              !multiMode && !inRes && !blocked && !isPast && "hover:bg-muted/60",
-                              !multiMode && !inRes && blocked && !isPast && "hover:bg-rose-100",
+                              "text-[10px] select-none transition-colors duration-75",
+                              // base
+                              !selected && blocked && "bg-rose-50 dark:bg-rose-950/20",
+                              !selected && isToday(date) && !blocked && !inRes && "bg-primary/5",
+                              !selected && isPast && !blocked && !inRes && "opacity-50",
+                              // selection (drag-live = brighter, finalSel = softer)
+                              selected && isDragLive && "bg-primary/25 ring-1 ring-inset ring-primary/50",
+                              selected && !isDragLive && "bg-primary/15 ring-1 ring-inset ring-primary/30",
+                              // cursors — cell cursor for selectable, default otherwise
+                              !inRes && "cursor-cell",
+                              inRes && "cursor-default",
                             )}
-                            onClick={() =>
-                              multiMode
-                                ? handleMultiCellClick(date, inRes)
-                                : handleCellClick(property, date, inRes)
-                            }
-                            title={
-                              multiMode
-                                ? multiStart
-                                  ? "Click to set end date"
-                                  : "Click to set start date"
-                                : inRes
-                                  ? undefined
-                                  : "Click to select date range"
-                            }
+                            onMouseDown={e => {
+                              if (e.shiftKey) {
+                                handleCellShiftClick(propIdx, dateIdx, inRes);
+                                // update anchor for next shift-click
+                                if (!e.shiftKey) selAnchorRef.current = { propIdx, dateIdx };
+                              } else {
+                                selAnchorRef.current = { propIdx, dateIdx };
+                                handleCellMouseDown(propIdx, dateIdx, inRes, e);
+                              }
+                            }}
+                            onMouseEnter={() => handleCellMouseEnter(propIdx, dateIdx)}
                           >
-                            {inMultiRange ? (
-                              <span className="text-primary/60 font-medium text-[9px]">
-                                {multiAction === "block" ? "●" : "○"}
-                              </span>
+                            {selected ? (
+                              /* indicator dot inside selected cell */
+                              <span className={cn(
+                                "w-1.5 h-1.5 rounded-full",
+                                selAction === "block" ? "bg-rose-400" : "bg-primary",
+                              )} />
                             ) : blocked ? (
                               <Ban className="w-3 h-3 text-rose-400" />
                             ) : !inRes ? (
@@ -572,33 +549,22 @@ export function NfsMultiCalendar({
                       })}
                     </div>
 
-                    {/* Reservation bars overlay */}
-                    {propReservations.map((res) => {
+                    {/* Reservation bars — pointer-events:none so mouse passes through to cells */}
+                    {propReservations.map(res => {
                       const ci = parseISO(res.check_in);
                       const co = parseISO(res.check_out);
-
                       const visStart = ci < startDate ? startDate : ci;
                       const visEnd   = co > endDate   ? endDate   : co;
-
                       const offsetDays = differenceInDays(visStart, startDate);
                       const spanDays   = differenceInDays(visEnd, visStart);
                       if (spanDays <= 0) return null;
-
                       const startsInView = ci >= startDate;
                       const endsInView   = co <= endDate;
-
                       const barLeft  = offsetDays * CELL_W + (startsInView ? 3 : 0);
                       const barWidth = spanDays * CELL_W - (startsInView ? 3 : 0) - (endsInView ? 3 : 0);
                       if (barWidth <= 0) return null;
-
-                      const isActive = ci <= today && co > today;
-                      const guestName =
-                        [res.guest_first_name, res.guest_last_name]
-                          .filter(Boolean)
-                          .join(" ") ||
-                        res.guest_email ||
-                        "Guest";
-
+                      const isActive  = ci <= today && co > today;
+                      const guestName = [res.guest_first_name, res.guest_last_name].filter(Boolean).join(" ") || res.guest_email || "Guest";
                       const showFull  = barWidth > 100;
                       const showShort = barWidth > 44 && !showFull;
 
@@ -606,21 +572,16 @@ export function NfsMultiCalendar({
                         <div
                           key={res.id}
                           style={{
-                            position: "absolute",
-                            top: "50%",
-                            transform: "translateY(-50%)",
-                            left: barLeft,
-                            width: barWidth,
-                            height: 38,
-                            borderRadius: 7,
-                            zIndex: 5,
+                            position: "absolute", top: "50%", transform: "translateY(-50%)",
+                            left: barLeft, width: barWidth, height: 38, borderRadius: 7, zIndex: 5,
+                            // let mouse events pass through to the cell layer below
+                            pointerEvents: "none",
                           }}
                           className={cn(
-                            "flex items-center gap-1 px-2 overflow-hidden",
+                            "flex items-center gap-1 px-2 overflow-hidden text-white shadow-sm",
                             resColor(res.status),
-                            "text-white shadow-sm",
                             !startsInView && "rounded-l-none",
-                            !endsInView && "rounded-r-none",
+                            !endsInView   && "rounded-r-none",
                           )}
                           title={`${guestName} · ${res.check_in} → ${res.check_out}`}
                         >
@@ -631,18 +592,12 @@ export function NfsMultiCalendar({
                           )}
                           {showFull && (
                             <>
-                              <span className="text-[11px] font-semibold truncate flex-1 min-w-0">
-                                {guestName}
-                              </span>
-                              <span className="text-[10px] font-medium opacity-90 flex-shrink-0">
-                                £{res.total_amount}
-                              </span>
+                              <span className="text-[11px] font-semibold truncate flex-1 min-w-0">{guestName}</span>
+                              <span className="text-[10px] font-medium opacity-90 flex-shrink-0">£{res.total_amount}</span>
                             </>
                           )}
                           {showShort && (
-                            <span className="text-[10px] font-semibold truncate">
-                              {guestName.split(" ")[0]}
-                            </span>
+                            <span className="text-[10px] font-semibold truncate">{guestName.split(" ")[0]}</span>
                           )}
                         </div>
                       );
@@ -655,36 +610,25 @@ export function NfsMultiCalendar({
         </div>
 
         {/* help text */}
-        <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground px-1">
-          {multiMode ? (
-            <span className="flex items-center gap-1">
-              <LayoutList className="w-3 h-3 text-primary" />
-              Bulk edit mode — click a start date then an end date to select a range across all properties
-            </span>
-          ) : (
-            <>
-              <span className="flex items-center gap-1">
-                <Ban className="w-3 h-3 text-rose-400" />
-                Click a date to select a range to block or unblock for a single property
-              </span>
-              <span className="flex items-center gap-1">
-                <Unlock className="w-3 h-3 text-primary" />
-                Use "Bulk edit" to apply changes across all properties at once
-              </span>
-            </>
-          )}
+        <div className="flex flex-wrap gap-4 text-xs text-muted-foreground px-1">
+          <span className="flex items-center gap-1.5">
+            <Ban className="w-3 h-3 text-rose-400" />
+            Click a date to block/unblock for a single property
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="inline-block w-3 h-3 rounded-sm bg-primary/30 ring-1 ring-primary/50" />
+            Drag across dates or rows to select multiple — then Block or Unblock
+          </span>
+          <span className="hidden sm:flex items-center gap-1.5 text-muted-foreground/60">
+            Shift+click to extend an existing selection
+          </span>
         </div>
       </div>
 
       {/* ── Single-property Range Block Dialog ── */}
       <Dialog
         open={!!rangeModal}
-        onOpenChange={(open) => {
-          if (!open && !isSubmitting) {
-            setRangeModal(null);
-            setRangeSelection(undefined);
-          }
-        }}
+        onOpenChange={open => { if (!open && !isSingleSubmitting) { setRangeModal(null); setRangeSelection(undefined); } }}
       >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -693,7 +637,6 @@ export function NfsMultiCalendar({
               {rangeModal?.propertyName} — select a date range to block or unblock
             </DialogDescription>
           </DialogHeader>
-
           <div className="flex flex-col items-center gap-3 py-2">
             <Calendar
               mode="range"
@@ -706,40 +649,26 @@ export function NfsMultiCalendar({
             />
             {rangeSelection?.from && (
               <p className="text-sm text-muted-foreground">
-                {dayCount === 1
+                {singleDayCount === 1
                   ? `1 day selected: ${format(rangeSelection.from, "MMM d, yyyy")}`
-                  : `${dayCount} days: ${format(rangeSelection.from, "MMM d")} – ${format(rangeSelection.to ?? rangeSelection.from, "MMM d, yyyy")}`}
+                  : `${singleDayCount} days: ${format(rangeSelection.from, "MMM d")} – ${format(rangeSelection.to ?? rangeSelection.from, "MMM d, yyyy")}`}
               </p>
             )}
           </div>
-
           <DialogFooter className="flex-col sm:flex-row gap-2">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setRangeModal(null);
-                setRangeSelection(undefined);
-              }}
-              disabled={isSubmitting}
-              className="rounded-full"
-            >
+            <Button variant="outline" onClick={() => { setRangeModal(null); setRangeSelection(undefined); }}
+              disabled={isSingleSubmitting} className="rounded-full">
               Cancel
             </Button>
-            <Button
-              variant="outline"
-              onClick={() => handleRangeConfirm(false)}
-              disabled={isSubmitting || !rangeSelection?.from}
-              className="rounded-full border-primary text-primary hover:bg-primary/10"
-            >
-              {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Unlock className="w-4 h-4 mr-2" />}
+            <Button variant="outline" onClick={() => handleRangeConfirm(false)}
+              disabled={isSingleSubmitting || !rangeSelection?.from}
+              className="rounded-full border-primary text-primary hover:bg-primary/10">
+              {isSingleSubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Unlock className="w-4 h-4 mr-2" />}
               Unblock Range
             </Button>
-            <Button
-              onClick={() => handleRangeConfirm(true)}
-              disabled={isSubmitting || !rangeSelection?.from}
-              className="rounded-full"
-            >
-              {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Ban className="w-4 h-4 mr-2" />}
+            <Button onClick={() => handleRangeConfirm(true)}
+              disabled={isSingleSubmitting || !rangeSelection?.from} className="rounded-full">
+              {isSingleSubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Ban className="w-4 h-4 mr-2" />}
               Block Range
             </Button>
           </DialogFooter>
