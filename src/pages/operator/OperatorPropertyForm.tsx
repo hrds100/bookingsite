@@ -27,6 +27,7 @@ import NfsPlacesAutocomplete, { type PlaceResult } from "@/components/nfs/NfsPla
 import { supabase } from "@/lib/supabase";
 import { notifyNewProperty } from "@/lib/email";
 import { useNfsPropertyBlockedDatesList, useNfsBlockDateRange } from "@/hooks/useNfsBlockedDates";
+import { useNfsPropertyDateOverrides, useNfsUpsertDateOverrides, useNfsClearDateOverrides } from "@/hooks/useNfsDateOverrides";
 import {
   useNfsHospitableConnections,
   useNfsHospitableSyncedProperties,
@@ -272,6 +273,10 @@ export default function OperatorPropertyForm() {
   const [cleaningFeeEnabled, setCleaningFeeEnabled] = useState(false);
   const [cleaningFeeAmount, setCleaningFeeAmount] = useState<number | "">(0);
   const [minimumStay, setMinimumStay] = useState(1);
+  const [weeklyDiscount, setWeeklyDiscount] = useState(0);
+  const [monthlyDiscount, setMonthlyDiscount] = useState(0);
+  const [dayPricesEnabled, setDayPricesEnabled] = useState(false);
+  const [dayPrices, setDayPrices] = useState<Record<string, number | "">>({}); // keys "0"–"6"
   const [cancellationPolicy, setCancellationPolicy] = useState("flexible");
   const [checkInTime, setCheckInTime] = useState("15:00");
   const [checkOutTime, setCheckOutTime] = useState("11:00");
@@ -290,6 +295,14 @@ export default function OperatorPropertyForm() {
   const [availModalOpen, setAvailModalOpen] = useState(false);
   const [availRange, setAvailRange] = useState<DateRange | undefined>(undefined);
   const [availSubmitting, setAvailSubmitting] = useState(false);
+  const [availMode, setAvailMode] = useState<"block" | "price" | "minstay">("block");
+  const [availCustomPrice, setAvailCustomPrice] = useState<number | "">("");
+  const [availMinStay, setAvailMinStay] = useState<number | "">(1);
+
+  // Per-date overrides (edit mode only)
+  const { data: dateOverrides = [] } = useNfsPropertyDateOverrides(isEdit ? id : undefined);
+  const upsertOverrides = useNfsUpsertDateOverrides();
+  const clearOverrides  = useNfsClearDateOverrides();
 
   // Drag-to-select refs for availability calendar
   const isDragCalRef = useRef(false);
@@ -353,6 +366,14 @@ export default function OperatorPropertyForm() {
         setCleaningFeeAmount(cf.amount ?? 0);
 
         setMinimumStay(data.minimum_stay ?? 1);
+        setWeeklyDiscount(data.weekly_discount ?? 0);
+        setMonthlyDiscount(data.monthly_discount ?? 0);
+        setDayPricesEnabled(data.day_prices_enabled ?? false);
+        setDayPrices(
+          typeof data.day_prices === "object" && data.day_prices
+            ? data.day_prices
+            : {},
+        );
         setCancellationPolicy(data.cancellation_policy || "flexible");
         setCheckInTime(data.check_in_time || "15:00");
         setCheckOutTime(data.check_out_time || "11:00");
@@ -505,6 +526,14 @@ export default function OperatorPropertyForm() {
     base_rate_currency: baseRateCurrency,
     cleaning_fee: { enabled: cleaningFeeEnabled, amount: typeof cleaningFeeAmount === "number" ? cleaningFeeAmount : 0 },
     minimum_stay: minimumStay,
+    weekly_discount: weeklyDiscount,
+    monthly_discount: monthlyDiscount,
+    day_prices_enabled: dayPricesEnabled,
+    day_prices: dayPricesEnabled
+      ? Object.fromEntries(
+          Object.entries(dayPrices).map(([k, v]) => [k, v === "" ? null : Number(v)])
+        )
+      : {},
     cancellation_policy: cancellationPolicy,
     amenities,
     images,
@@ -624,6 +653,55 @@ export default function OperatorPropertyForm() {
     const start = dragCalStartRef.current;
     const end = startOfDay(day);
     setAvailRange(start <= end ? { from: start, to: end } : { from: end, to: start });
+  };
+
+  /** Handle custom-price or min-stay override save/clear — edit mode */
+  const handleAvailOverrideConfirm = async (clear: boolean) => {
+    if (!availRange?.from || !id) return;
+    const from  = availRange.from;
+    const to    = availRange.to ?? availRange.from;
+    const dates = eachDayOfInterval({ start: from, end: to }).map((d) =>
+      fmtDate(d, "yyyy-MM-dd"),
+    );
+    setAvailSubmitting(true);
+    try {
+      if (clear) {
+        await clearOverrides.mutateAsync({
+          propertyId: id,
+          dates,
+          field: availMode === "price" ? "custom_price" : "min_stay",
+        });
+        toast({
+          title: availMode === "price" ? "Custom prices cleared" : "Min stay cleared",
+          description: `${dates.length} date${dates.length === 1 ? "" : "s"} reset to default`,
+        });
+      } else {
+        const value = availMode === "price" ? availCustomPrice : availMinStay;
+        if (value === "" || value === undefined) {
+          toast({ title: "Please enter a value", variant: "destructive" });
+          return;
+        }
+        await upsertOverrides.mutateAsync({
+          propertyId: id,
+          dates,
+          ...(availMode === "price" ? { custom_price: Number(value) } : { min_stay: Number(value) }),
+        });
+        toast({
+          title: availMode === "price" ? "Custom prices saved" : "Min stay saved",
+          description: `${dates.length} date${dates.length === 1 ? "" : "s"} updated`,
+        });
+      }
+      setAvailModalOpen(false);
+      setAvailRange(undefined);
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "Failed to save overrides",
+        variant: "destructive",
+      });
+    } finally {
+      setAvailSubmitting(false);
+    }
   };
 
   /** Handle block/unblock from the modal — edit mode */
@@ -1404,6 +1482,108 @@ export default function OperatorPropertyForm() {
               />
             )}
           </div>
+
+          {/* ── Length-of-stay discounts ── */}
+          <div className="border-t border-border pt-4 space-y-3">
+            <p className="text-sm font-medium">Length-of-stay discounts</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <Label className="text-xs text-muted-foreground">
+                  Weekly discount (%) <span className="font-normal">· 7+ nights</span>
+                </Label>
+                <div className="flex items-center gap-2 mt-1.5">
+                  <Input
+                    type="number"
+                    min={0}
+                    max={99}
+                    step={1}
+                    placeholder="0"
+                    className="w-24"
+                    value={weeklyDiscount || ""}
+                    onChange={(e) => setWeeklyDiscount(Math.min(99, Math.max(0, parseInt(e.target.value) || 0)))}
+                  />
+                  <span className="text-sm text-muted-foreground">%</span>
+                  {weeklyDiscount > 0 && typeof baseRateAmount === "number" && (
+                    <span className="text-xs text-primary">
+                      ≈ {baseRateCurrency} {Math.round(baseRateAmount * 7 * (1 - weeklyDiscount / 100))}/week
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">
+                  Monthly discount (%) <span className="font-normal">· 30+ nights</span>
+                </Label>
+                <div className="flex items-center gap-2 mt-1.5">
+                  <Input
+                    type="number"
+                    min={0}
+                    max={99}
+                    step={1}
+                    placeholder="0"
+                    className="w-24"
+                    value={monthlyDiscount || ""}
+                    onChange={(e) => setMonthlyDiscount(Math.min(99, Math.max(0, parseInt(e.target.value) || 0)))}
+                  />
+                  <span className="text-sm text-muted-foreground">%</span>
+                  {monthlyDiscount > 0 && typeof baseRateAmount === "number" && (
+                    <span className="text-xs text-primary">
+                      ≈ {baseRateCurrency} {Math.round(baseRateAmount * 30 * (1 - monthlyDiscount / 100))}/month
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* ── Custom day pricing ── */}
+          <div className="border-t border-border pt-4 space-y-3">
+            <div className="flex items-center gap-3">
+              <Switch checked={dayPricesEnabled} onCheckedChange={setDayPricesEnabled} />
+              <div>
+                <Label className="text-sm font-medium">Custom day pricing</Label>
+                <p className="text-xs text-muted-foreground">
+                  Set a different price for specific days of the week. Leave blank to use base rate.
+                </p>
+              </div>
+            </div>
+            {dayPricesEnabled && (
+              <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 pt-1">
+                {[
+                  { label: "Mon", key: "1" },
+                  { label: "Tue", key: "2" },
+                  { label: "Wed", key: "3" },
+                  { label: "Thu", key: "4" },
+                  { label: "Fri", key: "5" },
+                  { label: "Sat", key: "6" },
+                  { label: "Sun", key: "0" },
+                ].map(({ label, key }) => (
+                  <div key={key} className="flex flex-col items-center gap-1">
+                    <span className="text-xs font-medium text-muted-foreground">{label}</span>
+                    <div className="relative w-full">
+                      <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">
+                        {baseRateCurrency[0]}
+                      </span>
+                      <Input
+                        type="number"
+                        min={0}
+                        step={1}
+                        placeholder={String(typeof baseRateAmount === "number" ? baseRateAmount : "")}
+                        className="pl-5 h-9 text-sm text-center"
+                        value={dayPrices[key] ?? ""}
+                        onChange={(e) =>
+                          setDayPrices((prev) => ({
+                            ...prev,
+                            [key]: e.target.value ? parseFloat(e.target.value) : "",
+                          }))
+                        }
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </section>
 
         {/* Guest Add-ons */}
@@ -1885,28 +2065,64 @@ export default function OperatorPropertyForm() {
               </DialogTitle>
               <DialogDescription>
                 {isEdit
-                  ? "Select a date range to block or unblock for this property."
+                  ? "Select a date range, then choose what to do with it."
                   : "Select a date range to mark as unavailable before publishing."}
               </DialogDescription>
             </DialogHeader>
 
+            {/* Mode tabs — only in edit mode */}
+            {isEdit && (
+              <div className="flex rounded-lg border border-border overflow-hidden text-sm">
+                {(
+                  [
+                    { id: "block",   label: "Block / Unblock" },
+                    { id: "price",   label: "Custom Price"    },
+                    { id: "minstay", label: "Min Stay"        },
+                  ] as const
+                ).map((tab) => (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setAvailMode(tab.id)}
+                    className={`flex-1 py-2 text-xs font-medium transition-colors ${
+                      availMode === tab.id
+                        ? "bg-primary text-white"
+                        : "bg-transparent text-muted-foreground hover:bg-muted"
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+            )}
+
             <div className="flex flex-col items-center gap-3 py-2">
               {/* Legend */}
-              <div className="flex items-center gap-4 text-xs text-muted-foreground self-start px-1">
+              <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground self-start px-1">
                 <span className="flex items-center gap-1.5">
-                  <span className="inline-block w-3 h-3 rounded-sm bg-rose-200 border border-rose-300" />
-                  Already blocked
+                  <span className="inline-block w-3 h-3 rounded-sm bg-rose-100 border border-rose-300" />
+                  Blocked
                 </span>
+                {isEdit && (
+                  <>
+                    <span className="flex items-center gap-1.5">
+                      <span className="inline-block w-3 h-3 rounded-sm bg-amber-100 border border-amber-300" />
+                      Custom price
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <span className="inline-block w-3 h-3 rounded-sm bg-blue-100 border border-blue-300" />
+                      Min stay
+                    </span>
+                  </>
+                )}
                 <span className="flex items-center gap-1.5">
                   <span className="inline-block w-3 h-3 rounded-sm bg-primary" />
-                  Your selection
+                  Selection
                 </span>
               </div>
+
               {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions */}
-              <div
-                onMouseDown={handleCalMouseDown}
-                className="select-none"
-              >
+              <div onMouseDown={handleCalMouseDown} className="select-none">
                 <DayCalendar
                   mode="range"
                   selected={availRange}
@@ -1915,28 +2131,67 @@ export default function OperatorPropertyForm() {
                   numberOfMonths={1}
                   disabled={{ before: startOfDay(new Date()) }}
                   modifiers={{
-                    blocked: isEdit
-                      ? existingBlockedDates.map((d) => {
-                          const [y, m, day] = d.split("-").map(Number);
-                          return new Date(y, m - 1, day);
-                        })
-                      : pendingBlockedDates.map((d) => {
-                          const [y, m, day] = d.split("-").map(Number);
-                          return new Date(y, m - 1, day);
-                        }),
+                    blocked: (isEdit ? existingBlockedDates : pendingBlockedDates).map((d) => {
+                      const [y, m, day] = d.split("-").map(Number);
+                      return new Date(y, m - 1, day);
+                    }),
+                    ...(isEdit
+                      ? {
+                          has_price: dateOverrides
+                            .filter((o) => o.custom_price != null)
+                            .map((o) => { const [y,m,day] = o.date.split("-").map(Number); return new Date(y, m-1, day); }),
+                          has_minstay: dateOverrides
+                            .filter((o) => o.min_stay != null)
+                            .map((o) => { const [y,m,day] = o.date.split("-").map(Number); return new Date(y, m-1, day); }),
+                        }
+                      : {}),
                   }}
                   modifiersClassNames={{
-                    blocked: "bg-rose-100 text-rose-700 font-semibold rounded-md",
+                    blocked:     "bg-rose-100 text-rose-700 font-semibold rounded-md",
+                    has_price:   "bg-amber-50 text-amber-700 rounded-md",
+                    has_minstay: "bg-blue-50 text-blue-700 rounded-md",
                   }}
                   className="rounded-md border"
                 />
               </div>
+
               {availRange?.from && (
                 <p className="text-sm text-muted-foreground">
                   {availDayCount === 1
                     ? `1 day: ${fmtDate(availRange.from, "MMM d, yyyy")}`
                     : `${availDayCount} days: ${fmtDate(availRange.from, "MMM d")} – ${fmtDate(availRange.to ?? availRange.from, "MMM d, yyyy")}`}
                 </p>
+              )}
+
+              {/* Value inputs for price / minstay modes */}
+              {isEdit && availMode === "price" && (
+                <div className="flex items-center gap-2 w-full">
+                  <Label className="shrink-0 text-sm">Price ({baseRateCurrency})</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    step={1}
+                    placeholder={`e.g. ${typeof baseRateAmount === "number" ? baseRateAmount : 100}`}
+                    className="flex-1 h-9"
+                    value={availCustomPrice}
+                    onChange={(e) => setAvailCustomPrice(e.target.value ? parseFloat(e.target.value) : "")}
+                  />
+                  <span className="text-xs text-muted-foreground">/night</span>
+                </div>
+              )}
+              {isEdit && availMode === "minstay" && (
+                <div className="flex items-center gap-2 w-full">
+                  <Label className="shrink-0 text-sm">Min nights</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    step={1}
+                    placeholder="e.g. 3"
+                    className="flex-1 h-9"
+                    value={availMinStay}
+                    onChange={(e) => setAvailMinStay(e.target.value ? parseInt(e.target.value) : "")}
+                  />
+                </div>
               )}
             </div>
 
@@ -1950,38 +2205,92 @@ export default function OperatorPropertyForm() {
               >
                 Cancel
               </Button>
-              {isEdit ? (
+
+              {/* Block mode footer */}
+              {(!isEdit || availMode === "block") && (
+                isEdit ? (
+                  <>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => handleAvailEditConfirm(false)}
+                      disabled={availSubmitting || !availRange?.from}
+                      className="rounded-full border-primary text-primary hover:bg-primary/10"
+                    >
+                      {availSubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Unlock className="w-4 h-4 mr-2" />}
+                      Unblock
+                    </Button>
+                    <Button
+                      type="button"
+                      onClick={() => handleAvailEditConfirm(true)}
+                      disabled={availSubmitting || !availRange?.from}
+                      className="rounded-full"
+                    >
+                      {availSubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Ban className="w-4 h-4 mr-2" />}
+                      Block
+                    </Button>
+                  </>
+                ) : (
+                  <Button
+                    type="button"
+                    onClick={handleAvailCreateConfirm}
+                    disabled={!availRange?.from}
+                    className="rounded-full"
+                  >
+                    <Ban className="w-4 h-4 mr-2" />
+                    Add to Block List
+                  </Button>
+                )
+              )}
+
+              {/* Custom price footer */}
+              {isEdit && availMode === "price" && (
                 <>
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => handleAvailEditConfirm(false)}
+                    onClick={() => handleAvailOverrideConfirm(true)}
                     disabled={availSubmitting || !availRange?.from}
-                    className="rounded-full border-primary text-primary hover:bg-primary/10"
+                    className="rounded-full text-muted-foreground"
                   >
-                    {availSubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Unlock className="w-4 h-4 mr-2" />}
-                    Unblock Range
+                    {availSubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                    Clear Prices
                   </Button>
                   <Button
                     type="button"
-                    onClick={() => handleAvailEditConfirm(true)}
-                    disabled={availSubmitting || !availRange?.from}
+                    onClick={() => handleAvailOverrideConfirm(false)}
+                    disabled={availSubmitting || !availRange?.from || availCustomPrice === ""}
                     className="rounded-full"
                   >
-                    {availSubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Ban className="w-4 h-4 mr-2" />}
-                    Block Range
+                    {availSubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                    Set Price
                   </Button>
                 </>
-              ) : (
-                <Button
-                  type="button"
-                  onClick={handleAvailCreateConfirm}
-                  disabled={!availRange?.from}
-                  className="rounded-full"
-                >
-                  <Ban className="w-4 h-4 mr-2" />
-                  Add to Block List
-                </Button>
+              )}
+
+              {/* Min stay footer */}
+              {isEdit && availMode === "minstay" && (
+                <>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => handleAvailOverrideConfirm(true)}
+                    disabled={availSubmitting || !availRange?.from}
+                    className="rounded-full text-muted-foreground"
+                  >
+                    {availSubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                    Clear Min Stay
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={() => handleAvailOverrideConfirm(false)}
+                    disabled={availSubmitting || !availRange?.from || availMinStay === ""}
+                    className="rounded-full"
+                  >
+                    {availSubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                    Set Min Stay
+                  </Button>
+                </>
               )}
             </DialogFooter>
           </DialogContent>

@@ -12,9 +12,11 @@ import {
   DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { Input } from "@/components/ui/input";
 import type { MockProperty } from "@/data/mock-properties";
 import type { ReservationWithProperty } from "@/hooks/useNfsReservations";
 import type { BlockedDate } from "@/hooks/useNfsBlockedDates";
+import type { DateOverride } from "@/hooks/useNfsDateOverrides";
 
 /* ── layout constants ─────────────────────────── */
 const CELL_W = 56;   // px per day column
@@ -59,9 +61,18 @@ export interface NfsMultiCalendarProps {
   properties:    MockProperty[];
   reservations:  ReservationWithProperty[];
   blockedDates:  BlockedDate[];
+  dateOverrides?: DateOverride[];
   onRangeBlock:  (propertyId: string, fromDate: string, toDate: string, block: boolean) => Promise<void>;
   /** Fires when a drag selection is saved across multiple properties. If omitted, falls back to per-property onRangeBlock calls. */
   onMultiRangeBlock?: (propertyIds: string[], fromDate: string, toDate: string, block: boolean) => Promise<void>;
+  /** Fires when a price/minstay override is saved for multiple properties */
+  onMultiRangeOverride?: (
+    propertyIds: string[],
+    fromDate: string,
+    toDate: string,
+    field: "custom_price" | "min_stay",
+    value: number | null,
+  ) => Promise<void>;
   loading?: boolean;
 }
 
@@ -70,8 +81,10 @@ export function NfsMultiCalendar({
   properties,
   reservations,
   blockedDates,
+  dateOverrides = [],
   onRangeBlock,
   onMultiRangeBlock,
+  onMultiRangeOverride,
   loading,
 }: NfsMultiCalendarProps) {
   const [startDate, setStartDate] = useState(() => startOfDay(new Date()));
@@ -97,7 +110,9 @@ export function NfsMultiCalendar({
   // state — drives re-renders
   const [dragSel,   setDragSel]   = useState<DragSelection | null>(null);
   const [finalSel,  setFinalSel]  = useState<DragSelection | null>(null);
-  const [selAction, setSelAction] = useState<"block" | "unblock">("block");
+  const [selAction, setSelAction] = useState<"block" | "unblock" | "price" | "minstay">("block");
+  const [selPrice,    setSelPrice]    = useState<number | "">("");
+  const [selMinStay,  setSelMinStay]  = useState<number | "">(1);
   const [isSelSubmitting, setIsSelSubmitting] = useState(false);
 
   // keep refs in sync with latest props/derived values
@@ -118,6 +133,13 @@ export function NfsMultiCalendar({
     blockedDates.forEach(b => s.add(`${b.property_id}::${b.date}`));
     return s;
   }, [blockedDates]);
+
+  /* ── override map: "propId::YYYY-MM-DD" → DateOverride ── */
+  const overrideMap = useMemo(() => {
+    const m = new Map<string, DateOverride>();
+    dateOverrides.forEach(o => m.set(`${o.property_id}::${o.date}`, o));
+    return m;
+  }, [dateOverrides]);
 
   const isBlocked = useCallback(
     (pid: string, date: Date) => blockedSet.has(`${pid}::${format(date, "yyyy-MM-dd")}`),
@@ -238,13 +260,22 @@ export function NfsMultiCalendar({
     const { selectedProps, fromDate, toDate } = selPanelInfo;
     const fromStr = format(fromDate, "yyyy-MM-dd");
     const toStr   = format(toDate,   "yyyy-MM-dd");
-    const block   = selAction === "block";
     setIsSelSubmitting(true);
     try {
-      if (onMultiRangeBlock && selectedProps.length > 1) {
-        await onMultiRangeBlock(selectedProps.map(p => p.id), fromStr, toStr, block);
-      } else {
-        await Promise.all(selectedProps.map(p => onRangeBlock(p.id, fromStr, toStr, block)));
+      if (selAction === "block" || selAction === "unblock") {
+        const block = selAction === "block";
+        if (onMultiRangeBlock && selectedProps.length > 1) {
+          await onMultiRangeBlock(selectedProps.map(p => p.id), fromStr, toStr, block);
+        } else {
+          await Promise.all(selectedProps.map(p => onRangeBlock(p.id, fromStr, toStr, block)));
+        }
+      } else if (selAction === "price" || selAction === "minstay") {
+        const field = selAction === "price" ? "custom_price" : "min_stay" as const;
+        const rawVal = selAction === "price" ? selPrice : selMinStay;
+        const value  = rawVal === "" ? null : Number(rawVal);
+        if (onMultiRangeOverride) {
+          await onMultiRangeOverride(selectedProps.map(p => p.id), fromStr, toStr, field, value);
+        }
       }
       setFinalSel(null);
     } finally {
@@ -367,23 +398,57 @@ export function NfsMultiCalendar({
               )}
             </span>
 
-            {/* Availability radio */}
-            <div className="flex items-center gap-3 text-sm">
-              <label className="flex items-center gap-1.5 cursor-pointer select-none">
-                <input type="radio" name="nfs-sel-action" value="block"
-                  checked={selAction === "block"} onChange={() => setSelAction("block")}
-                  className="accent-rose-500" />
-                <Ban className="w-3.5 h-3.5 text-rose-500" />
-                Block
-              </label>
-              <label className="flex items-center gap-1.5 cursor-pointer select-none">
-                <input type="radio" name="nfs-sel-action" value="unblock"
-                  checked={selAction === "unblock"} onChange={() => setSelAction("unblock")}
-                  className="accent-primary" />
-                <Unlock className="w-3.5 h-3.5 text-primary" />
-                Unblock
-              </label>
+            {/* Action selector */}
+            <div className="flex flex-wrap items-center gap-3 text-sm">
+              {(
+                [
+                  { val: "block",   icon: <Ban className="w-3.5 h-3.5 text-rose-500" />,   label: "Block",     accent: "accent-rose-500"  },
+                  { val: "unblock", icon: <Unlock className="w-3.5 h-3.5 text-primary" />, label: "Unblock",   accent: "accent-primary"   },
+                  { val: "price",   icon: null,                                             label: "Set Price", accent: "accent-amber-500" },
+                  { val: "minstay", icon: null,                                             label: "Min Stay",  accent: "accent-blue-500"  },
+                ] as const
+              ).map(({ val, icon, label, accent }) => (
+                <label key={val} className="flex items-center gap-1.5 cursor-pointer select-none">
+                  <input type="radio" name="nfs-sel-action" value={val}
+                    checked={selAction === val} onChange={() => setSelAction(val)}
+                    className={accent} />
+                  {icon}
+                  {label}
+                </label>
+              ))}
             </div>
+
+            {/* Inline value inputs */}
+            {selAction === "price" && (
+              <div className="flex items-center gap-1.5">
+                <Input
+                  type="number"
+                  min={0}
+                  step={1}
+                  placeholder="Price / night"
+                  className="h-7 w-32 text-xs rounded-full"
+                  value={selPrice}
+                  onChange={(e) => setSelPrice(e.target.value ? parseFloat(e.target.value) : "")}
+                  onClick={(e) => e.stopPropagation()}
+                />
+                <span className="text-xs text-muted-foreground">or leave blank to clear</span>
+              </div>
+            )}
+            {selAction === "minstay" && (
+              <div className="flex items-center gap-1.5">
+                <Input
+                  type="number"
+                  min={1}
+                  step={1}
+                  placeholder="Nights"
+                  className="h-7 w-24 text-xs rounded-full"
+                  value={selMinStay}
+                  onChange={(e) => setSelMinStay(e.target.value ? parseInt(e.target.value) : "")}
+                  onClick={(e) => e.stopPropagation()}
+                />
+                <span className="text-xs text-muted-foreground">min nights (blank = clear)</span>
+              </div>
+            )}
 
             {/* Actions */}
             <div className="flex items-center gap-2 ml-auto">
@@ -500,6 +565,9 @@ export function NfsMultiCalendar({
                         });
                         const selected   = isSelected(propIdx, dateIdx);
                         const isDragLive = !!dragSel; // true while mouse is held
+                        const override   = overrideMap.get(`${property.id}::${dateStr}`);
+                        const hasPrice   = override?.custom_price != null;
+                        const hasMinstay = override?.min_stay    != null;
 
                         return (
                           <div
@@ -507,9 +575,10 @@ export function NfsMultiCalendar({
                             style={{ width: CELL_W, minWidth: CELL_W }}
                             className={cn(
                               "border-r border-border last:border-r-0 h-full flex items-center justify-center flex-shrink-0",
-                              "text-[10px] select-none transition-colors duration-75",
+                              "text-[10px] select-none transition-colors duration-75 flex-col gap-px",
                               // base
                               !selected && blocked && "bg-rose-50 dark:bg-rose-950/20",
+                              !selected && !blocked && !inRes && hasPrice && "bg-amber-50/60",
                               !selected && isToday(date) && !blocked && !inRes && "bg-primary/5",
                               !selected && isPast && !blocked && !inRes && "opacity-50",
                               // selection (drag-live = brighter, finalSel = softer)
@@ -522,7 +591,6 @@ export function NfsMultiCalendar({
                             onMouseDown={e => {
                               if (e.shiftKey) {
                                 handleCellShiftClick(propIdx, dateIdx, inRes);
-                                // update anchor for next shift-click
                                 if (!e.shiftKey) selAnchorRef.current = { propIdx, dateIdx };
                               } else {
                                 selAnchorRef.current = { propIdx, dateIdx };
@@ -535,14 +603,25 @@ export function NfsMultiCalendar({
                               /* indicator dot inside selected cell */
                               <span className={cn(
                                 "w-1.5 h-1.5 rounded-full",
-                                selAction === "block" ? "bg-rose-400" : "bg-primary",
+                                selAction === "block"   ? "bg-rose-400"  :
+                                selAction === "unblock" ? "bg-primary"   :
+                                selAction === "price"   ? "bg-amber-400" : "bg-blue-400",
                               )} />
                             ) : blocked ? (
                               <Ban className="w-3 h-3 text-rose-400" />
                             ) : !inRes ? (
-                              <span className="text-muted-foreground/50">
-                                {fmtRate(property.base_rate_amount)}
-                              </span>
+                              <>
+                                <span className={cn(
+                                  hasPrice ? "text-amber-600 font-medium" : "text-muted-foreground/50",
+                                )}>
+                                  {fmtRate(hasPrice ? override!.custom_price! : property.base_rate_amount)}
+                                </span>
+                                {hasMinstay && (
+                                  <span className="text-blue-500 leading-none" style={{ fontSize: 8 }}>
+                                    {override!.min_stay}n+
+                                  </span>
+                                )}
+                              </>
                             ) : null}
                           </div>
                         );
@@ -613,14 +692,19 @@ export function NfsMultiCalendar({
         <div className="flex flex-wrap gap-4 text-xs text-muted-foreground px-1">
           <span className="flex items-center gap-1.5">
             <Ban className="w-3 h-3 text-rose-400" />
-            Click a date to block/unblock for a single property
+            Click a date to manage a single property
           </span>
           <span className="flex items-center gap-1.5">
             <span className="inline-block w-3 h-3 rounded-sm bg-primary/30 ring-1 ring-primary/50" />
-            Drag across dates or rows to select multiple — then Block or Unblock
+            Drag to select multiple dates/properties — then Block, Set Price, or Min Stay
           </span>
-          <span className="hidden sm:flex items-center gap-1.5 text-muted-foreground/60">
-            Shift+click to extend an existing selection
+          <span className="flex items-center gap-1.5">
+            <span className="inline-block w-3 h-3 rounded-sm bg-amber-100 border border-amber-300" />
+            Custom price override
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="inline-block w-3 h-3 rounded-sm bg-blue-50 border border-blue-300" />
+            Min stay override
           </span>
         </div>
       </div>

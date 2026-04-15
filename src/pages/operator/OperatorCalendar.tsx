@@ -16,6 +16,7 @@ import { useNfsOperator } from "@/hooks/useNfsOperator";
 import { useNfsOperatorReservations } from "@/hooks/useNfsReservations";
 import { useNfsOperatorProperties } from "@/hooks/useNfsProperties";
 import { useNfsBlockedDates, useNfsBlockDateRange } from "@/hooks/useNfsBlockedDates";
+import { useNfsDateOverrides, useNfsUpsertDateOverrides, useNfsClearDateOverrides } from "@/hooks/useNfsDateOverrides";
 import { NfsMultiCalendar } from "@/components/nfs/NfsMultiCalendar";
 
 /* ── filter defaults ── */
@@ -94,7 +95,11 @@ export default function OperatorCalendar() {
   const { data: blockedDates = [], isLoading: blockedLoading } =
     useNfsBlockedDates(propertyIds);
 
-  const blockRange = useNfsBlockDateRange();
+  const { data: dateOverrides = [] } = useNfsDateOverrides(propertyIds);
+
+  const blockRange      = useNfsBlockDateRange();
+  const upsertOverrides = useNfsUpsertDateOverrides();
+  const clearOverrides  = useNfsClearDateOverrides();
 
   const [search, setSearch] = useState("");
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
@@ -186,6 +191,45 @@ export default function OperatorCalendar() {
       );
     } else {
       toast.error("Failed to update availability");
+    }
+  };
+
+  /* ── multi-property override handler (price / min stay) ── */
+  const handleMultiRangeOverride = async (
+    propIds: string[],
+    fromDate: string,
+    toDate: string,
+    field: "custom_price" | "min_stay",
+    value: number | null,
+  ) => {
+    const from  = parseISO(fromDate);
+    const to    = parseISO(toDate);
+    const dates = eachDayOfInterval({ start: from, end: to }).map((d) =>
+      format(d, "yyyy-MM-dd"),
+    );
+    let success = 0;
+    for (const propertyId of propIds) {
+      try {
+        if (value === null) {
+          await clearOverrides.mutateAsync({ propertyId, dates, field });
+        } else {
+          await upsertOverrides.mutateAsync({
+            propertyId,
+            dates,
+            ...(field === "custom_price" ? { custom_price: value } : { min_stay: value }),
+          });
+        }
+        success++;
+      } catch { /* continue */ }
+    }
+    if (success > 0) {
+      toast.success(
+        value === null
+          ? `${field === "custom_price" ? "Prices" : "Min stay"} cleared on ${success} ${success === 1 ? "property" : "properties"}`
+          : `${field === "custom_price" ? "Custom price" : "Min stay"} set across ${success} ${success === 1 ? "property" : "properties"}`,
+      );
+    } else {
+      toast.error("Failed to update overrides");
     }
   };
 
@@ -355,8 +399,10 @@ export default function OperatorCalendar() {
         properties={filteredProperties}
         reservations={reservations}
         blockedDates={blockedDates}
+        dateOverrides={dateOverrides}
         onRangeBlock={handleRangeBlock}
         onMultiRangeBlock={handleMultiRangeBlock}
+        onMultiRangeOverride={handleMultiRangeOverride}
         loading={isLoading}
       />
     </div>

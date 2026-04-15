@@ -37,6 +37,12 @@ export interface PropertyFields {
   rules?: string;
   title_translations?: Record<string, string>;
   description_translations?: Record<string, string>;
+  internal_name?: string | null;
+  weekly_discount?: number;
+  monthly_discount?: number;
+  day_prices_enabled?: boolean;
+  /** Keys "0"–"6" (JS getDay: 0=Sun … 6=Sat), value is price override or null */
+  day_prices?: Record<string, number | null>;
 }
 
 /** Insert a new property into nfs_properties */
@@ -82,6 +88,11 @@ export function useNfsPropertyCreate() {
         rules: fields.rules || null,
         title_translations: fields.title_translations || {},
         description_translations: fields.description_translations || {},
+        internal_name: fields.internal_name ?? null,
+        weekly_discount: fields.weekly_discount ?? 0,
+        monthly_discount: fields.monthly_discount ?? 0,
+        day_prices_enabled: fields.day_prices_enabled ?? false,
+        day_prices: fields.day_prices ?? {},
       };
 
       const { data, error } = await (supabase.from("nfs_properties") as any)
