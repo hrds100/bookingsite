@@ -11,6 +11,7 @@ import { useTranslation } from "react-i18next";
 import { useWhiteLabel } from "@/contexts/WhiteLabelContext";
 import { supabase } from "@/lib/supabase";
 import { validatePromoCode as validatePromoCodeReal } from "@/lib/promo-codes";
+import { notifyCashBookingRequest } from "@/lib/email";
 import { useNfsPropertyBlockedDates } from "@/hooks/useNfsReservations";
 import { useNfsPropertyDateOverrides } from "@/hooks/useNfsDateOverrides";
 import type { MockProperty } from "@/data/mock-properties";
@@ -90,6 +91,7 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
   const [showCashForm, setShowCashForm] = useState(false);
   const [cashName, setCashName] = useState('');
   const [cashEmail, setCashEmail] = useState('');
+  const [cashPhone, setCashPhone] = useState('');
   const [cashSubmitting, setCashSubmitting] = useState(false);
   const fromCur = property.base_rate_currency;
   const sym = currency.symbol;
@@ -239,14 +241,17 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
     try {
       const ref = `CASH-${Date.now().toString(36).toUpperCase()}`;
       const nameParts = cashName.trim().split(' ');
-      const { error } = await supabase.from('nfs_reservations').insert({
+      const checkIn  = dateRange?.from ? format(dateRange.from, 'yyyy-MM-dd') : '';
+      const checkOut = dateRange?.to   ? format(dateRange.to,   'yyyy-MM-dd') : '';
+
+      const { data: inserted, error } = await supabase.from('nfs_reservations').insert({
         property_id: property.id,
         guest_first_name: nameParts[0] || cashName,
         guest_last_name: nameParts.slice(1).join(' ') || '',
         guest_email: cashEmail.trim(),
-        guest_phone: '',
-        check_in: dateRange?.from ? format(dateRange.from, 'yyyy-MM-dd') : '',
-        check_out: dateRange?.to ? format(dateRange.to, 'yyyy-MM-dd') : '',
+        guest_phone: cashPhone.trim(),
+        check_in: checkIn,
+        check_out: checkOut,
         adults,
         children,
         infants: 0,
@@ -256,12 +261,33 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
         total_amount: total,
         payment_currency: currency.code,
         booking_reference: ref,
-      });
+      }).select('id').single();
+
+      if (!error) {
+        // Fire email notification — non-blocking
+        notifyCashBookingRequest({
+          reservationId: inserted?.id ?? ref,
+          guestName: cashName.trim(),
+          guestEmail: cashEmail.trim(),
+          propertyTitle: property.public_title,
+          propertyCity: property.city ?? '',
+          propertyCountry: property.country ?? '',
+          checkIn,
+          checkOut,
+          nights,
+          adults,
+          children,
+          total,
+          currency: currency.code,
+          operatorEmail: (operator as any)?.contact_email ?? undefined,
+        });
+      }
+
       const confirmation = {
         ref,
         propertyTitle: property.public_title,
-        checkIn: dateRange?.from ? format(dateRange.from, 'yyyy-MM-dd') : '',
-        checkOut: dateRange?.to ? format(dateRange.to, 'yyyy-MM-dd') : '',
+        checkIn,
+        checkOut,
         guests: adults + children,
         total,
         currency: currency.code,
@@ -270,7 +296,7 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
       };
       sessionStorage.setItem('nfs_cash_booking', JSON.stringify(confirmation));
       navigate('/cash-booking-confirmed');
-    } catch (err) {
+    } catch {
       setCashSubmitting(false);
     }
   };
@@ -607,7 +633,7 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
         <p className="text-center text-xs text-muted-foreground mt-1">{t('widget.min_stay', { n: effectiveMinStay })}</p>
       )}
 
-      {/* Cash booking option */}
+      {/* Cash / Pay on Arrival option */}
       {acceptCash && nights > 0 && !belowMinStay && (
         <div className="mt-4 pt-4 border-t border-border">
           {!showCashForm ? (
@@ -615,42 +641,52 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
               <button
                 data-feature="NFSTAY__WIDGET_CASH"
                 onClick={() => setShowCashForm(true)}
-                className="w-full border-2 border-primary text-primary font-semibold py-3.5 px-6 rounded-full hover:bg-primary/5 transition-all duration-200 text-base"
+                className="w-full border-2 border-amber-500 text-amber-700 font-semibold py-3.5 px-6 rounded-full hover:bg-amber-50 transition-all duration-200 text-base"
               >
-                {t('widget.cash_button')}
+                💵 {t('widget.cash_button')}
               </button>
               <p className="text-center text-xs text-muted-foreground mt-2">{t('widget.cash_note')}</p>
             </>
           ) : (
-            <div className="space-y-3">
-              <p className="text-sm font-semibold text-foreground">{t('widget.cash_button')}</p>
+            <div className="space-y-3 bg-amber-50 border border-amber-200 rounded-xl p-4">
+              <div>
+                <p className="text-sm font-semibold text-amber-800">💵 Cash / Pay on Arrival</p>
+                <p className="text-xs text-amber-700 mt-0.5">No payment now — you'll pay on check-in. The host will confirm your request.</p>
+              </div>
               <input
                 type="text"
                 value={cashName}
                 onChange={e => setCashName(e.target.value)}
-                placeholder={t('widget.cash_name')}
-                className="w-full h-10 px-3 text-sm border border-input rounded-lg bg-background outline-none focus:border-primary"
+                placeholder="Full name *"
+                className="w-full h-10 px-3 text-sm border border-amber-200 rounded-lg bg-white outline-none focus:border-amber-500"
               />
               <input
                 type="email"
                 value={cashEmail}
                 onChange={e => setCashEmail(e.target.value)}
-                placeholder={t('widget.cash_email')}
-                className="w-full h-10 px-3 text-sm border border-input rounded-lg bg-background outline-none focus:border-primary"
+                placeholder="Email address *"
+                className="w-full h-10 px-3 text-sm border border-amber-200 rounded-lg bg-white outline-none focus:border-amber-500"
               />
-              <div className="flex gap-2">
+              <input
+                type="tel"
+                value={cashPhone}
+                onChange={e => setCashPhone(e.target.value)}
+                placeholder="Phone number (optional)"
+                className="w-full h-10 px-3 text-sm border border-amber-200 rounded-lg bg-white outline-none focus:border-amber-500"
+              />
+              <div className="flex gap-2 pt-1">
                 <button
                   onClick={handleCashBook}
                   disabled={cashSubmitting || !cashName.trim() || !cashEmail.trim()}
-                  className="flex-1 bg-primary-gradient text-white font-semibold py-3 px-4 rounded-full hover:opacity-90 transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 bg-amber-500 hover:bg-amber-600 text-white font-semibold py-3 px-4 rounded-full transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {cashSubmitting ? t('widget.cash_submitting') : t('widget.cash_confirm')}
+                  {cashSubmitting ? 'Sending request…' : 'Send Booking Request'}
                 </button>
                 <button
-                  onClick={() => { setShowCashForm(false); setCashName(''); setCashEmail(''); }}
+                  onClick={() => { setShowCashForm(false); setCashName(''); setCashEmail(''); setCashPhone(''); }}
                   className="px-4 py-3 text-sm text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  {t('widget.cash_cancel')}
+                  Cancel
                 </button>
               </div>
             </div>

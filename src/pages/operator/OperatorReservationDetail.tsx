@@ -9,7 +9,7 @@ import { NfsEmptyState } from "@/components/nfs/NfsEmptyState";
 import { useNfsReservationWithProperty, useNfsUpdateReservation } from "@/hooks/useNfsReservations";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { toast } from "@/hooks/use-toast";
-import { notifyBookingConfirmed, notifyBookingCancelled } from "@/lib/email";
+import { notifyBookingConfirmed, notifyBookingCancelled, notifyCashBookingConfirmed } from "@/lib/email";
 
 export default function OperatorReservationDetail() {
   const { id } = useParams();
@@ -45,11 +45,19 @@ export default function OperatorReservationDetail() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const operatorEmail: string | undefined = (res.nfs_properties as any)?.nfs_operators?.contact_email ?? undefined;
 
+  const isCash = (res as any).payment_method === 'cash';
+
   const handleAccept = async () => {
     try {
-      await updateReservation.mutateAsync({ id: res.id, status: "confirmed", payment_status: "paid" });
+      // Cash bookings stay payment_status "pending" — money collected in person on arrival
+      await updateReservation.mutateAsync({
+        id: res.id,
+        status: "confirmed",
+        payment_status: isCash ? "pending" : "paid",
+      });
       toast({ title: "Reservation accepted", description: "The guest has been notified." });
-      notifyBookingConfirmed({
+
+      const notifData = {
         reservationId: res.id,
         guestName: `${res.guest_first_name} ${res.guest_last_name}`,
         guestEmail: res.guest_email,
@@ -64,7 +72,13 @@ export default function OperatorReservationDetail() {
         total: res.total_amount,
         currency: res.payment_currency,
         operatorEmail,
-      });
+      };
+
+      if (isCash) {
+        notifyCashBookingConfirmed(notifData);
+      } else {
+        notifyBookingConfirmed(notifData);
+      }
     } catch {
       toast({ title: "Error", description: "Could not accept reservation. Try again.", variant: "destructive" });
     }
@@ -145,9 +159,22 @@ export default function OperatorReservationDetail() {
 
         <div data-feature="NFSTAY__OP_RESERVATION_PAYMENT">
           <h3 className="text-sm font-semibold mb-2 flex items-center gap-2"><CreditCard className="w-4 h-4" /> Payment</h3>
+          {isCash && (
+            <div className="flex items-center gap-2 mb-3 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+              <span className="text-base">💵</span>
+              <div>
+                <p className="text-xs font-semibold text-amber-800">Cash / Pay on Arrival</p>
+                <p className="text-xs text-amber-700">Guest pays in person at check-in</p>
+              </div>
+            </div>
+          )}
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">Total</span>
             <span className="font-bold text-lg">{formatPrice(res.total_amount)}</span>
+          </div>
+          <div className="flex justify-between text-sm mt-1">
+            <span className="text-muted-foreground">Payment method</span>
+            <span className="text-sm font-medium">{isCash ? '💵 Cash / Pay on Arrival' : 'Online payment'}</span>
           </div>
           <div className="flex justify-between text-sm mt-1">
             <span className="text-muted-foreground">Payment status</span>
