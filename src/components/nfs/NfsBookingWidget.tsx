@@ -14,6 +14,7 @@ import { validatePromoCode as validatePromoCodeReal } from "@/lib/promo-codes";
 import { notifyCashBookingRequest } from "@/lib/email";
 import { useNfsPropertyBlockedDates } from "@/hooks/useNfsReservations";
 import { useNfsPropertyDateOverrides } from "@/hooks/useNfsDateOverrides";
+import { useNfsOperatorPublic } from "@/hooks/useNfsOperatorPublic";
 import type { MockProperty } from "@/data/mock-properties";
 import type { DateRange } from "react-day-picker";
 
@@ -85,7 +86,15 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
   const { currency, convert } = useCurrency();
   const { t } = useTranslation();
   const { operator } = useWhiteLabel();
-  const acceptCash = operator?.accept_cash_booking ?? false;
+
+  // Fetch operator settings directly from the property's operator_id.
+  // This works on the main nfstay.app site where WhiteLabelContext is null.
+  // WhiteLabelContext takes precedence when in white-label/preview mode.
+  const { data: operatorPublic } = useNfsOperatorPublic((property as any).operator_id);
+  const acceptCash =
+    operator?.accept_cash_booking ??
+    operatorPublic?.accept_cash_booking ??
+    false;
 
   // Cash booking form state
   const [showCashForm, setShowCashForm] = useState(false);
@@ -279,7 +288,7 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
           children,
           total,
           currency: currency.code,
-          operatorEmail: (operator as any)?.contact_email ?? undefined,
+          operatorEmail: (operator as any)?.contact_email ?? operatorPublic?.contact_email ?? undefined,
         });
       }
 

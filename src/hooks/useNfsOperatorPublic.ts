@@ -10,6 +10,7 @@ export interface OperatorPublicInfo {
   about_bio: string | null;
   contact_whatsapp: string | null;
   contact_email: string | null;
+  accept_cash_booking: boolean;
   created_at: string;
 }
 
@@ -20,6 +21,7 @@ const mockOperatorPublic: OperatorPublicInfo = {
   about_bio: "We're a family-run property management company with over 10 years of hospitality experience. Our goal is to make every guest feel at home.",
   contact_whatsapp: "+447700900000",
   contact_email: "hello@sunsetproperties.com",
+  accept_cash_booking: false,
   created_at: "2024-06-15T00:00:00Z",
 };
 
@@ -41,7 +43,7 @@ export function useNfsOperatorPublic(operatorId: string | undefined) {
 
       const { data, error } = await supabase
         .from("nfs_operators")
-        .select("id, brand_name, first_name, about_bio, contact_whatsapp, contact_email, created_at")
+        .select("id, brand_name, first_name, about_bio, contact_whatsapp, contact_email, accept_cash_booking, created_at")
         .eq("id", operatorId)
         .maybeSingle();
 
