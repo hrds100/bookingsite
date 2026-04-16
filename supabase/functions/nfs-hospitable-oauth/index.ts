@@ -131,39 +131,38 @@ async function syncListingsFromHospitable(
       const hospId = String(listing.id ?? listing.listing_id ?? listing.property_id ?? '');
       if (!hospId) continue;
 
-      // Map images — Hospitable returns a single `picture` thumbnail URL
-      // Try to get a larger version by replacing Airbnb's aki_policy parameter
+      // Fetch all images via dedicated Hospitable images endpoint
+      // GET /customers/{customer}/listings/{listing}/images
+      // Returns { data: [{ url, thumbnail_url, caption, order }] }
       const images: { url: string; order: number }[] = [];
-      const pictureUrl = listing.picture as string | undefined;
-      if (pictureUrl) {
-        // Upgrade from x_small to large for better quality
-        const largeUrl = pictureUrl.replace('aki_policy=x_small', 'aki_policy=large');
-        images.push({ url: largeUrl, order: 0 });
-      }
-
-      // Also try to fetch listing detail for more photos
       try {
-        const detailRes = await fetch(`${HOSPITABLE_CONNECT_BASE}/listings/${hospId}`, { method: 'GET', headers: connectHeaders() });
-        if (detailRes.ok) {
-          const detailData = JSON.parse(await detailRes.text());
-          const detail = detailData.data ?? detailData;
-          // Check for photos/images array in detail response
-          const detailPhotos = (detail.photos ?? detail.images ?? detail.pictures ?? []) as Record<string, unknown>[];
-          if (Array.isArray(detailPhotos) && detailPhotos.length > 0) {
-            // Replace images with the full photo set
-            images.length = 0;
-            detailPhotos.slice(0, 20).forEach((p: Record<string, unknown>, i: number) => {
-              const url = String(p.url ?? p.large ?? p.original ?? p.medium ?? p.thumbnail ?? '');
-              if (url) images.push({ url, order: i });
-            });
+        const imgRes = await fetch(
+          `${HOSPITABLE_CONNECT_BASE}/customers/${customerId}/listings/${hospId}/images`,
+          { method: 'GET', headers: connectHeaders() },
+        );
+        if (imgRes.ok) {
+          const imgData = JSON.parse(await imgRes.text());
+          const imgArr = Array.isArray(imgData.data) ? imgData.data as Record<string, unknown>[] : [];
+          for (const img of imgArr) {
+            const url = String(img.url ?? img.thumbnail_url ?? '');
+            if (url) {
+              images.push({ url, order: Number(img.order ?? images.length) });
+            }
           }
-          // Also grab base price from detail if available
-          if (detail.base_price || detail.nightly_price) {
-            (listing as Record<string, unknown>)._detail_base_price = detail.base_price ?? detail.nightly_price;
-          }
+          // Sort by order
+          images.sort((a, b) => a.order - b.order);
         }
       } catch (_e) {
-        // Detail endpoint may not exist — continue with thumbnail
+        // Images endpoint failed — fall back to listing thumbnail
+      }
+
+      // Fall back to single picture thumbnail if images endpoint returned nothing
+      if (images.length === 0) {
+        const pictureUrl = listing.picture as string | undefined;
+        if (pictureUrl) {
+          const largeUrl = pictureUrl.replace('aki_policy=x_small', 'aki_policy=large');
+          images.push({ url: largeUrl, order: 0 });
+        }
       }
 
       // Map address
