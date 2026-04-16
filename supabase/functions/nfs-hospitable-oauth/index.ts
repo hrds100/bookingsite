@@ -92,7 +92,17 @@ async function syncListingsFromHospitable(
   }
 
   debug.listingCount = listings.length;
-  if (listings.length > 0) debug.successEndpoint = `${HOSPITABLE_CONNECT_BASE}/customers/${customerId}/listings`;
+  if (listings.length > 0) {
+    debug.successEndpoint = `${HOSPITABLE_CONNECT_BASE}/customers/${customerId}/listings`;
+    // Save raw first listing for debugging field mapping
+    debug.sampleListing = listings[0];
+  }
+
+  // Store debug data in last_sync_results for inspection
+  await supabase
+    .from('nfs_hospitable_connections')
+    .update({ last_sync_results: { debug, raw_keys: listings.length > 0 ? Object.keys(listings[0]) : [] } })
+    .eq('id', connectionRowId);
 
   if (listings.length === 0) {
     const syncError = 'No listings found in Hospitable. Please reconnect and link your Airbnb account on the Hospitable authorization page.';
@@ -110,44 +120,176 @@ async function syncListingsFromHospitable(
   }
 
   // Map each Hospitable listing to an nfs_properties record
+  // Hospitable Connect API listing structure (confirmed from raw response):
+  //   id, platform, platform_id, public_name, private_name, summary, description,
+  //   picture (single URL), address {street, zipcode, city, state, country_code, latitude, longitude},
+  //   capacity {max, bedrooms, beds, bathrooms}, bedrooms, bathrooms,
+  //   amenities (string[]), pricing (array, often empty), fees (array with cleaning fee etc.),
+  //   room_type, property_type, check_in, check_out, house_rules, channel, channels, details
   for (const listing of listings) {
     try {
       const hospId = String(listing.id ?? listing.listing_id ?? listing.property_id ?? '');
       if (!hospId) continue;
 
-      // Map images
-      const rawPhotos: Record<string, unknown>[] = Array.isArray(listing.photos)
-        ? listing.photos as Record<string, unknown>[]
-        : Array.isArray(listing.images)
-          ? listing.images as Record<string, unknown>[]
-          : [];
-      const images = rawPhotos.slice(0, 20).map((p: Record<string, unknown>, i: number) => ({
-        url: String(p.url ?? p.large ?? p.medium ?? p.original ?? p.thumbnail ?? ''),
-        order: i,
-      })).filter((img: { url: string }) => img.url);
+      // Fetch all images via dedicated Hospitable images endpoint
+      // GET /customers/{customer}/listings/{listing}/images
+      // Returns { data: [{ url, thumbnail_url, caption, order }] }
+      const images: { url: string; order: number }[] = [];
+      try {
+        const imgRes = await fetch(
+          `${HOSPITABLE_CONNECT_BASE}/customers/${customerId}/listings/${hospId}/images`,
+          { method: 'GET', headers: connectHeaders() },
+        );
+        if (imgRes.ok) {
+          const imgData = JSON.parse(await imgRes.text());
+          const imgArr = Array.isArray(imgData.data) ? imgData.data as Record<string, unknown>[] : [];
+          for (const img of imgArr) {
+            const url = String(img.url ?? img.thumbnail_url ?? '');
+            if (url) {
+              images.push({ url, order: Number(img.order ?? images.length) });
+            }
+          }
+          // Sort by order
+          images.sort((a, b) => a.order - b.order);
+        }
+      } catch (_e) {
+        // Images endpoint failed — fall back to listing thumbnail
+      }
 
-      // Map address
+      // Fall back to single picture thumbnail if images endpoint returned nothing
+      if (images.length === 0) {
+        const pictureUrl = listing.picture as string | undefined;
+        if (pictureUrl) {
+          const largeUrl = pictureUrl.replace('aki_policy=x_small', 'aki_policy=large');
+          images.push({ url: largeUrl, order: 0 });
+        }
+      }
+
+      // Map address — include postal_code and state
       const addr = (listing.address ?? listing.location ?? {}) as Record<string, unknown>;
       const city = String(addr.city ?? listing.city ?? '');
-      const country = String(addr.country ?? listing.country ?? '');
+      const countryCode = String(addr.country_code ?? addr.country ?? listing.country ?? '');
+      const countryMap: Record<string, string> = { GB: 'United Kingdom', US: 'United States', AE: 'United Arab Emirates', SG: 'Singapore', FR: 'France', ES: 'Spain', IT: 'Italy', DE: 'Germany', PT: 'Portugal', GR: 'Greece', TH: 'Thailand', AU: 'Australia', CA: 'Canada' };
+      const country = countryMap[countryCode.toUpperCase()] || countryCode;
       const street = String(addr.street ?? addr.address ?? addr.line1 ?? listing.street ?? '');
-      const lat = Number(addr.lat ?? addr.latitude ?? listing.lat ?? listing.latitude ?? 0) || null;
-      const lng = Number(addr.lng ?? addr.longitude ?? listing.lng ?? listing.longitude ?? 0) || null;
+      const postalCode = String(addr.zipcode ?? addr.postal_code ?? addr.postcode ?? '');
+      const state = String(addr.state ?? addr.region ?? '');
+      const lat = Number(addr.latitude ?? addr.lat ?? listing.latitude ?? listing.lat ?? 0) || null;
+      const lng = Number(addr.longitude ?? addr.lng ?? listing.longitude ?? listing.lng ?? 0) || null;
 
-      // Map room counts
-      const bedrooms = Number(listing.bedrooms ?? listing.bedroom_count ?? listing.bedrooms_count ?? 0);
-      const bathrooms = Number(listing.bathrooms ?? listing.bathroom_count ?? listing.bathrooms_count ?? 0);
-      const maxGuests = Number(listing.max_guests ?? listing.person_capacity ?? listing.guests ?? listing.accommodates ?? 2);
+      // Map room counts — Hospitable has both top-level and nested in capacity
+      const capacity = (listing.capacity ?? {}) as Record<string, unknown>;
+      const bedrooms = Number(listing.bedrooms ?? capacity.bedrooms ?? 0);
+      const bathrooms = Number(listing.bathrooms ?? capacity.bathrooms ?? 0);
+      const beds = Number(capacity.beds ?? listing.beds ?? bedrooms);
+      const maxGuests = Number(capacity.max ?? listing.max_guests ?? listing.person_capacity ?? 2);
 
-      // Map pricing
-      const price = (listing.pricing ?? listing.price ?? {}) as Record<string, unknown>;
-      const baseRate = Number(price.base_price ?? price.nightly_price ?? price.amount ?? listing.base_rate ?? listing.nightly_price ?? 0);
-      const currency = String(price.currency ?? listing.currency ?? 'GBP').toUpperCase();
+      // Extract cleaning fee from listing.fees array
+      const feesArr = Array.isArray(listing.fees) ? listing.fees as Record<string, unknown>[] : [];
+      let cleaningFeeAmount = 0;
+      let pricingCurrency = 'GBP';
+      for (const fee of feesArr) {
+        const feeObj = (fee.fee ?? {}) as Record<string, unknown>;
+        if (fee.name === 'PASS_THROUGH_CLEANING_FEE') {
+          cleaningFeeAmount = Number(feeObj.amount ?? 0) / 100;
+          pricingCurrency = String(feeObj.currency ?? 'GBP').toUpperCase();
+        }
+      }
 
-      const title = String(listing.name ?? listing.title ?? listing.public_title ?? 'Untitled Property');
+      // Fetch calendar for pricing + availability (next 90 days)
+      // GET /listings/{listing}/calendar?start_date=...&end_date=...
+      // Returns dates with price.amount (cents) and availability
+      let baseRate = 0;
+      const blockedDates: string[] = [];
+      const weekdayPrices: number[] = [];
+      const weekendPrices: number[] = [];
+      try {
+        const today = new Date();
+        const startDate = today.toISOString().split('T')[0];
+        const endDate90 = new Date(today.getTime() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        const calUrl = `${HOSPITABLE_CONNECT_BASE}/listings/${hospId}/calendar?start_date=${startDate}&end_date=${endDate90}`;
+        const calRes = await fetch(calUrl, { method: 'GET', headers: connectHeaders() });
+        if (calRes.ok) {
+          const calData = JSON.parse(await calRes.text());
+          const dates = calData.data?.dates ?? [];
+          for (const d of dates as Record<string, unknown>[]) {
+            const dateStr = String(d.date ?? '');
+            const price = (d.price ?? {}) as Record<string, unknown>;
+            const avail = (d.availability ?? {}) as Record<string, unknown>;
+            const priceAmount = Number(price.amount ?? 0) / 100; // cents to pounds/dollars
+            if (price.currency) pricingCurrency = String(price.currency).toUpperCase();
+
+            // Collect blocked dates (unavailable)
+            if (avail.available === false && dateStr) {
+              blockedDates.push(dateStr);
+            }
+
+            // Collect prices for weekday vs weekend calculation
+            if (priceAmount > 0 && avail.available !== false) {
+              const dayOfWeek = new Date(dateStr).getDay(); // 0=Sun, 6=Sat
+              if (dayOfWeek === 0 || dayOfWeek === 5 || dayOfWeek === 6) {
+                weekendPrices.push(priceAmount);
+              } else {
+                weekdayPrices.push(priceAmount);
+              }
+            }
+          }
+
+          // Calculate base rate as median of weekday prices (most representative)
+          if (weekdayPrices.length > 0) {
+            weekdayPrices.sort((a, b) => a - b);
+            baseRate = weekdayPrices[Math.floor(weekdayPrices.length / 2)];
+          } else if (weekendPrices.length > 0) {
+            weekendPrices.sort((a, b) => a - b);
+            baseRate = weekendPrices[Math.floor(weekendPrices.length / 2)];
+          }
+
+          console.log(`[Hospitable] Calendar for ${hospId}: ${dates.length} days, ${blockedDates.length} blocked, weekday median £${baseRate}, weekend prices: ${weekendPrices.length}`);
+        }
+      } catch (calErr) {
+        console.log(`[Hospitable] Calendar fetch failed for ${hospId}:`, calErr);
+      }
+      // Title — Hospitable uses public_name (not name or title)
+      const title = String(listing.public_name ?? listing.name ?? listing.title ?? listing.public_title ?? 'Untitled Property');
       const description = String(listing.description ?? listing.summary ?? listing.notes ?? '');
       const propertyType = String(listing.property_type ?? listing.type ?? listing.room_type ?? 'apartment').toLowerCase();
       const minStay = Number(listing.min_nights ?? listing.minimum_nights ?? listing.minimum_stay ?? 1);
+
+      // Map amenities — Hospitable returns string array like ["HEATING", "DISHWASHER", ...]
+      const rawAmenities = Array.isArray(listing.amenities) ? listing.amenities as string[] : [];
+      const amenityMap: Record<string, string> = {
+        WIRELESS_INTERNET: 'wifi', WIFI: 'wifi',
+        KITCHEN: 'kitchen', OVEN: 'kitchen', MICROWAVE: 'kitchen', STOVE: 'kitchen', REFRIGERATOR: 'kitchen',
+        TV: 'tv', HEATING: 'heating', WASHER: 'washer', DRYER: 'dryer',
+        FREE_PARKING: 'parking', PARKING: 'parking',
+        ELEVATOR: 'elevator', HAIR_DRYER: 'hair_dryer',
+        IRON: 'iron', DISHWASHER: 'dishwasher',
+        POOL: 'pool', GYM: 'gym', HOT_TUB: 'hot_tub',
+        AIR_CONDITIONING: 'air_conditioning', AC: 'air_conditioning',
+        SMOKE_DETECTOR: 'smoke_detector', CARBON_MONOXIDE_DETECTOR: 'carbon_monoxide_detector',
+        FIRE_EXTINGUISHER: 'fire_extinguisher', FIRST_AID_KIT: 'first_aid_kit',
+        ESSENTIALS: 'essentials', BED_LINENS: 'bed_linens', HANGERS: 'hangers',
+        COFFEE: 'coffee_maker', COOKING_BASICS: 'cooking_basics',
+        PRIVATE_ENTRANCE: 'private_entrance',
+      };
+      const amenities: Record<string, boolean> = {};
+      for (const a of rawAmenities) {
+        const mapped = amenityMap[a];
+        if (mapped) amenities[mapped] = true;
+        // Also store the raw amenity name (lowercased) for completeness
+        amenities[a.toLowerCase()] = true;
+      }
+
+      // Check-in/check-out times
+      const checkInTime = listing.check_in ? String(listing.check_in) : null;
+      const checkOutTime = listing.check_out ? String(listing.check_out) : null;
+
+      // Calculate weekend rate (median of Fri/Sat/Sun prices)
+      let weekendRate = 0;
+      if (weekendPrices.length > 0) {
+        weekendPrices.sort((a, b) => a - b);
+        weekendRate = weekendPrices[Math.floor(weekendPrices.length / 2)];
+      }
 
       const propertyData: Record<string, unknown> = {
         operator_id: operatorId,
@@ -162,34 +304,79 @@ async function syncListingsFromHospitable(
         city,
         country,
         street,
+        postal_code: postalCode || null,
+        state: state || null,
         lat,
         lng,
         max_guests: maxGuests,
         minimum_stay: minStay,
         base_rate_amount: baseRate || 0,
-        base_rate_currency: currency,
+        base_rate_currency: pricingCurrency,
         status: 'draft',
         images: images.length > 0 ? images : [],
+        amenities,
         room_counts: {
           bedrooms,
           bathrooms,
-          beds: bedrooms,
+          beds,
         },
-        cleaning_fee: { enabled: false, amount: 0 },
+        cleaning_fee: { enabled: cleaningFeeAmount > 0, amount: cleaningFeeAmount },
         weekly_discount: { enabled: false, percentage: 0 },
         monthly_discount: { enabled: false, percentage: 0 },
         extra_guest_fee: { enabled: false, amount: 0, after_guests: 1 },
+        ...(checkInTime ? { check_in_time: checkInTime } : {}),
+        ...(checkOutTime ? { check_out_time: checkOutTime } : {}),
+        // Store weekend rate and pricing details in custom_rates
+        custom_rates: weekendRate > 0 || baseRate > 0 ? {
+          ...(weekendRate > 0 ? { weekend_rate: weekendRate } : {}),
+          ...(baseRate > 0 ? { weekday_rate: baseRate } : {}),
+          source: 'hospitable',
+          last_synced: new Date().toISOString(),
+        } : {},
       };
 
-      const { error: upsertErr } = await supabase
+      const { data: upsertData, error: upsertErr } = await supabase
         .from('nfs_properties')
-        .upsert(propertyData, { onConflict: 'hospitable_property_id,operator_id', ignoreDuplicates: false });
+        .upsert(propertyData, { onConflict: 'hospitable_property_id,operator_id', ignoreDuplicates: false })
+        .select('id')
+        .single();
 
       if (upsertErr) {
         console.error('[Hospitable] upsert error for', hospId, upsertErr.message);
         errors.push(`${hospId}: ${upsertErr.message}`);
       } else {
         synced++;
+
+        // Sync blocked dates from Airbnb calendar into nfs_blocked_dates
+        if (upsertData?.id && blockedDates.length > 0) {
+          try {
+            // Delete existing hospitable-sourced blocked dates for this property, then insert fresh
+            await supabase
+              .from('nfs_blocked_dates')
+              .delete()
+              .eq('property_id', upsertData.id)
+              .eq('source', 'hospitable');
+
+            const blockedRows = blockedDates.map((date: string) => ({
+              property_id: upsertData.id,
+              date,
+              source: 'hospitable',
+            }));
+            // Insert in batches of 500 to avoid payload limits
+            for (let i = 0; i < blockedRows.length; i += 500) {
+              const batch = blockedRows.slice(i, i + 500);
+              const { error: blockErr } = await supabase
+                .from('nfs_blocked_dates')
+                .upsert(batch, { onConflict: 'property_id,date' });
+              if (blockErr) {
+                console.error('[Hospitable] blocked dates error:', blockErr.message);
+              }
+            }
+            console.log(`[Hospitable] Synced ${blockedDates.length} blocked dates for property ${upsertData.id}`);
+          } catch (blockErr) {
+            console.error('[Hospitable] blocked dates sync failed:', blockErr);
+          }
+        }
       }
     } catch (e) {
       errors.push(String(e));
@@ -267,7 +454,7 @@ serve(async (req) => {
         let customerId = '';
 
         // Re-use existing customer ID if we have one (connected, disconnected, or any state)
-        if (existingConn?.hospitable_customer_id && !existingConn.hospitable_customer_id.startsWith('pending-reset')) {
+        if (existingConn?.hospitable_customer_id && !existingConn.hospitable_customer_id.startsWith('pending-reset') && !existingConn.hospitable_customer_id.startsWith('deleted-')) {
           const verifyRes = await fetch(`${HOSPITABLE_CONNECT_BASE}/customers/${existingConn.hospitable_customer_id}`, { method: 'GET', headers: connectHeaders() });
           if (verifyRes.ok) customerId = existingConn.hospitable_customer_id;
         }
@@ -535,15 +722,62 @@ serve(async (req) => {
 
         const { data: connectionRow } = await query.maybeSingle();
 
+        // Delete the customer from Hospitable to fully release the Airbnb account
+        // This allows the same Airbnb account to be connected by a different operator
+        const custId = connectionRow?.hospitable_customer_id as string | undefined;
+        let hospDeleteOk = false;
+        if (custId && !custId.startsWith('pending-reset')) {
+          try {
+            const delRes = await fetch(`${HOSPITABLE_CONNECT_BASE}/customers/${custId}`, {
+              method: 'DELETE',
+              headers: connectHeaders(),
+            });
+            console.log(`[Hospitable] Delete customer ${custId} → ${delRes.status}`);
+            hospDeleteOk = delRes.status === 204 || delRes.status === 200 || delRes.status === 404;
+          } catch (e) {
+            console.error('[Hospitable] Failed to delete customer:', e);
+          }
+        }
+
+        // Also clean up hospitable-sourced blocked dates for this operator's properties
+        try {
+          const { data: opProperties } = await supabase
+            .from('nfs_properties')
+            .select('id')
+            .eq('operator_id', operatorId)
+            .eq('hospitable_connected', true);
+          if (opProperties && opProperties.length > 0) {
+            const propIds = opProperties.map((p: { id: string }) => p.id);
+            await supabase
+              .from('nfs_blocked_dates')
+              .delete()
+              .in('property_id', propIds)
+              .eq('source', 'hospitable');
+          }
+        } catch (e) {
+          console.error('[Hospitable] Failed to clean up blocked dates:', e);
+        }
+
+        // Mark properties as disconnected
+        await supabase
+          .from('nfs_properties')
+          .update({
+            hospitable_connected: false,
+            hospitable_sync_status: 'disconnected',
+          })
+          .eq('operator_id', operatorId)
+          .eq('hospitable_connected', true);
+
         await supabase.from('nfs_hospitable_connections').update({
           status: 'disconnected',
           is_active: false,
           disconnected_at: new Date().toISOString(),
           sync_status: 'pending',
           auth_code: null,
+          hospitable_customer_id: hospDeleteOk ? `deleted-${custId}` : custId,
         }).eq('id', connectionRow?.id ?? '');
 
-        return new Response(JSON.stringify({ success: true }), { status: 200, headers: corsHeaders });
+        return new Response(JSON.stringify({ success: true, hospitable_deleted: hospDeleteOk }), { status: 200, headers: corsHeaders });
       }
 
       // ══ DEBUG: inspect raw Hospitable customer response ══
