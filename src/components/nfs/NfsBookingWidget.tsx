@@ -295,6 +295,7 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
         total,
         currency: currency.code,
         operatorEmail: (operator as any)?.contact_email ?? operatorPublic?.contact_email ?? undefined,
+        operatorDomain: (operator as any)?.custom_domain || operatorPublic?.custom_domain || ((operator as any)?.subdomain ? `${(operator as any).subdomain}.nfstay.app` : operatorPublic?.subdomain ? `${operatorPublic.subdomain}.nfstay.app` : undefined),
       });
 
       const confirmation = {

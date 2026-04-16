@@ -44,6 +44,9 @@ export default function OperatorReservationDetail() {
   const propertyCountry = res.nfs_properties?.country ?? "";
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const operatorEmail: string | undefined = (res.nfs_properties as any)?.nfs_operators?.contact_email ?? undefined;
+  const operatorDomain: string | undefined =
+    (res.nfs_properties as any)?.nfs_operators?.custom_domain
+    || ((res.nfs_properties as any)?.nfs_operators?.subdomain ? `${(res.nfs_properties as any).nfs_operators.subdomain}.nfstay.app` : undefined);
 
   const isCash = (res as any).booking_source === 'cash';
 
@@ -72,6 +75,7 @@ export default function OperatorReservationDetail() {
         total: res.total_amount,
         currency: res.payment_currency,
         operatorEmail,
+        operatorDomain,
       };
 
       if (isCash) {
@@ -103,6 +107,7 @@ export default function OperatorReservationDetail() {
         total: res.total_amount,
         currency: res.payment_currency,
         operatorEmail,
+        operatorDomain,
       });
       setShowRejectForm(false);
     } catch {

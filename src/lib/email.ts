@@ -24,6 +24,8 @@ interface BookingNotification {
   total: number;
   currency: string;
   operatorEmail?: string;
+  /** Operator custom domain or subdomain — used for guest-facing links in emails */
+  operatorDomain?: string;
 }
 
 async function post(payload: Record<string, unknown>): Promise<void> {

@@ -1,7 +1,7 @@
 import { Link, Navigate } from "react-router-dom";
 import { format, parseISO, isFuture, isPast } from "date-fns";
 import { useTranslation } from "react-i18next";
-import { CalendarDays, MapPin, Users, ChevronRight } from "lucide-react";
+import { CalendarDays, MapPin, Users, ChevronRight, Mail, Phone, MessageCircle } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { NfsStatusBadge } from "@/components/nfs/NfsStatusBadge";
 import { NfsEmptyState } from "@/components/nfs/NfsEmptyState";
@@ -42,6 +42,25 @@ function ReservationCard({ r }: { r: ReservationWithProperty }) {
           <span className="flex items-center gap-1"><Users className="w-3 h-3" />{t("traveler_reservations.guests_count", { n: r.adults + r.children })}</span>
         </div>
         <p className="text-sm font-semibold mt-2">{formatPrice(r.total_amount)}</p>
+        {r.nfs_properties?.nfs_operators && (
+          <div className="flex flex-wrap items-center gap-3 mt-2">
+            {r.nfs_properties.nfs_operators.contact_email && (
+              <a href={`mailto:${r.nfs_properties.nfs_operators.contact_email}`} onClick={e => e.stopPropagation()} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors">
+                <Mail className="w-3 h-3" /> {t("common.email")}
+              </a>
+            )}
+            {r.nfs_properties.nfs_operators.contact_phone && (
+              <a href={`tel:${r.nfs_properties.nfs_operators.contact_phone}`} onClick={e => e.stopPropagation()} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors">
+                <Phone className="w-3 h-3" /> {r.nfs_properties.nfs_operators.contact_phone}
+              </a>
+            )}
+            {r.nfs_properties.nfs_operators.contact_whatsapp && (
+              <a href={`https://wa.me/${r.nfs_properties.nfs_operators.contact_whatsapp.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors">
+                <MessageCircle className="w-3 h-3" /> {t("common.whatsapp")}
+              </a>
+            )}
+          </div>
+        )}
       </div>
       <ChevronRight className="w-4 h-4 text-muted-foreground self-center opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
     </Link>
