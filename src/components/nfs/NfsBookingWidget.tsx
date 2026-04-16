@@ -74,7 +74,7 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
   const [adults, setAdults] = useState(1);
   const [children, setChildren] = useState(0);
   const [promoCode, setPromoCode] = useState('');
-  const [promoApplied, setPromoApplied] = useState<{ code: string; discount: number; discountType: 'percent' | 'fixed'; label: string } | null>(null);
+  const [promoApplied, setPromoApplied] = useState<{ code: string; discount: number; discountType: 'percentage' | 'fixed'; label: string } | null>(null);
   const [promoError, setPromoError] = useState('');
   const [promoLoading, setPromoLoading] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
@@ -257,6 +257,7 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
       // on unauthenticated guest sessions. Insert-only RLS policy is always enough here.
       const { error: insertError } = await supabase.from('nfs_reservations').insert({
         property_id: property.id,
+        operator_id: property.operator_id,
         guest_first_name: nameParts[0] || cashName,
         guest_last_name: nameParts.slice(1).join(' ') || '',
         guest_email: cashEmail.trim(),
@@ -266,12 +267,11 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
         adults,
         children,
         infants: 0,
-        status: 'pending',
+        status: 'pending_approval',
         payment_status: 'pending',
-        payment_method: 'cash',
+        booking_source: 'cash',
         total_amount: total,
         payment_currency: currency.code,
-        booking_reference: ref,
       });
 
       if (insertError) {

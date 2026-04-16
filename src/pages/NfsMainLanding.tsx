@@ -99,7 +99,7 @@ export default function NfsMainLanding() {
     || null;
 
   const heroHeading = isWhiteLabel ? heroHeadline : t('hero.sub');
-  const heroSubHeading = t('hero.book_direct_save');
+  const heroSubHeading = (isWhiteLabel && wlOperator?.hero_headline) ? null : t('hero.book_direct_save');
   const heroDesc = isWhiteLabel ? (heroSubheadline ?? t('hero.desc')) : t('hero.desc');
 
   // About bio with i18n fallback

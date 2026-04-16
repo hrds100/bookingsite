@@ -9,7 +9,7 @@ export interface NfsPromoCode {
   operator_id: string;
   name: string | null;
   code: string;
-  discount_type: 'percent' | 'fixed';
+  discount_type: 'percentage' | 'fixed';
   value: number;
   discount_percent: number;
   max_uses: number | null;
@@ -22,7 +22,7 @@ export interface NfsPromoCode {
 export interface PromoCodeInput {
   name?: string;
   code: string;
-  discount_type: 'percent' | 'fixed';
+  discount_type: 'percentage' | 'fixed';
   value: number;
   max_uses?: number | null;
   expires_at?: string | null;
@@ -62,7 +62,7 @@ export function useNfsPromoCodeCreate() {
         code: input.code.toUpperCase().trim(),
         discount_type: input.discount_type,
         value: input.value,
-        discount_percent: input.discount_type === 'percent' ? input.value : 0,
+        discount_percent: input.discount_type === 'percentage' ? input.value : 0,
         max_uses: input.max_uses ?? null,
         expires_at: input.expires_at ?? null,
         active: true,

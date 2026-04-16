@@ -1306,7 +1306,7 @@ function PromoCodesTab() {
   const toggleCode = useNfsPromoCodeToggle();
   const deleteCode = useNfsPromoCodeDelete();
 
-  const [form, setForm] = useState({ name: '', code: '', discount_type: 'percent' as 'percent' | 'fixed', value: 10, max_uses: '', expires_at: '' });
+  const [form, setForm] = useState({ name: '', code: '', discount_type: 'percentage' as 'percentage' | 'fixed', value: 10, max_uses: '', expires_at: '' });
   const [saving, setSaving] = useState(false);
 
   const handleCreate = async () => {
@@ -1321,7 +1321,7 @@ function PromoCodesTab() {
         max_uses: form.max_uses ? Number(form.max_uses) : null,
         expires_at: form.expires_at || null,
       });
-      setForm({ name: '', code: '', discount_type: 'percent', value: 10, max_uses: '', expires_at: '' });
+      setForm({ name: '', code: '', discount_type: 'percentage', value: 10, max_uses: '', expires_at: '' });
       toast({ title: 'Promo code created' });
     } catch (e: any) {
       toast({ title: 'Error', description: e?.message ?? 'Failed to create', variant: 'destructive' });
@@ -1360,8 +1360,8 @@ function PromoCodesTab() {
             <div className="flex gap-2 mt-1.5">
               <button
                 type="button"
-                onClick={() => setForm(p => ({ ...p, discount_type: 'percent' }))}
-                className={`flex-1 py-2 text-sm rounded-lg border font-medium transition-colors ${form.discount_type === 'percent' ? 'bg-primary text-primary-foreground border-primary' : 'border-border hover:bg-secondary'}`}
+                onClick={() => setForm(p => ({ ...p, discount_type: 'percentage' }))}
+                className={`flex-1 py-2 text-sm rounded-lg border font-medium transition-colors ${form.discount_type === 'percentage' ? 'bg-primary text-primary-foreground border-primary' : 'border-border hover:bg-secondary'}`}
               >
                 % Percent
               </button>
@@ -1375,11 +1375,11 @@ function PromoCodesTab() {
             </div>
           </div>
           <div>
-            <Label>{form.discount_type === 'percent' ? 'Discount % *' : 'Fixed Amount (£) *'}</Label>
+            <Label>{form.discount_type === 'percentage' ? 'Discount % *' : 'Fixed Amount (£) *'}</Label>
             <Input
               type="number"
               min={1}
-              max={form.discount_type === 'percent' ? 100 : undefined}
+              max={form.discount_type === 'percentage' ? 100 : undefined}
               className="mt-1.5"
               value={form.value}
               onChange={e => setForm(p => ({ ...p, value: Number(e.target.value) }))}
