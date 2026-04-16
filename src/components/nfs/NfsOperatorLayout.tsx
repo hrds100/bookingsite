@@ -27,6 +27,8 @@ export function NfsOperatorLayout() {
     supabase.auth
       .setSession({ access_token: accessToken, refresh_token: refreshToken })
       .then(() => {
+        // Mark this session as hub-authenticated so operator dashboard stays accessible
+        sessionStorage.setItem("nfs_hub_auth", "true");
         // Remove tokens from URL so they aren't visible or bookmarked
         const url = new URL(window.location.href);
         url.searchParams.delete("access_token");
@@ -47,6 +49,13 @@ export function NfsOperatorLayout() {
 
   if (!user) {
     return <Navigate to="/signin" replace />;
+  }
+
+  // Operator dashboard is only accessible when authenticated via hub.nfstay.com
+  // (hub passes access_token + refresh_token in URL, which sets the sessionStorage flag)
+  if (sessionStorage.getItem("nfs_hub_auth") !== "true") {
+    window.location.href = "https://hub.nfstay.com/dashboard";
+    return null;
   }
 
   // User is logged in but has no operator record — send to onboarding
