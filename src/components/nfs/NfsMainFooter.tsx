@@ -100,7 +100,7 @@ export function NfsMainFooter() {
             <div data-feature="NFSTAY__FOOTER_OPERATORS">
               <h4 className="text-sm font-semibold text-foreground mb-3">{t('footer.for_operators')}</h4>
               <ul className="space-y-2">
-                <li><a href="https://hub.nfstay.com" className="text-sm text-muted-foreground hover:text-primary transition-colors">{t('footer.list_property')}</a></li>
+                <li><a href="https://hub.nfstay.com/dashboard/deals" className="text-sm text-muted-foreground hover:text-primary transition-colors">{t('footer.list_property')}</a></li>
                 <li><a href="#how-it-works" className="text-sm text-muted-foreground hover:text-primary transition-colors">{t('footer.how_it_works')}</a></li>
                 <li><a href="#" className="text-sm text-muted-foreground hover:text-primary transition-colors">{t('footer.pricing')}</a></li>
               </ul>

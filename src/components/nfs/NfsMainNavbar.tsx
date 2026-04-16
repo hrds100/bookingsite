@@ -494,7 +494,7 @@ export function NfsMainNavbar() {
                 { label: t('nav.find_stays'), href: "/search", external: false },
                 { label: t('nav.my_reservations'), href: "/traveler/reservations", external: false },
                 { label: t('nav.find_booking'), href: "/booking", external: false },
-                { label: t('nav.list_property'), href: "https://hub.nfstay.com", external: true },
+                { label: t('nav.list_property'), href: "https://hub.nfstay.com/dashboard/deals", external: true },
                 { label: t('nav.faq'), href: "#", external: false },
               ].map((link) => (
                 link.external ? (

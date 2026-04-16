@@ -316,7 +316,7 @@ export default function NfsMainLanding() {
           <div className="bg-primary rounded-3xl p-10 md:p-16 text-center">
             <h2 className="text-3xl font-bold text-primary-foreground mb-3">{t('landing.cta_list_title')}</h2>
             <p className="text-primary-foreground/80 mb-6 max-w-md mx-auto">{t('landing.cta_list_desc')}</p>
-            <Button size="lg" variant="secondary" className="rounded-2xl font-semibold" onClick={() => { window.location.href = "https://hub.nfstay.com"; }}>
+            <Button size="lg" variant="secondary" className="rounded-2xl font-semibold" onClick={() => { window.location.href = "https://hub.nfstay.com/dashboard/deals"; }}>
               {t('landing.cta_get_started')}
             </Button>
           </div>
