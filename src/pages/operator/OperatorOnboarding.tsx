@@ -83,6 +83,12 @@ export default function OperatorOnboarding() {
     return null;
   }
 
+  // Onboarding is only accessible when authenticated via hub.nfstay.com
+  if (sessionStorage.getItem("nfs_hub_auth") !== "true") {
+    window.location.href = "https://hub.nfstay.com/dashboard";
+    return null;
+  }
+
   // Already an operator — go to dashboard
   if (existingOperator) {
     return <Navigate to="/nfstay" replace />;
