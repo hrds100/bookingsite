@@ -47,8 +47,8 @@ export function NfsMainFooter() {
             )}
             <p className="text-sm text-muted-foreground mb-4">
               {isWhiteLabel && operator
-                ? ((operator.about_bio_translations as Record<string,string> | undefined)?.[currentLang]
-                    || operator.about_bio
+                ? ((operator.hero_subheadline_translations as Record<string,string> | undefined)?.[currentLang]
+                    || operator.hero_subheadline
                     || t('footer.operator_tagline', { brand: operator.brand_name }))
                 : t('footer.tagline')}
             </p>
