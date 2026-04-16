@@ -32,6 +32,7 @@ import OperatorCreateReservation from "./pages/operator/OperatorCreateReservatio
 import OperatorCalendar from "./pages/operator/OperatorCalendar";
 import OperatorAnalytics from "./pages/operator/OperatorAnalytics";
 import OperatorSettings from "./pages/operator/OperatorSettings";
+import OperatorIntegrations from "./pages/operator/OperatorIntegrations";
 import OperatorOnboarding from "./pages/operator/OperatorOnboarding";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminUsers from "./pages/admin/AdminUsers";
@@ -113,6 +114,7 @@ const App = () => (
               <Route path="/nfstay/calendar" element={<OperatorCalendar />} />
               <Route path="/nfstay/analytics" element={<OperatorAnalytics />} />
               <Route path="/nfstay/settings" element={<OperatorSettings />} />
+              <Route path="/nfstay/integrations" element={<OperatorIntegrations />} />
             </Route>
 
             {/* Admin Portal */}
