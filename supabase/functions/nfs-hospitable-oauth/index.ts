@@ -131,6 +131,12 @@ async function syncListingsFromHospitable(
       const hospId = String(listing.id ?? listing.listing_id ?? listing.property_id ?? '');
       if (!hospId) continue;
 
+      // Skip unlisted/unpublished Airbnb listings (available: 0 means unlisted)
+      if (listing.available === 0 || listing.available === false) {
+        console.log(`[Hospitable] Skipping unlisted property ${hospId}: available=${listing.available}`);
+        continue;
+      }
+
       // Fetch all images via dedicated Hospitable images endpoint
       // GET /customers/{customer}/listings/{listing}/images
       // Returns { data: [{ url, thumbnail_url, caption, order }] }
