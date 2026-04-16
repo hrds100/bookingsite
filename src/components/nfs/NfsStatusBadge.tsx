@@ -7,6 +7,8 @@ interface NfsStatusBadgeProps {
 
 const statusStyles: Record<string, string> = {
   pending: 'bg-[hsl(46_100%_97%)] text-[hsl(28_73%_26%)]',
+  pending_approval: 'bg-[hsl(46_100%_97%)] text-[hsl(28_73%_26%)]',
+  rejected: 'bg-[hsl(0_86%_97%)] text-[hsl(0_72%_51%)]',
   unlisted: 'bg-[hsl(46_100%_97%)] text-[hsl(28_73%_26%)]',
   confirmed: 'bg-accent-light text-accent-foreground',
   listed: 'bg-accent-light text-accent-foreground',

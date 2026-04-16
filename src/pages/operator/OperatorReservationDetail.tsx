@@ -45,7 +45,7 @@ export default function OperatorReservationDetail() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const operatorEmail: string | undefined = (res.nfs_properties as any)?.nfs_operators?.contact_email ?? undefined;
 
-  const isCash = (res as any).payment_method === 'cash';
+  const isCash = (res as any).booking_source === 'cash';
 
   const handleAccept = async () => {
     try {

@@ -110,7 +110,7 @@ export default function OperatorReservations() {
                     <td className="p-4">
                       <div className="flex flex-wrap gap-1 items-center">
                         <NfsStatusBadge status={r.payment_status} />
-                        {(r as any).payment_method === 'cash' && (
+                        {(r as any).booking_source === 'cash' && (
                           <NfsStatusBadge status="cash" />
                         )}
                       </div>
