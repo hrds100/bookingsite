@@ -31,6 +31,13 @@ function fmt(amount: number, currency: string): string {
   return `${s[currency] ?? currency}${amount}`;
 }
 
+/** Build the guest-facing booking URL — prefer operator custom domain / subdomain over nfstay.app */
+function bookingUrl(guestEmail: string, operatorDomain?: string): { href: string; display: string } {
+  const host = operatorDomain || "nfstay.app";
+  const href = `https://${host}/booking?email=${encodeURIComponent(guestEmail)}`;
+  return { href, display: `${host}/booking` };
+}
+
 function wrap(content: string): string {
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>*{box-sizing:border-box}body{font-family:Inter,system-ui,sans-serif;background:#f5f5f0;margin:0;padding:24px}.w{max-width:560px;margin:0 auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.08)}.hd{background:linear-gradient(270deg,#27dea0 0%,#1E9A80 100%);padding:28px 32px}.hd h1{color:#fff;margin:0;font-size:20px;font-weight:700}.bd{padding:28px 32px}.lbl{font-size:11px;font-weight:600;color:#737373;text-transform:uppercase;letter-spacing:.5px;margin:0 0 3px}.val{font-size:15px;font-weight:600;color:#1a1a1a;margin:0 0 14px}hr{border:none;border-top:1px solid #e8e8e3;margin:18px 0}.big{font-size:22px;font-weight:700;color:#1E9A80}.ft{padding:16px 32px;background:#f5f5f0;font-size:12px;color:#999;text-align:center}a{color:#1E9A80}</style></head><body><div class="w">${content}<div class="ft">nfstay &middot; <a href="https://nfstay.app">nfstay.app</a></div></div></body></html>`;
 }
@@ -49,9 +56,10 @@ Deno.serve(async (req: Request) => {
       const {
         guestName, guestEmail, propertyTitle, propertyCity, propertyCountry,
         checkIn, checkOut, nights, adults, children, total, currency, reservationId,
-        operatorEmail,
+        operatorEmail, operatorDomain,
       } = body;
 
+      const bUrl = bookingUrl(guestEmail, operatorDomain);
       const guestHtml = wrap(`
         <div class="hd"><h1>Booking Request Received 📋</h1></div>
         <div class="bd">
@@ -66,7 +74,7 @@ Deno.serve(async (req: Request) => {
           <p class="lbl">Amount held</p><p class="big">${fmt(total, currency)}</p>
           ${reservationId ? `<p style="color:#999;font-size:12px;margin-top:12px">Reservation: ${String(reservationId).slice(0, 8).toUpperCase()}</p>` : ""}
           <hr>
-          <p style="color:#444;font-size:14px">You'll receive a confirmation email once the host approves. View your request at <a href="https://nfstay.app/booking?email=${encodeURIComponent(guestEmail)}">nfstay.app/booking</a></p>
+          <p style="color:#444;font-size:14px">You'll receive a confirmation email once the host approves. View your request at <a href="${bUrl.href}">${bUrl.display}</a></p>
         </div>`);
 
       const operatorHtml = wrap(`
@@ -113,7 +121,7 @@ Deno.serve(async (req: Request) => {
       const {
         guestName, guestEmail, propertyTitle, propertyCity, propertyCountry,
         checkIn, checkOut, nights, adults, children, total, currency, reservationId,
-        operatorEmail,
+        operatorEmail, operatorDomain,
       } = body;
 
       const guestHtml = wrap(`
@@ -177,7 +185,7 @@ Deno.serve(async (req: Request) => {
       const {
         guestName, guestEmail, propertyTitle, propertyCity, propertyCountry,
         checkIn, checkOut, nights, adults, children, total, currency, reservationId,
-        operatorEmail,
+        operatorEmail, operatorDomain,
       } = body;
 
       const guestHtml = wrap(`
@@ -195,7 +203,7 @@ Deno.serve(async (req: Request) => {
           <p class="lbl">Amount due on arrival</p><p class="big">${fmt(total, currency)}</p>
           ${reservationId ? `<p style="color:#999;font-size:12px;margin-top:12px">Reservation: ${String(reservationId).slice(0, 8).toUpperCase()}</p>` : ""}
           <hr>
-          <p style="color:#444;font-size:14px">Please bring the full amount in cash on check-in. Need help? Reply to this email.</p>
+          <p style="color:#444;font-size:14px">Please bring the full amount in cash on check-in. View your booking at <a href="${bookingUrl(guestEmail, operatorDomain).href}">${bookingUrl(guestEmail, operatorDomain).display}</a> · Need help? Reply to this email.</p>
         </div>`);
 
       const operatorHtml = wrap(`
@@ -226,9 +234,10 @@ Deno.serve(async (req: Request) => {
       const {
         guestName, guestEmail, propertyTitle, propertyCity, propertyCountry,
         checkIn, checkOut, nights, adults, children, total, currency, reservationId,
-        operatorEmail,
+        operatorEmail, operatorDomain,
       } = body;
 
+      const bUrlC = bookingUrl(guestEmail, operatorDomain);
       const guestHtml = wrap(`
         <div class="hd"><h1>Booking Confirmed 🎉</h1></div>
         <div class="bd">
@@ -243,7 +252,7 @@ Deno.serve(async (req: Request) => {
           <p class="lbl">Total paid</p><p class="big">${fmt(total, currency)}</p>
           ${reservationId ? `<p style="color:#999;font-size:12px;margin-top:12px">Reservation: ${String(reservationId).slice(0, 8).toUpperCase()}</p>` : ""}
           <hr>
-          <p style="color:#444;font-size:14px">View your booking at <a href="https://nfstay.app/booking?email=${encodeURIComponent(guestEmail)}">nfstay.app/booking</a> · Need help? Reply to this email.</p>
+          <p style="color:#444;font-size:14px">View your booking at <a href="${bUrlC.href}">${bUrlC.display}</a> · Need help? Reply to this email.</p>
         </div>`);
 
       const operatorHtml = wrap(`

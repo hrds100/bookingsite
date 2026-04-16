@@ -11,7 +11,13 @@ export interface ReservationPropertyJoin {
   city?: string;
   country?: string;
   operator_id?: string;
-  nfs_operators?: { contact_email?: string } | null;
+  nfs_operators?: {
+    contact_email?: string;
+    contact_phone?: string;
+    contact_whatsapp?: string;
+    custom_domain?: string | null;
+    subdomain?: string | null;
+  } | null;
 }
 
 /** Reservation with optional joined property data */
@@ -28,7 +34,7 @@ export function useNfsReservations(guestEmail?: string) {
 
       const { data, error } = await supabase
         .from("nfs_reservations")
-        .select("*, nfs_properties(public_title, images, city, country)")
+        .select("*, nfs_properties(public_title, images, city, country, operator_id, nfs_operators(contact_email, contact_phone, contact_whatsapp))")
         .eq("guest_email", guestEmail)
         .order("created_at", { ascending: false });
 
@@ -132,7 +138,7 @@ export function useNfsReservationWithProperty(id: string | undefined) {
 
       const { data, error } = await supabase
         .from("nfs_reservations")
-        .select("*, nfs_properties(public_title, images, city, country, operator_id, nfs_operators(contact_email))")
+        .select("*, nfs_properties(public_title, images, city, country, operator_id, nfs_operators(contact_email, contact_phone, contact_whatsapp, custom_domain, subdomain))")
         .eq("id", id)
         .maybeSingle();
 

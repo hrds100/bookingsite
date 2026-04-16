@@ -43,6 +43,7 @@ export default function TravelerReservationDetail() {
         total: res.total_amount,
         currency: res.payment_currency,
         operatorEmail: propData?.nfs_operators?.contact_email,
+        operatorDomain: propData?.nfs_operators?.custom_domain || (propData?.nfs_operators?.subdomain ? `${propData.nfs_operators.subdomain}.nfstay.app` : undefined),
       });
     } catch {
       toast({ title: "Error", description: "Could not cancel reservation. Try again.", variant: "destructive" });

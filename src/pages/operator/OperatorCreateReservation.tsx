@@ -133,6 +133,7 @@ export default function OperatorCreateReservation() {
         total,
         currency: "GBP",
         operatorEmail: operator?.contact_email ?? undefined,
+        operatorDomain: operator?.custom_domain || (operator?.subdomain ? `${operator.subdomain}.nfstay.app` : undefined),
       });
 
       toast({
