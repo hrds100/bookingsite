@@ -38,10 +38,16 @@ export default function OperatorOnboarding() {
 
   // Form state
   const [brandName, setBrandName] = useState("");
-  const [contactEmail, setContactEmail] = useState("");
-  const [contactPhone, setContactPhone] = useState("");
+  const [contactEmail, setContactEmail] = useState(user?.email ?? "");
+  const [contactPhone, setContactPhone] = useState(user?.phone ?? "");
   const [subdomain, setSubdomain] = useState("");
   const [accentColor, setAccentColor] = useState("#22c55e");
+
+  // Pre-fill contact fields once user auth loads
+  useEffect(() => {
+    if (user?.email && !contactEmail) setContactEmail(user.email);
+    if (user?.phone && !contactPhone) setContactPhone(user.phone);
+  }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Debounced subdomain for availability check
   const [debouncedSubdomain, setDebouncedSubdomain] = useState("");

@@ -266,8 +266,8 @@ serve(async (req) => {
 
         let customerId = '';
 
-        // Re-use existing customer ID if we have a valid connected one
-        if (existingConn?.hospitable_customer_id && existingConn.status === 'connected' && existingConn.is_active) {
+        // Re-use existing customer ID if we have one (connected, disconnected, or any state)
+        if (existingConn?.hospitable_customer_id && !existingConn.hospitable_customer_id.startsWith('pending-reset')) {
           const verifyRes = await fetch(`${HOSPITABLE_CONNECT_BASE}/customers/${existingConn.hospitable_customer_id}`, { method: 'GET', headers: connectHeaders() });
           if (verifyRes.ok) customerId = existingConn.hospitable_customer_id;
         }
@@ -347,7 +347,7 @@ serve(async (req) => {
           }).eq('id', existingConn.id);
         } else if (!existingConn) {
           // New connection
-          await supabase.from('nfs_hospitable_connections').insert({
+          const { error: insertErr } = await supabase.from('nfs_hospitable_connections').insert({
             operator_id: operatorId,
             profile_id: profileId,
             hospitable_customer_id: customerId,
@@ -355,15 +355,26 @@ serve(async (req) => {
             auth_code_expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
             status: 'pending',
             sync_status: 'pending',
-            health_status: 'unknown',
+            health_status: 'healthy',
             is_active: false,
             total_properties: 0,
             total_reservations: 0,
             connected_platforms: [],
             user_metadata: { redirect_origin: origin },
           });
+          if (insertErr) {
+            console.error('[Hospitable] Connection insert failed:', insertErr.message);
+            return new Response(JSON.stringify({ error: 'Failed to save connection', detail: insertErr.message }), { status: 500, headers: corsHeaders });
+          }
+        } else if (existingConn?.id) {
+          // Already connected with Airbnb linked — still update redirect origin + auth code
+          // so the callback redirects back to the correct site (nfstay.app vs hub)
+          await supabase.from('nfs_hospitable_connections').update({
+            auth_code: state,
+            auth_code_expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+            user_metadata: { redirect_origin: origin },
+          }).eq('id', existingConn.id);
         }
-        // If already connected with Airbnb linked, just return the auth URL (for adding another account)
 
         return new Response(JSON.stringify({ url: returnUrl }), { status: 200, headers: corsHeaders });
       }
