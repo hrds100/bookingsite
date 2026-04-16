@@ -92,7 +92,17 @@ async function syncListingsFromHospitable(
   }
 
   debug.listingCount = listings.length;
-  if (listings.length > 0) debug.successEndpoint = `${HOSPITABLE_CONNECT_BASE}/customers/${customerId}/listings`;
+  if (listings.length > 0) {
+    debug.successEndpoint = `${HOSPITABLE_CONNECT_BASE}/customers/${customerId}/listings`;
+    // Save raw first listing for debugging field mapping
+    debug.sampleListing = listings[0];
+  }
+
+  // Store debug data in last_sync_results for inspection
+  await supabase
+    .from('nfs_hospitable_connections')
+    .update({ last_sync_results: { debug, raw_keys: listings.length > 0 ? Object.keys(listings[0]) : [] } })
+    .eq('id', connectionRowId);
 
   if (listings.length === 0) {
     const syncError = 'No listings found in Hospitable. Please reconnect and link your Airbnb account on the Hospitable authorization page.';
@@ -110,44 +120,132 @@ async function syncListingsFromHospitable(
   }
 
   // Map each Hospitable listing to an nfs_properties record
+  // Hospitable Connect API listing structure (confirmed from raw response):
+  //   id, platform, platform_id, public_name, private_name, summary, description,
+  //   picture (single URL), address {street, zipcode, city, state, country_code, latitude, longitude},
+  //   capacity {max, bedrooms, beds, bathrooms}, bedrooms, bathrooms,
+  //   amenities (string[]), pricing (array, often empty), fees (array with cleaning fee etc.),
+  //   room_type, property_type, check_in, check_out, house_rules, channel, channels, details
   for (const listing of listings) {
     try {
       const hospId = String(listing.id ?? listing.listing_id ?? listing.property_id ?? '');
       if (!hospId) continue;
 
-      // Map images
-      const rawPhotos: Record<string, unknown>[] = Array.isArray(listing.photos)
-        ? listing.photos as Record<string, unknown>[]
-        : Array.isArray(listing.images)
-          ? listing.images as Record<string, unknown>[]
-          : [];
-      const images = rawPhotos.slice(0, 20).map((p: Record<string, unknown>, i: number) => ({
-        url: String(p.url ?? p.large ?? p.medium ?? p.original ?? p.thumbnail ?? ''),
-        order: i,
-      })).filter((img: { url: string }) => img.url);
+      // Map images — Hospitable returns a single `picture` thumbnail URL
+      // Try to get a larger version by replacing Airbnb's aki_policy parameter
+      const images: { url: string; order: number }[] = [];
+      const pictureUrl = listing.picture as string | undefined;
+      if (pictureUrl) {
+        // Upgrade from x_small to large for better quality
+        const largeUrl = pictureUrl.replace('aki_policy=x_small', 'aki_policy=large');
+        images.push({ url: largeUrl, order: 0 });
+      }
+
+      // Also try to fetch listing detail for more photos
+      try {
+        const detailRes = await fetch(`${HOSPITABLE_CONNECT_BASE}/listings/${hospId}`, { method: 'GET', headers: connectHeaders() });
+        if (detailRes.ok) {
+          const detailData = JSON.parse(await detailRes.text());
+          const detail = detailData.data ?? detailData;
+          // Check for photos/images array in detail response
+          const detailPhotos = (detail.photos ?? detail.images ?? detail.pictures ?? []) as Record<string, unknown>[];
+          if (Array.isArray(detailPhotos) && detailPhotos.length > 0) {
+            // Replace images with the full photo set
+            images.length = 0;
+            detailPhotos.slice(0, 20).forEach((p: Record<string, unknown>, i: number) => {
+              const url = String(p.url ?? p.large ?? p.original ?? p.medium ?? p.thumbnail ?? '');
+              if (url) images.push({ url, order: i });
+            });
+          }
+          // Also grab base price from detail if available
+          if (detail.base_price || detail.nightly_price) {
+            (listing as Record<string, unknown>)._detail_base_price = detail.base_price ?? detail.nightly_price;
+          }
+        }
+      } catch (_e) {
+        // Detail endpoint may not exist — continue with thumbnail
+      }
 
       // Map address
       const addr = (listing.address ?? listing.location ?? {}) as Record<string, unknown>;
       const city = String(addr.city ?? listing.city ?? '');
-      const country = String(addr.country ?? listing.country ?? '');
+      const countryCode = String(addr.country_code ?? addr.country ?? listing.country ?? '');
+      // Map common country codes to full names
+      const countryMap: Record<string, string> = { GB: 'United Kingdom', US: 'United States', AE: 'United Arab Emirates', SG: 'Singapore', FR: 'France', ES: 'Spain', IT: 'Italy', DE: 'Germany', PT: 'Portugal', GR: 'Greece', TH: 'Thailand', AU: 'Australia', CA: 'Canada' };
+      const country = countryMap[countryCode.toUpperCase()] || countryCode;
       const street = String(addr.street ?? addr.address ?? addr.line1 ?? listing.street ?? '');
-      const lat = Number(addr.lat ?? addr.latitude ?? listing.lat ?? listing.latitude ?? 0) || null;
-      const lng = Number(addr.lng ?? addr.longitude ?? listing.lng ?? listing.longitude ?? 0) || null;
+      const lat = Number(addr.latitude ?? addr.lat ?? listing.latitude ?? listing.lat ?? 0) || null;
+      const lng = Number(addr.longitude ?? addr.lng ?? listing.longitude ?? listing.lng ?? 0) || null;
 
-      // Map room counts
-      const bedrooms = Number(listing.bedrooms ?? listing.bedroom_count ?? listing.bedrooms_count ?? 0);
-      const bathrooms = Number(listing.bathrooms ?? listing.bathroom_count ?? listing.bathrooms_count ?? 0);
-      const maxGuests = Number(listing.max_guests ?? listing.person_capacity ?? listing.guests ?? listing.accommodates ?? 2);
+      // Map room counts — Hospitable has both top-level and nested in capacity
+      const capacity = (listing.capacity ?? {}) as Record<string, unknown>;
+      const bedrooms = Number(listing.bedrooms ?? capacity.bedrooms ?? 0);
+      const bathrooms = Number(listing.bathrooms ?? capacity.bathrooms ?? 0);
+      const beds = Number(capacity.beds ?? listing.beds ?? bedrooms);
+      const maxGuests = Number(capacity.max ?? listing.max_guests ?? listing.person_capacity ?? 2);
 
-      // Map pricing
-      const price = (listing.pricing ?? listing.price ?? {}) as Record<string, unknown>;
-      const baseRate = Number(price.base_price ?? price.nightly_price ?? price.amount ?? listing.base_rate ?? listing.nightly_price ?? 0);
-      const currency = String(price.currency ?? listing.currency ?? 'GBP').toUpperCase();
+      // Map pricing — Hospitable listing.pricing is an array (often empty)
+      // Extract cleaning fee from listing.fees array
+      const feesArr = Array.isArray(listing.fees) ? listing.fees as Record<string, unknown>[] : [];
+      let cleaningFeeAmount = 0;
+      let pricingCurrency = 'GBP';
+      for (const fee of feesArr) {
+        const feeObj = (fee.fee ?? {}) as Record<string, unknown>;
+        if (fee.name === 'PASS_THROUGH_CLEANING_FEE') {
+          // Amount is in cents/pennies (e.g. 4700 = £47.00)
+          cleaningFeeAmount = Number(feeObj.amount ?? 0) / 100;
+          pricingCurrency = String(feeObj.currency ?? 'GBP').toUpperCase();
+        }
+      }
+      // Try to get base rate from pricing array entries
+      const pricingArr = Array.isArray(listing.pricing) ? listing.pricing as Record<string, unknown>[] : [];
+      let baseRate = 0;
+      if (pricingArr.length > 0) {
+        const firstPrice = pricingArr[0];
+        baseRate = Number((firstPrice as Record<string, unknown>).amount ?? (firstPrice as Record<string, unknown>).nightly ?? 0);
+        if (baseRate > 100) baseRate = baseRate / 100; // Convert from cents if needed
+        const cur = (firstPrice as Record<string, unknown>).currency;
+        if (cur) pricingCurrency = String(cur).toUpperCase();
+      }
+      // Fall back to detail base price if available
+      if (!baseRate && (listing as Record<string, unknown>)._detail_base_price) {
+        baseRate = Number((listing as Record<string, unknown>)._detail_base_price);
+      }
 
-      const title = String(listing.name ?? listing.title ?? listing.public_title ?? 'Untitled Property');
+      // Title — Hospitable uses public_name (not name or title)
+      const title = String(listing.public_name ?? listing.name ?? listing.title ?? listing.public_title ?? 'Untitled Property');
       const description = String(listing.description ?? listing.summary ?? listing.notes ?? '');
       const propertyType = String(listing.property_type ?? listing.type ?? listing.room_type ?? 'apartment').toLowerCase();
       const minStay = Number(listing.min_nights ?? listing.minimum_nights ?? listing.minimum_stay ?? 1);
+
+      // Map amenities — Hospitable returns string array like ["HEATING", "DISHWASHER", ...]
+      const rawAmenities = Array.isArray(listing.amenities) ? listing.amenities as string[] : [];
+      const amenityMap: Record<string, string> = {
+        WIRELESS_INTERNET: 'wifi', WIFI: 'wifi',
+        KITCHEN: 'kitchen', OVEN: 'kitchen', MICROWAVE: 'kitchen', STOVE: 'kitchen', REFRIGERATOR: 'kitchen',
+        TV: 'tv', HEATING: 'heating', WASHER: 'washer', DRYER: 'dryer',
+        FREE_PARKING: 'parking', PARKING: 'parking',
+        ELEVATOR: 'elevator', HAIR_DRYER: 'hair_dryer',
+        IRON: 'iron', DISHWASHER: 'dishwasher',
+        POOL: 'pool', GYM: 'gym', HOT_TUB: 'hot_tub',
+        AIR_CONDITIONING: 'air_conditioning', AC: 'air_conditioning',
+        SMOKE_DETECTOR: 'smoke_detector', CARBON_MONOXIDE_DETECTOR: 'carbon_monoxide_detector',
+        FIRE_EXTINGUISHER: 'fire_extinguisher', FIRST_AID_KIT: 'first_aid_kit',
+        ESSENTIALS: 'essentials', BED_LINENS: 'bed_linens', HANGERS: 'hangers',
+        COFFEE: 'coffee_maker', COOKING_BASICS: 'cooking_basics',
+        PRIVATE_ENTRANCE: 'private_entrance',
+      };
+      const amenities: Record<string, boolean> = {};
+      for (const a of rawAmenities) {
+        const mapped = amenityMap[a];
+        if (mapped) amenities[mapped] = true;
+        // Also store the raw amenity name (lowercased) for completeness
+        amenities[a.toLowerCase()] = true;
+      }
+
+      // Check-in/check-out times
+      const checkInTime = listing.check_in ? String(listing.check_in) : null;
+      const checkOutTime = listing.check_out ? String(listing.check_out) : null;
 
       const propertyData: Record<string, unknown> = {
         operator_id: operatorId,
@@ -167,18 +265,21 @@ async function syncListingsFromHospitable(
         max_guests: maxGuests,
         minimum_stay: minStay,
         base_rate_amount: baseRate || 0,
-        base_rate_currency: currency,
+        base_rate_currency: pricingCurrency,
         status: 'draft',
         images: images.length > 0 ? images : [],
+        amenities,
         room_counts: {
           bedrooms,
           bathrooms,
-          beds: bedrooms,
+          beds,
         },
-        cleaning_fee: { enabled: false, amount: 0 },
+        cleaning_fee: { enabled: cleaningFeeAmount > 0, amount: cleaningFeeAmount },
         weekly_discount: { enabled: false, percentage: 0 },
         monthly_discount: { enabled: false, percentage: 0 },
         extra_guest_fee: { enabled: false, amount: 0, after_guests: 1 },
+        ...(checkInTime ? { check_in_time: checkInTime } : {}),
+        ...(checkOutTime ? { check_out_time: checkOutTime } : {}),
       };
 
       const { error: upsertErr } = await supabase
