@@ -165,14 +165,15 @@ async function syncListingsFromHospitable(
         }
       }
 
-      // Map address
+      // Map address — include postal_code and state
       const addr = (listing.address ?? listing.location ?? {}) as Record<string, unknown>;
       const city = String(addr.city ?? listing.city ?? '');
       const countryCode = String(addr.country_code ?? addr.country ?? listing.country ?? '');
-      // Map common country codes to full names
       const countryMap: Record<string, string> = { GB: 'United Kingdom', US: 'United States', AE: 'United Arab Emirates', SG: 'Singapore', FR: 'France', ES: 'Spain', IT: 'Italy', DE: 'Germany', PT: 'Portugal', GR: 'Greece', TH: 'Thailand', AU: 'Australia', CA: 'Canada' };
       const country = countryMap[countryCode.toUpperCase()] || countryCode;
       const street = String(addr.street ?? addr.address ?? addr.line1 ?? listing.street ?? '');
+      const postalCode = String(addr.zipcode ?? addr.postal_code ?? addr.postcode ?? '');
+      const state = String(addr.state ?? addr.region ?? '');
       const lat = Number(addr.latitude ?? addr.lat ?? listing.latitude ?? listing.lat ?? 0) || null;
       const lng = Number(addr.longitude ?? addr.lng ?? listing.longitude ?? listing.lng ?? 0) || null;
 
@@ -183,7 +184,6 @@ async function syncListingsFromHospitable(
       const beds = Number(capacity.beds ?? listing.beds ?? bedrooms);
       const maxGuests = Number(capacity.max ?? listing.max_guests ?? listing.person_capacity ?? 2);
 
-      // Map pricing — Hospitable listing.pricing is an array (often empty)
       // Extract cleaning fee from listing.fees array
       const feesArr = Array.isArray(listing.fees) ? listing.fees as Record<string, unknown>[] : [];
       let cleaningFeeAmount = 0;
@@ -191,26 +191,64 @@ async function syncListingsFromHospitable(
       for (const fee of feesArr) {
         const feeObj = (fee.fee ?? {}) as Record<string, unknown>;
         if (fee.name === 'PASS_THROUGH_CLEANING_FEE') {
-          // Amount is in cents/pennies (e.g. 4700 = £47.00)
           cleaningFeeAmount = Number(feeObj.amount ?? 0) / 100;
           pricingCurrency = String(feeObj.currency ?? 'GBP').toUpperCase();
         }
       }
-      // Try to get base rate from pricing array entries
-      const pricingArr = Array.isArray(listing.pricing) ? listing.pricing as Record<string, unknown>[] : [];
-      let baseRate = 0;
-      if (pricingArr.length > 0) {
-        const firstPrice = pricingArr[0];
-        baseRate = Number((firstPrice as Record<string, unknown>).amount ?? (firstPrice as Record<string, unknown>).nightly ?? 0);
-        if (baseRate > 100) baseRate = baseRate / 100; // Convert from cents if needed
-        const cur = (firstPrice as Record<string, unknown>).currency;
-        if (cur) pricingCurrency = String(cur).toUpperCase();
-      }
-      // Fall back to detail base price if available
-      if (!baseRate && (listing as Record<string, unknown>)._detail_base_price) {
-        baseRate = Number((listing as Record<string, unknown>)._detail_base_price);
-      }
 
+      // Fetch calendar for pricing + availability (next 90 days)
+      // GET /listings/{listing}/calendar?start_date=...&end_date=...
+      // Returns dates with price.amount (cents) and availability
+      let baseRate = 0;
+      const blockedDates: string[] = [];
+      const weekdayPrices: number[] = [];
+      const weekendPrices: number[] = [];
+      try {
+        const today = new Date();
+        const startDate = today.toISOString().split('T')[0];
+        const endDate90 = new Date(today.getTime() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        const calUrl = `${HOSPITABLE_CONNECT_BASE}/listings/${hospId}/calendar?start_date=${startDate}&end_date=${endDate90}`;
+        const calRes = await fetch(calUrl, { method: 'GET', headers: connectHeaders() });
+        if (calRes.ok) {
+          const calData = JSON.parse(await calRes.text());
+          const dates = calData.data?.dates ?? [];
+          for (const d of dates as Record<string, unknown>[]) {
+            const dateStr = String(d.date ?? '');
+            const price = (d.price ?? {}) as Record<string, unknown>;
+            const avail = (d.availability ?? {}) as Record<string, unknown>;
+            const priceAmount = Number(price.amount ?? 0) / 100; // cents to pounds/dollars
+            if (price.currency) pricingCurrency = String(price.currency).toUpperCase();
+
+            // Collect blocked dates (unavailable)
+            if (avail.available === false && dateStr) {
+              blockedDates.push(dateStr);
+            }
+
+            // Collect prices for weekday vs weekend calculation
+            if (priceAmount > 0 && avail.available !== false) {
+              const dayOfWeek = new Date(dateStr).getDay(); // 0=Sun, 6=Sat
+              if (dayOfWeek === 0 || dayOfWeek === 5 || dayOfWeek === 6) {
+                weekendPrices.push(priceAmount);
+              } else {
+                weekdayPrices.push(priceAmount);
+              }
+            }
+          }
+
+          // Calculate base rate as median of weekday prices (most representative)
+          if (weekdayPrices.length > 0) {
+            weekdayPrices.sort((a, b) => a - b);
+            baseRate = weekdayPrices[Math.floor(weekdayPrices.length / 2)];
+          } else if (weekendPrices.length > 0) {
+            weekendPrices.sort((a, b) => a - b);
+            baseRate = weekendPrices[Math.floor(weekendPrices.length / 2)];
+          }
+
+          console.log(`[Hospitable] Calendar for ${hospId}: ${dates.length} days, ${blockedDates.length} blocked, weekday median £${baseRate}, weekend prices: ${weekendPrices.length}`);
+        }
+      } catch (calErr) {
+        console.log(`[Hospitable] Calendar fetch failed for ${hospId}:`, calErr);
+      }
       // Title — Hospitable uses public_name (not name or title)
       const title = String(listing.public_name ?? listing.name ?? listing.title ?? listing.public_title ?? 'Untitled Property');
       const description = String(listing.description ?? listing.summary ?? listing.notes ?? '');
@@ -246,6 +284,13 @@ async function syncListingsFromHospitable(
       const checkInTime = listing.check_in ? String(listing.check_in) : null;
       const checkOutTime = listing.check_out ? String(listing.check_out) : null;
 
+      // Calculate weekend rate (median of Fri/Sat/Sun prices)
+      let weekendRate = 0;
+      if (weekendPrices.length > 0) {
+        weekendPrices.sort((a, b) => a - b);
+        weekendRate = weekendPrices[Math.floor(weekendPrices.length / 2)];
+      }
+
       const propertyData: Record<string, unknown> = {
         operator_id: operatorId,
         hospitable_property_id: hospId,
@@ -259,6 +304,8 @@ async function syncListingsFromHospitable(
         city,
         country,
         street,
+        postal_code: postalCode || null,
+        state: state || null,
         lat,
         lng,
         max_guests: maxGuests,
@@ -279,17 +326,57 @@ async function syncListingsFromHospitable(
         extra_guest_fee: { enabled: false, amount: 0, after_guests: 1 },
         ...(checkInTime ? { check_in_time: checkInTime } : {}),
         ...(checkOutTime ? { check_out_time: checkOutTime } : {}),
+        // Store weekend rate and pricing details in custom_rates
+        custom_rates: weekendRate > 0 || baseRate > 0 ? {
+          ...(weekendRate > 0 ? { weekend_rate: weekendRate } : {}),
+          ...(baseRate > 0 ? { weekday_rate: baseRate } : {}),
+          source: 'hospitable',
+          last_synced: new Date().toISOString(),
+        } : {},
       };
 
-      const { error: upsertErr } = await supabase
+      const { data: upsertData, error: upsertErr } = await supabase
         .from('nfs_properties')
-        .upsert(propertyData, { onConflict: 'hospitable_property_id,operator_id', ignoreDuplicates: false });
+        .upsert(propertyData, { onConflict: 'hospitable_property_id,operator_id', ignoreDuplicates: false })
+        .select('id')
+        .single();
 
       if (upsertErr) {
         console.error('[Hospitable] upsert error for', hospId, upsertErr.message);
         errors.push(`${hospId}: ${upsertErr.message}`);
       } else {
         synced++;
+
+        // Sync blocked dates from Airbnb calendar into nfs_blocked_dates
+        if (upsertData?.id && blockedDates.length > 0) {
+          try {
+            // Delete existing hospitable-sourced blocked dates for this property, then insert fresh
+            await supabase
+              .from('nfs_blocked_dates')
+              .delete()
+              .eq('property_id', upsertData.id)
+              .eq('source', 'hospitable');
+
+            const blockedRows = blockedDates.map((date: string) => ({
+              property_id: upsertData.id,
+              date,
+              source: 'hospitable',
+            }));
+            // Insert in batches of 500 to avoid payload limits
+            for (let i = 0; i < blockedRows.length; i += 500) {
+              const batch = blockedRows.slice(i, i + 500);
+              const { error: blockErr } = await supabase
+                .from('nfs_blocked_dates')
+                .upsert(batch, { onConflict: 'property_id,date' });
+              if (blockErr) {
+                console.error('[Hospitable] blocked dates error:', blockErr.message);
+              }
+            }
+            console.log(`[Hospitable] Synced ${blockedDates.length} blocked dates for property ${upsertData.id}`);
+          } catch (blockErr) {
+            console.error('[Hospitable] blocked dates sync failed:', blockErr);
+          }
+        }
       }
     } catch (e) {
       errors.push(String(e));
@@ -367,7 +454,7 @@ serve(async (req) => {
         let customerId = '';
 
         // Re-use existing customer ID if we have one (connected, disconnected, or any state)
-        if (existingConn?.hospitable_customer_id && !existingConn.hospitable_customer_id.startsWith('pending-reset')) {
+        if (existingConn?.hospitable_customer_id && !existingConn.hospitable_customer_id.startsWith('pending-reset') && !existingConn.hospitable_customer_id.startsWith('deleted-')) {
           const verifyRes = await fetch(`${HOSPITABLE_CONNECT_BASE}/customers/${existingConn.hospitable_customer_id}`, { method: 'GET', headers: connectHeaders() });
           if (verifyRes.ok) customerId = existingConn.hospitable_customer_id;
         }
@@ -635,15 +722,62 @@ serve(async (req) => {
 
         const { data: connectionRow } = await query.maybeSingle();
 
+        // Delete the customer from Hospitable to fully release the Airbnb account
+        // This allows the same Airbnb account to be connected by a different operator
+        const custId = connectionRow?.hospitable_customer_id as string | undefined;
+        let hospDeleteOk = false;
+        if (custId && !custId.startsWith('pending-reset')) {
+          try {
+            const delRes = await fetch(`${HOSPITABLE_CONNECT_BASE}/customers/${custId}`, {
+              method: 'DELETE',
+              headers: connectHeaders(),
+            });
+            console.log(`[Hospitable] Delete customer ${custId} → ${delRes.status}`);
+            hospDeleteOk = delRes.status === 204 || delRes.status === 200 || delRes.status === 404;
+          } catch (e) {
+            console.error('[Hospitable] Failed to delete customer:', e);
+          }
+        }
+
+        // Also clean up hospitable-sourced blocked dates for this operator's properties
+        try {
+          const { data: opProperties } = await supabase
+            .from('nfs_properties')
+            .select('id')
+            .eq('operator_id', operatorId)
+            .eq('hospitable_connected', true);
+          if (opProperties && opProperties.length > 0) {
+            const propIds = opProperties.map((p: { id: string }) => p.id);
+            await supabase
+              .from('nfs_blocked_dates')
+              .delete()
+              .in('property_id', propIds)
+              .eq('source', 'hospitable');
+          }
+        } catch (e) {
+          console.error('[Hospitable] Failed to clean up blocked dates:', e);
+        }
+
+        // Mark properties as disconnected
+        await supabase
+          .from('nfs_properties')
+          .update({
+            hospitable_connected: false,
+            hospitable_sync_status: 'disconnected',
+          })
+          .eq('operator_id', operatorId)
+          .eq('hospitable_connected', true);
+
         await supabase.from('nfs_hospitable_connections').update({
           status: 'disconnected',
           is_active: false,
           disconnected_at: new Date().toISOString(),
           sync_status: 'pending',
           auth_code: null,
+          hospitable_customer_id: hospDeleteOk ? `deleted-${custId}` : custId,
         }).eq('id', connectionRow?.id ?? '');
 
-        return new Response(JSON.stringify({ success: true }), { status: 200, headers: corsHeaders });
+        return new Response(JSON.stringify({ success: true, hospitable_deleted: hospDeleteOk }), { status: 200, headers: corsHeaders });
       }
 
       // ══ DEBUG: inspect raw Hospitable customer response ══
