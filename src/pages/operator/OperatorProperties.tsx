@@ -166,8 +166,9 @@ export default function OperatorProperties() {
     try {
       await deleteProperty.mutateAsync(confirmDelete.id);
       toast({ title: "Property deleted", description: `"${confirmDelete.title}" has been permanently deleted.` });
-    } catch {
-      toast({ title: "Delete failed", description: "Could not delete the property. Try again.", variant: "destructive" });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Could not delete the property. Try again.";
+      toast({ title: "Delete failed", description: msg, variant: "destructive" });
     } finally {
       setConfirmDelete(null);
     }
@@ -199,10 +200,13 @@ export default function OperatorProperties() {
   const handleBulkDelete = async () => {
     const ids = Array.from(selectedIds);
     let success = 0;
+    let skipped = 0;
     for (const id of ids) {
-      try { await deleteProperty.mutateAsync(id); success++; } catch { /* continue */ }
+      try { await deleteProperty.mutateAsync(id); success++; } catch { skipped++; }
     }
-    toast({ title: `${success} ${success === 1 ? "property" : "properties"} deleted` });
+    const parts = [`${success} ${success === 1 ? "property" : "properties"} deleted`];
+    if (skipped > 0) parts.push(`${skipped} skipped (have reservations)`);
+    toast({ title: parts.join(", ") });
     clearSelection();
     setBulkConfirm(null);
   };
