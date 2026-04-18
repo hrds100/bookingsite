@@ -144,11 +144,28 @@ export function useNfsOperatorUpdate() {
   });
 }
 
-/** Delete a property by ID */
+/** Check if a property has any reservations (blocks deletion) */
+export async function checkPropertyReservations(propertyId: string): Promise<number> {
+  const { count, error } = await supabase
+    .from("nfs_reservations")
+    .select("id", { count: "exact", head: true })
+    .eq("property_id", propertyId);
+
+  if (error) return 0;
+  return count ?? 0;
+}
+
+/** Delete a property by ID — checks for reservations first */
 export function useNfsDeleteProperty() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (propertyId: string) => {
+      // Check for reservations before attempting delete
+      const reservationCount = await checkPropertyReservations(propertyId);
+      if (reservationCount > 0) {
+        throw new Error(`Cannot delete — this property has ${reservationCount} reservation${reservationCount === 1 ? "" : "s"}. Cancel or complete them first, or archive the property instead.`);
+      }
+
       const { error } = await supabase
         .from("nfs_properties")
         .delete()

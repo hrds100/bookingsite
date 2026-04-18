@@ -11,6 +11,12 @@ const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
 
 // ── Types ──
 
+export interface SyncProgress {
+  total: number;
+  enriched: number;
+  failed: number;
+}
+
 export interface HospitableConnection {
   id: string;
   operator_id: string;
@@ -30,6 +36,7 @@ export interface HospitableConnection {
   total_reservations: number;
   connected_platforms: string[];
   user_metadata: Record<string, unknown> | null;
+  sync_progress: SyncProgress | null;
 }
 
 export interface HospitableSyncedProperty {
@@ -179,6 +186,7 @@ export function useNfsHospitableConnect() {
 
       setTimeout(() => {
         queryClient.invalidateQueries({ queryKey: ["nfs-hospitable-connection"] });
+        queryClient.invalidateQueries({ queryKey: ["nfs-hospitable-connection-single"] });
         queryClient.invalidateQueries({ queryKey: ["nfs-hospitable-properties"] });
       }, 1500);
 
@@ -189,28 +197,61 @@ export function useNfsHospitableConnect() {
     }
   }, [operator?.id, queryClient]);
 
-  return { connecting, error, initiateConnect, triggerResync };
+  /** Trigger enrichment of a batch of properties (images + calendar) */
+  const triggerEnrich = useCallback(async (connectionId?: string): Promise<{ enriched: number; remaining: number } | null> => {
+    if (!operator?.id) return null;
+
+    try {
+      const { data, error: fnError } = await supabase.functions.invoke("nfs-hospitable-oauth", {
+        body: { action: "enrich", operator_id: operator.id, connection_id: connectionId, batch_size: 15 },
+      });
+
+      if (fnError) return null;
+
+      queryClient.invalidateQueries({ queryKey: ["nfs-hospitable-connection"] });
+      queryClient.invalidateQueries({ queryKey: ["nfs-hospitable-connection-single"] });
+      queryClient.invalidateQueries({ queryKey: ["nfs-hospitable-properties"] });
+
+      const result = data as Record<string, unknown> | null;
+      return {
+        enriched: Number(result?.enriched ?? 0),
+        remaining: Number(result?.remaining ?? 0),
+      };
+    } catch {
+      return null;
+    }
+  }, [operator?.id, queryClient]);
+
+  return { connecting, error, initiateConnect, triggerResync, triggerEnrich };
 }
 
 // ── useNfsHospitableDisconnect ──
 
 export function useNfsHospitableDisconnect() {
+  const { data: operator } = useNfsOperator();
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (connectionId: string) => {
-      const { error } = await (supabase.from("nfs_hospitable_connections") as any)
-        .update({
-          is_active: false,
-          status: "disconnected",
-          disconnected_at: new Date().toISOString(),
-        })
-        .eq("id", connectionId);
+      if (!operator?.id) throw new Error("No operator found");
 
-      if (error) throw new Error(error.message);
+      // Call edge function to properly delete Hospitable customer and free Airbnb
+      const { data, error: fnError } = await supabase.functions.invoke("nfs-hospitable-oauth", {
+        body: { action: "disconnect", operator_id: operator.id, connection_id: connectionId },
+      });
+
+      if (fnError) throw new Error(fnError.message);
+
+      // Check for application-level error (e.g. Hospitable delete failed)
+      if (data && typeof data === "object" && "error" in data) {
+        throw new Error(String((data as Record<string, unknown>).error));
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["nfs-hospitable-connection"] });
+      queryClient.invalidateQueries({ queryKey: ["nfs-hospitable-connection-single"] });
+      queryClient.invalidateQueries({ queryKey: ["nfs-hospitable-properties"] });
+      queryClient.invalidateQueries({ queryKey: ["nfs-operator-properties"] });
     },
   });
 }

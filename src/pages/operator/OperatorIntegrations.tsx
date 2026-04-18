@@ -1,8 +1,9 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Wifi, WifiOff, RefreshCw, CheckCircle, AlertCircle, Loader2, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Progress } from "@/components/ui/progress";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
   DialogDescription, DialogFooter,
@@ -27,23 +28,59 @@ export default function OperatorIntegrations() {
   const [disconnectConfirmId, setDisconnectConfirmId] = useState<string | null>(null);
   const [autoCheckCount, setAutoCheckCount] = useState(0);
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const enrichingRef = useRef(false);
 
-  const { data: hospConnections = [], isLoading: hospLoading } = useNfsHospitableConnections();
+  const { data: hospConnections = [], isLoading: hospLoading, refetch: refetchConnections } = useNfsHospitableConnections();
   const activeConnections = hospConnections.filter(c => c.is_active && c.status === "connected");
   const isHospConnected = activeConnections.length > 0;
 
   const { data: syncedProperties, isLoading: propsLoading, refetch: refetchSyncedProps } =
     useNfsHospitableSyncedProperties(operatorId, isHospConnected);
 
-  const { connecting, error: connectError, initiateConnect, triggerResync } = useNfsHospitableConnect();
+  const { connecting, error: connectError, initiateConnect, triggerResync, triggerEnrich } = useNfsHospitableConnect();
   const importMutation = useNfsHospitableImport();
   const disconnectMutation = useNfsHospitableDisconnect();
 
   const activeConnectionsRef = useRef(activeConnections);
   useEffect(() => { activeConnectionsRef.current = activeConnections; });
 
+  // Auto-enrich when sync_status is 'enriching'
+  const enrichingConnection = activeConnections.find(c => c.sync_status === "enriching");
+
+  const runEnrichBatch = useCallback(async () => {
+    if (enrichingRef.current || !enrichingConnection) return;
+    enrichingRef.current = true;
+    try {
+      const result = await triggerEnrich(enrichingConnection.id);
+      if (result && result.remaining > 0) {
+        // More batches needed — refetch connection to update progress, then continue
+        await refetchConnections();
+        setTimeout(() => { enrichingRef.current = false; }, 500);
+      } else {
+        // Done enriching
+        await refetchConnections();
+        await refetchSyncedProps();
+        enrichingRef.current = false;
+      }
+    } catch {
+      enrichingRef.current = false;
+    }
+  }, [enrichingConnection, triggerEnrich, refetchConnections, refetchSyncedProps]);
+
+  // Auto-trigger enrichment batches
+  useEffect(() => {
+    if (!enrichingConnection) return;
+    // Start first batch immediately
+    runEnrichBatch();
+    // Then poll every 5s to continue batches
+    const interval = setInterval(() => {
+      if (!enrichingRef.current) runEnrichBatch();
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [enrichingConnection?.id, runEnrichBatch]);
+
   // Auto-poll when connected but no listings yet
-  const noListingsYet = isHospConnected && (syncedProperties ?? []).length === 0 && !propsLoading;
+  const noListingsYet = isHospConnected && (syncedProperties ?? []).length === 0 && !propsLoading && !enrichingConnection;
   useEffect(() => {
     if (!noListingsYet || autoCheckCount >= MAX_AUTO_CHECKS) {
       if (pollIntervalRef.current) { clearInterval(pollIntervalRef.current); pollIntervalRef.current = null; }
@@ -154,12 +191,37 @@ export default function OperatorIntegrations() {
                   </Button>
                 </div>
 
+                {/* Sync progress bar */}
+                {(conn.sync_status === "syncing" || conn.sync_status === "enriching") && (
+                  <div className="space-y-2 py-2">
+                    <div className="flex items-center gap-2">
+                      <Loader2 className="w-4 h-4 animate-spin text-primary shrink-0" />
+                      <p className="text-sm text-muted-foreground">
+                        {conn.sync_status === "syncing"
+                          ? "Syncing properties from Airbnb..."
+                          : conn.sync_progress?.total
+                            ? `Enriching properties: ${conn.sync_progress.enriched ?? 0}/${conn.sync_progress.total} (images & pricing)`
+                            : "Enriching properties with images & pricing..."}
+                      </p>
+                    </div>
+                    {conn.sync_progress?.total ? (
+                      <Progress
+                        value={Math.round(((conn.sync_progress.enriched ?? 0) / conn.sync_progress.total) * 100)}
+                        className="h-2"
+                      />
+                    ) : null}
+                    {conn.sync_progress?.failed ? (
+                      <p className="text-xs text-amber-600">{conn.sync_progress.failed} properties failed to enrich</p>
+                    ) : null}
+                  </div>
+                )}
+
                 {propsLoading ? (
                   <div className="flex items-center justify-center py-6">
                     <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
                     <span className="ml-2 text-sm text-muted-foreground">Loading properties...</span>
                   </div>
-                ) : (syncedProperties || []).length === 0 ? (
+                ) : (syncedProperties || []).length === 0 && conn.sync_status !== "syncing" && conn.sync_status !== "enriching" ? (
                   <div className="py-6 text-center space-y-3">
                     {conn.connected_platforms?.length === 0 ? (
                       <>
