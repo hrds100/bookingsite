@@ -198,7 +198,7 @@ export function useNfsHospitableConnect() {
   }, [operator?.id, queryClient]);
 
   /** Trigger enrichment of a batch of properties (images + calendar) */
-  const triggerEnrich = useCallback(async (connectionId?: string): Promise<{ enriched: number; remaining: number } | null> => {
+  const triggerEnrich = useCallback(async (connectionId?: string): Promise<{ enriched: number; remaining: number; discovered: number } | null> => {
     if (!operator?.id) return null;
 
     try {
@@ -216,6 +216,7 @@ export function useNfsHospitableConnect() {
       return {
         enriched: Number(result?.enriched ?? 0),
         remaining: Number(result?.remaining ?? 0),
+        discovered: Number(result?.discovered ?? 0),
       };
     } catch {
       return null;

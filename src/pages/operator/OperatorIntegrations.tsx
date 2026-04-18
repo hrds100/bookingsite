@@ -52,12 +52,13 @@ export default function OperatorIntegrations() {
     enrichingRef.current = true;
     try {
       const result = await triggerEnrich(enrichingConnection.id);
-      if (result && result.remaining > 0) {
-        // More batches needed — refetch connection to update progress, then continue
+      if (result && (result.remaining > 0 || result.discovered > 0)) {
+        // More batches needed OR new listings discovered from Hospitable — keep going
         await refetchConnections();
+        await refetchSyncedProps();
         setTimeout(() => { enrichingRef.current = false; }, 500);
       } else {
-        // Done enriching
+        // Done enriching — no pending, no new discoveries
         await refetchConnections();
         await refetchSyncedProps();
         enrichingRef.current = false;

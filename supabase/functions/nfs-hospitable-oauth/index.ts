@@ -165,7 +165,7 @@ async function fetchAllListings(
   debug: Record<string, unknown>,
 ): Promise<Record<string, unknown>[]> {
   let listings: Record<string, unknown>[] = [];
-  let pageUrl: string | null = `${HOSPITABLE_CONNECT_BASE}/customers/${customerId}/listings`;
+  let pageUrl: string | null = `${HOSPITABLE_CONNECT_BASE}/customers/${customerId}/listings?per_page=100`;
 
   while (pageUrl) {
     try {
@@ -288,9 +288,68 @@ async function enrichProperties(
   customerId: string,
   connectionRowId: string,
   batchSize = 15,
-): Promise<{ enriched: number; remaining: number; errors: string[] }> {
+): Promise<{ enriched: number; remaining: number; discovered: number; errors: string[] }> {
   const errors: string[] = [];
   let enriched = 0;
+  let discovered = 0;
+
+  // ── Re-discover: fetch current listings from Hospitable and upsert any new ones ──
+  // After reconnect, Hospitable imports Airbnb listings gradually. Each enrich call
+  // re-checks so newly imported listings are picked up automatically.
+  try {
+    const discoverDebug: Record<string, unknown> = { endpoints: [] };
+    const allListings = await fetchAllListings(customerId, discoverDebug);
+    console.log(`[Hospitable] Re-discover: ${allListings.length} listings from Hospitable`);
+
+    if (allListings.length > 0) {
+      // Get existing hospitable_property_ids for this operator to avoid redundant upserts
+      const { data: existingProps } = await supabase
+        .from('nfs_properties')
+        .select('hospitable_property_id')
+        .eq('operator_id', operatorId)
+        .eq('hospitable_connected', true);
+
+      const existingIds = new Set((existingProps ?? []).map(p => p.hospitable_property_id as string));
+
+      for (const listing of allListings) {
+        const mapped = mapListingToBasicProperty(listing, operatorId, customerId);
+        if (!mapped) continue;
+        if (existingIds.has(mapped.hospId)) continue; // already saved
+
+        const { error: upsertErr } = await supabase
+          .from('nfs_properties')
+          .upsert(mapped.data, { onConflict: 'hospitable_property_id,operator_id', ignoreDuplicates: false });
+
+        if (!upsertErr) discovered++;
+      }
+
+      if (discovered > 0) {
+        console.log(`[Hospitable] Discovered ${discovered} new listings`);
+        // Update total on connection — preserve existing enriched/failed counts
+        const { data: currentConn } = await supabase
+          .from('nfs_hospitable_connections')
+          .select('sync_progress')
+          .eq('id', connectionRowId)
+          .single();
+        const currentProgress = (currentConn?.sync_progress ?? {}) as Record<string, number>;
+        const newTotal = existingIds.size + discovered;
+        await supabase
+          .from('nfs_hospitable_connections')
+          .update({
+            total_properties: newTotal,
+            sync_status: 'enriching',
+            sync_progress: {
+              total: newTotal,
+              enriched: currentProgress.enriched ?? 0,
+              failed: currentProgress.failed ?? 0,
+            },
+          })
+          .eq('id', connectionRowId);
+      }
+    }
+  } catch (e) {
+    console.error('[Hospitable] Re-discover error:', e);
+  }
 
   // Get properties that need enrichment
   const { data: pendingProps } = await supabase
@@ -302,12 +361,17 @@ async function enrichProperties(
     .limit(batchSize);
 
   if (!pendingProps || pendingProps.length === 0) {
+    if (discovered > 0) {
+      // New properties were just discovered but query ran before inserts completed.
+      // Keep status as 'enriching' so the next poll picks them up.
+      return { enriched: 0, remaining: discovered, discovered, errors: [] };
+    }
     // All done — mark connection as completed
     await supabase
       .from('nfs_hospitable_connections')
       .update({ sync_status: 'completed' })
       .eq('id', connectionRowId);
-    return { enriched: 0, remaining: 0, errors: [] };
+    return { enriched: 0, remaining: 0, discovered, errors: [] };
   }
 
   for (const prop of pendingProps) {
@@ -469,7 +533,7 @@ async function enrichProperties(
     })
     .eq('id', connectionRowId);
 
-  return { enriched, remaining, errors };
+  return { enriched, remaining, discovered, errors };
 }
 
 /**
@@ -501,8 +565,8 @@ async function syncListingsFromHospitable(
     remaining = batch.remaining;
     allErrors.push(...batch.errors);
 
-    // If a batch enriched 0 and there are still remaining, something is wrong — break
-    if (batch.enriched === 0 && remaining > 0) break;
+    // If a batch enriched 0, discovered 0, and there are still remaining, something is wrong — break
+    if (batch.enriched === 0 && batch.discovered === 0 && remaining > 0) break;
   }
 
   return { synced: quickResult.synced, errors: allErrors, debug: quickResult.debug };
