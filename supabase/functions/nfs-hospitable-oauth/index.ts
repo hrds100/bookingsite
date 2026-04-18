@@ -75,14 +75,6 @@ function mapListingToBasicProperty(listing: Record<string, unknown>, operatorId:
   // Skip unlisted/unpublished Airbnb listings
   if (listing.available === 0 || listing.available === false) return null;
 
-  // Thumbnail from listing metadata (no extra API call)
-  const images: { url: string; order: number }[] = [];
-  const pictureUrl = listing.picture as string | undefined;
-  if (pictureUrl) {
-    const largeUrl = pictureUrl.replace('aki_policy=x_small', 'aki_policy=large');
-    images.push({ url: largeUrl, order: 0 });
-  }
-
   // Address
   const addr = (listing.address ?? listing.location ?? {}) as Record<string, unknown>;
   const city = String(addr.city ?? listing.city ?? '');
@@ -130,6 +122,10 @@ function mapListingToBasicProperty(listing: Record<string, unknown>, operatorId:
   const checkInTime = listing.check_in ? String(listing.check_in) : null;
   const checkOutTime = listing.check_out ? String(listing.check_out) : null;
 
+  // Note: do NOT include base_rate_amount, base_rate_currency, custom_rates, or images here.
+  // Those are populated by the enrichment phase (images + calendar API calls).
+  // Including them here would overwrite existing values with empty/zero data during resync,
+  // causing the booking site to show £0 prices and missing images until enrichment finishes.
   return {
     hospId,
     data: {
@@ -151,19 +147,14 @@ function mapListingToBasicProperty(listing: Record<string, unknown>, operatorId:
       lng,
       max_guests: maxGuests,
       minimum_stay: minStay,
-      base_rate_amount: 0,
-      base_rate_currency: pricingCurrency,
       status: 'draft',
-      images: images.length > 0 ? images : [],
+      // images intentionally omitted — enrichment phase fetches full gallery.
+      // Including a thumbnail here would overwrite existing full images on resync.
       amenities,
       room_counts: { bedrooms, bathrooms, beds },
       cleaning_fee: { enabled: cleaningFeeAmount > 0, amount: cleaningFeeAmount },
-      weekly_discount: { enabled: false, percentage: 0 },
-      monthly_discount: { enabled: false, percentage: 0 },
-      extra_guest_fee: { enabled: false, amount: 0, after_guests: 1 },
       ...(checkInTime ? { check_in_time: checkInTime } : {}),
       ...(checkOutTime ? { check_out_time: checkOutTime } : {}),
-      custom_rates: {},
     } as Record<string, unknown>,
   };
 }
