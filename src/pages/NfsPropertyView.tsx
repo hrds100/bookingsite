@@ -10,6 +10,7 @@ import { useNfsProperty } from "@/hooks/useNfsProperties";
 import { useNfsReviews } from "@/hooks/useNfsReviews";
 import { useNfsOperatorPublic } from "@/hooks/useNfsOperatorPublic";
 import { useTranslation } from "react-i18next";
+import { tPropertyType, tBedType, tBathroomType, tAmenity } from "@/lib/i18n-enum";
 
 export default function NfsPropertyView() {
   const { id } = useParams();
@@ -180,7 +181,7 @@ export default function NfsPropertyView() {
               <MapPin className="w-4 h-4" />
               <span>{property.city}, {property.country}</span>
               <span>·</span>
-              <span className="capitalize">{property.property_type}</span>
+              <span className="capitalize">{tPropertyType(property.property_type, t)}</span>
               <span>·</span>
               <span>{t('property.guests_label', { n: property.max_guests })}</span>
               <span>·</span>
@@ -225,7 +226,7 @@ export default function NfsPropertyView() {
                       <ul className="space-y-1">
                         {bedDetails.map((b, i) => (
                           <li key={i} className="text-sm text-muted-foreground flex justify-between">
-                            <span>{b.type}</span>
+                            <span className="capitalize">{tBedType(b.type, t)}</span>
                             <span className="font-medium text-foreground">×{b.count}</span>
                           </li>
                         ))}
@@ -241,12 +242,12 @@ export default function NfsPropertyView() {
                       <ul className="space-y-1">
                         {ensuiteCount > 0 && (
                           <li className="text-sm text-muted-foreground flex justify-between">
-                            <span>Ensuite</span><span className="font-medium text-foreground">×{ensuiteCount}</span>
+                            <span className="capitalize">{tBathroomType('ensuite', t)}</span><span className="font-medium text-foreground">×{ensuiteCount}</span>
                           </li>
                         )}
                         {sharedCount > 0 && (
                           <li className="text-sm text-muted-foreground flex justify-between">
-                            <span>Shared</span><span className="font-medium text-foreground">×{sharedCount}</span>
+                            <span className="capitalize">{tBathroomType('shared', t)}</span><span className="font-medium text-foreground">×{sharedCount}</span>
                           </li>
                         )}
                       </ul>
@@ -261,7 +262,7 @@ export default function NfsPropertyView() {
             <h2 className="text-lg font-semibold mb-3">{t('property.what_this_offers')}</h2>
             <div className="grid grid-cols-2 gap-3">
               {amenityList.slice(0, showAllAmenities ? undefined : 10).map(a => (
-                <div key={a} className="flex items-center gap-2 text-sm"><Check className="w-4 h-4 text-primary shrink-0" />{a}</div>
+                <div key={a} className="flex items-center gap-2 text-sm"><Check className="w-4 h-4 text-primary shrink-0" />{tAmenity(a, t)}</div>
               ))}
             </div>
             {amenityList.length > 10 && (
