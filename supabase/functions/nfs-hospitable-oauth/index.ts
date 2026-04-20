@@ -165,7 +165,7 @@ async function fetchAllListings(
   debug: Record<string, unknown>,
 ): Promise<Record<string, unknown>[]> {
   let listings: Record<string, unknown>[] = [];
-  let pageUrl: string | null = `${HOSPITABLE_CONNECT_BASE}/customers/${customerId}/listings`;
+  let pageUrl: string | null = `${HOSPITABLE_CONNECT_BASE}/customers/${customerId}/listings?per_page=100`;
 
   while (pageUrl) {
     try {
@@ -261,16 +261,24 @@ async function quickSyncListings(
     }
   }
 
+  // Count actual properties in DB (handles partial Hospitable imports correctly)
+  const { count: dbCount } = await supabase
+    .from('nfs_properties')
+    .select('id', { count: 'exact', head: true })
+    .eq('operator_id', operatorId)
+    .eq('hospitable_connected', true);
+  const totalCount = dbCount ?? synced;
+
   // Mark as enriching — properties are saved but need images/calendar
   await supabase
     .from('nfs_hospitable_connections')
     .update({
       sync_status: synced > 0 ? 'enriching' : 'failed',
       last_sync_at: new Date().toISOString(),
-      total_properties: synced,
+      total_properties: totalCount,
       last_sync_error: errors.length > 0 ? errors.slice(0, 3).join('; ') : null,
       connected_platforms: synced > 0 ? ['airbnb'] : [],
-      sync_progress: { total: synced, enriched: 0, failed: 0 },
+      sync_progress: { total: totalCount, enriched: 0, failed: 0 },
     })
     .eq('id', connectionRowId);
 
@@ -288,39 +296,103 @@ async function enrichProperties(
   customerId: string,
   connectionRowId: string,
   batchSize = 15,
-): Promise<{ enriched: number; remaining: number; errors: string[] }> {
+): Promise<{ enriched: number; remaining: number; discovered: number; errors: string[] }> {
   const errors: string[] = [];
   let enriched = 0;
+  let discovered = 0;
 
-  // Get properties that need enrichment
+  // ── Re-discover: fetch current listings from Hospitable and upsert any new ones ──
+  // After reconnect, Hospitable imports Airbnb listings gradually. Each enrich call
+  // re-checks so newly imported listings are picked up automatically.
+  try {
+    const discoverDebug: Record<string, unknown> = { endpoints: [] };
+    const allListings = await fetchAllListings(customerId, discoverDebug);
+    console.log(`[Hospitable] Re-discover: ${allListings.length} listings from Hospitable`);
+
+    if (allListings.length > 0) {
+      const { data: existingProps } = await supabase
+        .from('nfs_properties')
+        .select('hospitable_property_id')
+        .eq('operator_id', operatorId)
+        .eq('hospitable_connected', true);
+
+      const existingIds = new Set((existingProps ?? []).map(p => p.hospitable_property_id as string));
+
+      for (const listing of allListings) {
+        const mapped = mapListingToBasicProperty(listing, operatorId, customerId);
+        if (!mapped) continue;
+        if (existingIds.has(mapped.hospId)) continue;
+
+        const { error: upsertErr } = await supabase
+          .from('nfs_properties')
+          .upsert(mapped.data, { onConflict: 'hospitable_property_id,operator_id', ignoreDuplicates: false });
+
+        if (!upsertErr) discovered++;
+      }
+
+      if (discovered > 0) {
+        console.log(`[Hospitable] Discovered ${discovered} new listings`);
+      }
+    }
+  } catch (e) {
+    console.error('[Hospitable] Re-discover error:', e);
+  }
+
+  // Get properties that need enrichment (both first-attempt and retry)
   const { data: pendingProps } = await supabase
     .from('nfs_properties')
-    .select('id, hospitable_property_id')
+    .select('id, hospitable_property_id, hospitable_sync_status, images')
     .eq('operator_id', operatorId)
     .eq('hospitable_connected', true)
-    .eq('hospitable_sync_status', 'pending_enrichment')
+    .in('hospitable_sync_status', ['pending_enrichment', 'pending_enrichment_retry'])
     .limit(batchSize);
 
   if (!pendingProps || pendingProps.length === 0) {
-    // All done — mark connection as completed
+    if (discovered > 0) {
+      // Newly discovered properties — next poll will pick them up
+      return { enriched: 0, remaining: discovered, discovered, errors: [] };
+    }
+    // All done — mark connection as completed, use accurate DB count
+    const { count: finalCount } = await supabase
+      .from('nfs_properties')
+      .select('id', { count: 'exact', head: true })
+      .eq('operator_id', operatorId)
+      .eq('hospitable_connected', true);
     await supabase
       .from('nfs_hospitable_connections')
-      .update({ sync_status: 'completed' })
+      .update({ sync_status: 'completed', total_properties: finalCount ?? 0 })
       .eq('id', connectionRowId);
-    return { enriched: 0, remaining: 0, errors: [] };
+    return { enriched: 0, remaining: 0, discovered, errors: [] };
   }
 
   for (const prop of pendingProps) {
     const hospId = prop.hospitable_property_id as string;
+    const currentStatus = prop.hospitable_sync_status as string;
+    const existingImages = Array.isArray(prop.images) ? prop.images as unknown[] : [];
     try {
-      // Fetch images
+      // Parallel fetch: images + calendar (halves the wait time per property)
+      const imagesUrl = `${HOSPITABLE_CONNECT_BASE}/customers/${customerId}/listings/${hospId}/images`;
+      const today = new Date();
+      const startDate = today.toISOString().split('T')[0];
+      const endDate90 = new Date(today.getTime() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      const calUrl = `${HOSPITABLE_CONNECT_BASE}/listings/${hospId}/calendar?start_date=${startDate}&end_date=${endDate90}`;
+
+      const [imgRes, calRes] = await Promise.all([
+        fetch(imagesUrl, { method: 'GET', headers: connectHeaders() }).catch(e => {
+          console.log(`[Hospitable] Images fetch network error for ${hospId}:`, e);
+          return null;
+        }),
+        fetch(calUrl, { method: 'GET', headers: connectHeaders() }).catch(e => {
+          console.log(`[Hospitable] Calendar fetch network error for ${hospId}:`, e);
+          return null;
+        }),
+      ]);
+
+      // ── Parse images ──
       const images: { url: string; order: number }[] = [];
-      try {
-        const imgRes = await fetch(
-          `${HOSPITABLE_CONNECT_BASE}/customers/${customerId}/listings/${hospId}/images`,
-          { method: 'GET', headers: connectHeaders() },
-        );
-        if (imgRes.ok) {
+      let imageStatus = imgRes?.status ?? 0;
+      if (imgRes && imgRes.ok) {
+        try {
           const imgData = JSON.parse(await imgRes.text());
           const imgArr = Array.isArray(imgData.data) ? imgData.data as Record<string, unknown>[] : [];
           for (const img of imgArr) {
@@ -328,22 +400,20 @@ async function enrichProperties(
             if (url) images.push({ url, order: Number(img.order ?? images.length) });
           }
           images.sort((a, b) => a.order - b.order);
+        } catch (parseErr) {
+          console.log(`[Hospitable] Images parse error for ${hospId}:`, parseErr);
         }
-      } catch (_e) { /* fall back to existing thumbnail */ }
+      }
+      console.log(`[Hospitable] Images for ${hospId}: status=${imageStatus} count=${images.length}`);
 
-      // Fetch calendar for pricing + availability
+      // ── Parse calendar ──
       let baseRate = 0;
       const blockedDates: string[] = [];
       const weekdayPrices: number[] = [];
       const weekendPrices: number[] = [];
       let pricingCurrency = 'GBP';
-      try {
-        const today = new Date();
-        const startDate = today.toISOString().split('T')[0];
-        const endDate90 = new Date(today.getTime() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-        const calUrl = `${HOSPITABLE_CONNECT_BASE}/listings/${hospId}/calendar?start_date=${startDate}&end_date=${endDate90}`;
-        const calRes = await fetch(calUrl, { method: 'GET', headers: connectHeaders() });
-        if (calRes.ok) {
+      if (calRes && calRes.ok) {
+        try {
           const calData = JSON.parse(await calRes.text());
           const dates = calData.data?.dates ?? [];
           for (const d of dates as Record<string, unknown>[]) {
@@ -369,9 +439,9 @@ async function enrichProperties(
             weekendPrices.sort((a, b) => a - b);
             baseRate = weekendPrices[Math.floor(weekendPrices.length / 2)];
           }
+        } catch (calErr) {
+          console.log(`[Hospitable] Calendar parse error for ${hospId}:`, calErr);
         }
-      } catch (calErr) {
-        console.log(`[Hospitable] Calendar fetch failed for ${hospId}:`, calErr);
       }
 
       let weekendRate = 0;
@@ -380,9 +450,22 @@ async function enrichProperties(
         weekendRate = weekendPrices[Math.floor(weekendPrices.length / 2)];
       }
 
-      // Update property with enriched data
+      // ── Decide final sync status: retry once if images truly missing ──
+      const hasImages = images.length > 0 || existingImages.length > 0;
+      let nextStatus: string;
+      if (hasImages) {
+        nextStatus = 'synced';
+      } else if (currentStatus === 'pending_enrichment') {
+        // First attempt failed → retry once more on next batch
+        nextStatus = 'pending_enrichment_retry';
+      } else {
+        // Second attempt also failed → give up, don't retry forever
+        nextStatus = 'synced';
+      }
+
+      // Update property
       const updateData: Record<string, unknown> = {
-        hospitable_sync_status: 'synced',
+        hospitable_sync_status: nextStatus,
         hospitable_last_sync_at: new Date().toISOString(),
         base_rate_amount: baseRate || 0,
         base_rate_currency: pricingCurrency,
@@ -393,7 +476,6 @@ async function enrichProperties(
           last_synced: new Date().toISOString(),
         } : {},
       };
-      // Only update images if we fetched new ones
       if (images.length > 0) updateData.images = images;
 
       await supabase
@@ -426,10 +508,11 @@ async function enrichProperties(
         }
       }
 
-      enriched++;
+      // Only count as enriched if we successfully got images (not a retry being queued)
+      if (nextStatus === 'synced') enriched++;
     } catch (e) {
       errors.push(`${hospId}: ${String(e)}`);
-      // Mark as failed enrichment so we don't retry forever
+      // On unexpected error, mark as synced so we don't retry forever
       await supabase
         .from('nfs_properties')
         .update({ hospitable_sync_status: 'synced' })
@@ -437,25 +520,30 @@ async function enrichProperties(
     }
   }
 
-  // Check how many are still pending
+  // Check how many are still pending (includes retry queue)
   const { count: remainingCount } = await supabase
     .from('nfs_properties')
     .select('id', { count: 'exact', head: true })
     .eq('operator_id', operatorId)
     .eq('hospitable_connected', true)
-    .eq('hospitable_sync_status', 'pending_enrichment');
+    .in('hospitable_sync_status', ['pending_enrichment', 'pending_enrichment_retry']);
 
   const remaining = remainingCount ?? 0;
 
-  // Update progress on connection
+  // Accurate total count from DB (reflects discovered properties too)
+  const { count: totalDbCount } = await supabase
+    .from('nfs_properties')
+    .select('id', { count: 'exact', head: true })
+    .eq('operator_id', operatorId)
+    .eq('hospitable_connected', true);
+  const totalProps = totalDbCount ?? 0;
+
   const { data: connData } = await supabase
     .from('nfs_hospitable_connections')
-    .select('sync_progress, total_properties')
+    .select('sync_progress')
     .eq('id', connectionRowId)
     .single();
-
   const prevProgress = (connData?.sync_progress ?? {}) as Record<string, number>;
-  const totalProps = (connData?.total_properties ?? 0) as number;
   const totalEnriched = (prevProgress.enriched ?? 0) + enriched;
   const totalFailed = (prevProgress.failed ?? 0) + errors.length;
 
@@ -463,13 +551,14 @@ async function enrichProperties(
     .from('nfs_hospitable_connections')
     .update({
       sync_status: remaining > 0 ? 'enriching' : 'completed',
+      total_properties: totalProps,
       sync_progress: { total: totalProps, enriched: totalEnriched, failed: totalFailed },
       last_sync_at: new Date().toISOString(),
       last_sync_error: errors.length > 0 ? errors.slice(0, 3).join('; ') : null,
     })
     .eq('id', connectionRowId);
 
-  return { enriched, remaining, errors };
+  return { enriched, remaining, discovered, errors };
 }
 
 /**
@@ -495,14 +584,20 @@ async function syncListingsFromHospitable(
   const allErrors = [...quickResult.errors];
   let remaining = quickResult.synced;
 
+  let stagnantRounds = 0;
   while (remaining > 0) {
     const batch = await enrichProperties(supabase, operatorId, customerId, connectionRowId, 15);
     totalEnriched += batch.enriched;
     remaining = batch.remaining;
     allErrors.push(...batch.errors);
 
-    // If a batch enriched 0 and there are still remaining, something is wrong — break
-    if (batch.enriched === 0 && remaining > 0) break;
+    // Break if no progress (no enrich, no discovery) for 2 consecutive rounds
+    if (batch.enriched === 0 && batch.discovered === 0) {
+      stagnantRounds++;
+      if (stagnantRounds >= 2) break;
+    } else {
+      stagnantRounds = 0;
+    }
   }
 
   return { synced: quickResult.synced, errors: allErrors, debug: quickResult.debug };
