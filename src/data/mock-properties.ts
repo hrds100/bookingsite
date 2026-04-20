@@ -2,6 +2,10 @@ export interface MockProperty {
   id: string;
   operator_id: string;
   public_title: string;
+  /** Optional operator-entered translations: { "pt-BR": "...", "es": "...", ... } */
+  title_translations?: Record<string, string>;
+  /** Optional operator-entered description translations */
+  description_translations?: Record<string, string>;
   property_type: string;
   rental_type: string;
   city: string;
