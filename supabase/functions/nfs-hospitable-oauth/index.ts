@@ -273,7 +273,9 @@ async function quickSyncListings(
   await supabase
     .from('nfs_hospitable_connections')
     .update({
-      sync_status: synced > 0 ? 'enriching' : 'failed',
+      // DB check constraint only allows: pending | syncing | completed | failed
+      // We use 'syncing' for enrichment phase too; distinguish in UI via sync_progress.total
+      sync_status: synced > 0 ? 'syncing' : 'failed',
       last_sync_at: new Date().toISOString(),
       total_properties: totalCount,
       last_sync_error: errors.length > 0 ? errors.slice(0, 3).join('; ') : null,
@@ -550,7 +552,8 @@ async function enrichProperties(
   await supabase
     .from('nfs_hospitable_connections')
     .update({
-      sync_status: remaining > 0 ? 'enriching' : 'completed',
+      // DB constraint: use 'syncing' for enrichment phase (distinguished by sync_progress)
+      sync_status: remaining > 0 ? 'syncing' : 'completed',
       total_properties: totalProps,
       sync_progress: { total: totalProps, enriched: totalEnriched, failed: totalFailed },
       last_sync_at: new Date().toISOString(),

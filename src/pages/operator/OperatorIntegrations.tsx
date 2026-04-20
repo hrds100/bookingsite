@@ -44,8 +44,13 @@ export default function OperatorIntegrations() {
   const activeConnectionsRef = useRef(activeConnections);
   useEffect(() => { activeConnectionsRef.current = activeConnections; });
 
-  // Auto-enrich when sync_status is 'enriching'
-  const enrichingConnection = activeConnections.find(c => c.sync_status === "enriching");
+  // Auto-enrich when sync is in progress and total is known (enrichment phase).
+  // DB constraint only allows pending|syncing|completed|failed for sync_status, so
+  // we distinguish the enrichment phase by sync_progress.total being > 0 while
+  // sync_status is still 'syncing'.
+  const enrichingConnection = activeConnections.find(c =>
+    c.sync_status === "syncing" && (c.sync_progress?.total ?? 0) > 0
+  );
 
   const runEnrichBatch = useCallback(async () => {
     if (enrichingRef.current || !enrichingConnection) return;
@@ -192,17 +197,15 @@ export default function OperatorIntegrations() {
                   </Button>
                 </div>
 
-                {/* Sync progress bar */}
-                {(conn.sync_status === "syncing" || conn.sync_status === "enriching") && (
+                {/* Sync progress bar — syncing with total=0 = fetching listings, with total>0 = enriching */}
+                {conn.sync_status === "syncing" && (
                   <div className="space-y-2 py-2">
                     <div className="flex items-center gap-2">
                       <Loader2 className="w-4 h-4 animate-spin text-primary shrink-0" />
                       <p className="text-sm text-muted-foreground">
-                        {conn.sync_status === "syncing"
+                        {(conn.sync_progress?.total ?? 0) === 0
                           ? "Syncing properties from Airbnb..."
-                          : conn.sync_progress?.total
-                            ? `Enriching properties: ${conn.sync_progress.enriched ?? 0}/${conn.sync_progress.total} (images & pricing)`
-                            : "Enriching properties with images & pricing..."}
+                          : `Enriching properties: ${conn.sync_progress?.enriched ?? 0}/${conn.sync_progress?.total} (images & pricing)`}
                       </p>
                     </div>
                     {conn.sync_progress?.total ? (
@@ -222,7 +225,7 @@ export default function OperatorIntegrations() {
                     <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
                     <span className="ml-2 text-sm text-muted-foreground">Loading properties...</span>
                   </div>
-                ) : (syncedProperties || []).length === 0 && conn.sync_status !== "syncing" && conn.sync_status !== "enriching" ? (
+                ) : (syncedProperties || []).length === 0 && conn.sync_status !== "syncing" ? (
                   <div className="py-6 text-center space-y-3">
                     {conn.connected_platforms?.length === 0 ? (
                       <>
