@@ -1,0 +1,54 @@
+name: iCal Auto Sync - nfstay.app
+
+# Runs every minute. Calls nfs-ical-sync edge function's sync_batch action,
+# which picks the 50 oldest-synced listed properties with feeds and refreshes
+# them. Each run takes ~30–60 seconds for a healthy batch.
+#
+# Requires repo secrets:
+#   - ICAL_SYNC_URL          — full URL to the edge function
+#                              (e.g. https://asazddtvjvmckouxcmmo.supabase.co/functions/v1/nfs-ical-sync)
+#   - ICAL_CRON_SECRET       — shared secret with Supabase edge function env
+#   - SUPABASE_ANON_KEY      — already exists in repo secrets
+
+on:
+  schedule:
+    - cron: '* * * * *'   # every minute
+  workflow_dispatch:        # allow manual trigger for testing
+
+# Only one run at a time — if a run is slow, the next minute is skipped
+# rather than piling up.
+concurrency:
+  group: ical-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Trigger iCal sync batch
+        run: |
+          set -euo pipefail
+          HTTP_CODE=$(curl -sS -o /tmp/resp.json -w "%{http_code}" \
+            -X POST "${ICAL_SYNC_URL}" \
+            -H "Content-Type: application/json" \
+            -H "x-cron-secret: ${ICAL_CRON_SECRET}" \
+            -H "apikey: ${SUPABASE_ANON_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
+            --data '{"action":"sync_batch","batch_size":50}' \
+            --max-time 150 \
+            --retry 2 --retry-delay 5)
+
+          echo "HTTP ${HTTP_CODE}"
+          cat /tmp/resp.json
+
+          # Fail the job only on 5xx or network errors so we get alerted.
+          # 4xx (e.g. unauthorized) should also fail — indicates misconfiguration.
+          if [ "${HTTP_CODE}" -lt 200 ] || [ "${HTTP_CODE}" -ge 300 ]; then
+            echo "iCal sync returned non-2xx status"
+            exit 1
+          fi
+        env:
+          ICAL_SYNC_URL: ${{ secrets.ICAL_SYNC_URL }}
+          ICAL_CRON_SECRET: ${{ secrets.ICAL_CRON_SECRET }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
