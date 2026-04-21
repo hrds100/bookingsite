@@ -5,6 +5,11 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const CRON_SECRET = Deno.env.get("CRON_SECRET") || "";
 
+// Only import dates within this future horizon. Past dates and dates beyond
+// this horizon are discarded to keep nfs_blocked_dates lean.
+// 18 months covers Airbnb (up to 540 days) + buffer for Booking.com and others.
+const FUTURE_HORIZON_MONTHS = 18;
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-cron-secret",
@@ -158,7 +163,22 @@ async function syncOneFeed(
   }
 
   const allDates = ranges.flatMap((r) => expandRange(r.start, r.end));
-  const uniqueDates = [...new Set(allDates)];
+  const uniqueDatesAll = [...new Set(allDates)];
+
+  // Filter to [today, today + FUTURE_HORIZON_MONTHS].
+  // Drops past dates (they can't be booked anyway) and far-future dates
+  // (e.g. recurring Google Calendar events with no end date) to keep
+  // the blocked_dates table lean and queries fast.
+  const today = new Date();
+  today.setUTCHours(0, 0, 0, 0);
+  const horizon = new Date(today);
+  horizon.setUTCMonth(horizon.getUTCMonth() + FUTURE_HORIZON_MONTHS);
+  const todayStr = today.toISOString().slice(0, 10);
+  const horizonStr = horizon.toISOString().slice(0, 10);
+  const uniqueDates = uniqueDatesAll.filter(
+    (d) => d >= todayStr && d <= horizonStr,
+  );
+
   const source = `ical:${feed.name}`;
 
   // Step 3: WRITE — only now that we have valid data, replace old.
