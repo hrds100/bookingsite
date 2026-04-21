@@ -68,10 +68,13 @@ Deno.serve(async (req: Request) => {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // Verify token
+    // Verify token + enforce listing_status guard:
+    // Only published (listed) properties publish their iCal feed.
+    // Prevents draft/archived URLs from leaking empty or stale calendars
+    // to third-party platforms (which can cache & misreport availability).
     const { data: prop } = await supabase
       .from("nfs_properties")
-      .select("id, public_title, ical_token, operator_id")
+      .select("id, public_title, ical_token, operator_id, listing_status")
       .eq("id", propertyId)
       .eq("ical_token", token)
       .maybeSingle();
@@ -79,7 +82,14 @@ Deno.serve(async (req: Request) => {
     if (!prop) {
       return new Response(
         JSON.stringify({ error: "Property not found or invalid token" }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    if (prop.listing_status !== "listed") {
+      return new Response(
+        JSON.stringify({ error: "This calendar is not published" }),
+        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
