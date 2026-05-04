@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Search } from "lucide-react";
-import { differenceInDays, parseISO } from "date-fns";
+import { differenceInDays, format, parseISO } from "date-fns";
 import { NfsPropertyCard } from "@/components/nfs/NfsPropertyCard";
 import { NfsSearchFilters } from "@/components/nfs/NfsSearchFilters";
 import { NfsSearchMap } from "@/components/nfs/NfsSearchMap";
@@ -61,9 +61,14 @@ export default function NfsSearchPage() {
   const operatorDomains = useNfsOperatorDomains();
 
   const query = searchParams.get('query') || '';
-  const hasDateFilter = !!checkIn && !!checkOut && checkIn < checkOut;
 
-  const { data: unavailableIds } = useUnavailablePropertyIds(checkIn, checkOut);
+  // Availability filter: derive ISO date strings from dateRange (single source of truth).
+  // dateRange is updated either by the in-page picker or the useEffect that syncs from URL.
+  const availabilityCheckIn = dateRange?.from ? format(dateRange.from, 'yyyy-MM-dd') : null;
+  const availabilityCheckOut = dateRange?.to ? format(dateRange.to, 'yyyy-MM-dd') : null;
+  const hasDateFilter = !!availabilityCheckIn && !!availabilityCheckOut && availabilityCheckIn < availabilityCheckOut;
+
+  const { data: unavailableIds } = useUnavailablePropertyIds(availabilityCheckIn, availabilityCheckOut);
 
   // Extract unique cities from property data for autocomplete
   const availableCities = useMemo(() => {
