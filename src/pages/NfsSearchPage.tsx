@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/pagination";
 import { useWhiteLabelProperties } from "@/hooks/useWhiteLabelProperties";
 import { useNfsOperatorDomains } from "@/hooks/useNfsOperator";
+import { useUnavailablePropertyIds } from "@/hooks/useUnavailablePropertyIds";
 import type { DateRange } from "react-day-picker";
 
 const PAGE_SIZE = 12;
@@ -60,6 +61,9 @@ export default function NfsSearchPage() {
   const operatorDomains = useNfsOperatorDomains();
 
   const query = searchParams.get('query') || '';
+  const hasDateFilter = !!checkIn && !!checkOut && checkIn < checkOut;
+
+  const { data: unavailableIds } = useUnavailablePropertyIds(checkIn, checkOut);
 
   // Extract unique cities from property data for autocomplete
   const availableCities = useMemo(() => {
@@ -84,6 +88,10 @@ export default function NfsSearchPage() {
         p.country.toLowerCase().includes(q) ||
         p.public_title.toLowerCase().includes(q)
       );
+    }
+
+    if (hasDateFilter && unavailableIds) {
+      props = props.filter(p => !unavailableIds.has(p.id));
     }
 
     if (activeType !== 'All') {
@@ -123,7 +131,7 @@ export default function NfsSearchPage() {
     else if (sortBy === 'newest') props.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
     return props;
-  }, [query, locationQuery, activeType, priceMin, priceMax, bedrooms, beds, bathrooms, sortBy, scopedProperties, dateRange, adults, children, selectedAmenities]);
+  }, [query, locationQuery, activeType, priceMin, priceMax, bedrooms, beds, bathrooms, sortBy, scopedProperties, dateRange, adults, children, selectedAmenities, hasDateFilter, unavailableIds]);
 
   // Reset page when filters change
   const totalPages = Math.max(1, Math.ceil(filteredProperties.length / PAGE_SIZE));
