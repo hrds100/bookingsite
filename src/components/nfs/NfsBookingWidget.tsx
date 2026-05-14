@@ -260,7 +260,8 @@ export function NfsBookingWidget({ property }: NfsBookingWidgetProps) {
         operator_id: property.operator_id,
         guest_first_name: nameParts[0] || cashName,
         guest_last_name: nameParts.slice(1).join(' ') || '',
-        guest_email: cashEmail.trim(),
+        // Lowercase so reservations link to the same user when they sign up later
+        guest_email: cashEmail.trim().toLowerCase(),
         guest_phone: cashPhone.trim(),
         check_in: checkIn,
         check_out: checkOut,
