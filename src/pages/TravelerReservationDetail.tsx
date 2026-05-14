@@ -5,8 +5,10 @@ import { ArrowLeft, CalendarDays, MapPin, Users, CreditCard, AlertTriangle, Load
 import { Button } from "@/components/ui/button";
 import { NfsStatusBadge } from "@/components/nfs/NfsStatusBadge";
 import { NfsEmptyState } from "@/components/nfs/NfsEmptyState";
+import { NfsInvoice } from "@/components/nfs/NfsInvoice";
 import { useNfsReservationWithProperty, useNfsUpdateReservation } from "@/hooks/useNfsReservations";
 import { useCurrency } from "@/contexts/CurrencyContext";
+import { CURRENCIES } from "@/lib/constants";
 import { useAuth } from "@/hooks/useAuth";
 import { notifyBookingCancelled } from "@/lib/email";
 import { toast } from "@/hooks/use-toast";
@@ -185,7 +187,27 @@ export default function TravelerReservationDetail() {
         </div>
       </div>
 
-      <div className="mt-4 text-center">
+      <div className="mt-6 print:hidden">
+        <NfsInvoice
+          reservationId={res.id}
+          guestName={`${res.guest_first_name ?? ''} ${res.guest_last_name ?? ''}`.trim()}
+          guestEmail={res.guest_email}
+          propertyTitle={propTitle}
+          propertyCity={propCity}
+          propertyCountry={propCountry}
+          checkIn={res.check_in}
+          checkOut={res.check_out}
+          nights={nights}
+          adults={res.adults}
+          children={res.children}
+          total={res.total_amount}
+          currencySymbol={CURRENCIES.find(c => c.code === res.payment_currency)?.symbol ?? '£'}
+          paymentMethod={res.booking_source === 'cash' ? 'cash' : 'card'}
+          status={res.status}
+        />
+      </div>
+
+      <div className="mt-4 text-center print:hidden">
         <Button data-feature="NFSTAY__TRAVELER_DETAIL_PROPERTY" variant="outline" className="rounded-xl" onClick={() => navigate(`/property/${res.property_id}`)}>
           View property
         </Button>
