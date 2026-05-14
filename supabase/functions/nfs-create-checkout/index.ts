@@ -24,7 +24,14 @@ serve(async (req) => {
   }
 
   try {
-    const { propertyId, checkIn, checkOut, adults, children, guestEmail, guestName, promoCode, addons } = await req.json();
+    const body = await req.json();
+    const { propertyId, checkIn, checkOut, adults, children, guestName, promoCode, addons } = body;
+    // Normalize email so it matches auth.email() (Supabase auth lowercases on signup).
+    // Without this, a guest who books with "Tajul@nfstay.com" and later signs up as
+    // "tajul@nfstay.com" can't see their pre-account booking on the traveler dashboard.
+    const guestEmail: string = typeof body.guestEmail === "string"
+      ? body.guestEmail.trim().toLowerCase()
+      : body.guestEmail;
 
     if (!propertyId || !checkIn || !checkOut || !guestEmail) {
       return new Response(JSON.stringify({ error: "Missing required fields" }), {

@@ -27,15 +27,23 @@ export type ReservationWithProperty = MockReservation & {
 
 /** Fetch reservations for current user (traveler) */
 export function useNfsReservations(guestEmail?: string) {
+  // Normalize so pre-account bookings (stored as user typed) still match the
+  // user's auth email, which Supabase auth lowercases on signup.
+  const normalizedEmail = guestEmail?.trim().toLowerCase();
   return useQuery({
-    queryKey: ["nfs-reservations", guestEmail],
+    queryKey: ["nfs-reservations", normalizedEmail],
     queryFn: async (): Promise<ReservationWithProperty[]> => {
-      if (!SUPABASE_CONFIGURED || !guestEmail) return [];
+      if (!SUPABASE_CONFIGURED || !normalizedEmail) return [];
+
+      // Use ilike (case-insensitive) so legacy mixed-case rows still match
+      // until the backfill SQL has run. Escape the % _ \ wildcards so an
+      // email like a_b@x.com doesn't accidentally match a*b@x.com.
+      const escaped = normalizedEmail.replace(/([\\%_])/g, "\\$1");
 
       const { data, error } = await supabase
         .from("nfs_reservations")
         .select("*, nfs_properties(public_title, images, city, country, operator_id, nfs_operators(contact_email, contact_phone, contact_whatsapp))")
-        .eq("guest_email", guestEmail)
+        .ilike("guest_email", escaped)
         .order("created_at", { ascending: false });
 
       if (error) throw new Error(error.message);
