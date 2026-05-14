@@ -31,7 +31,7 @@ Deno.serve(async (req: Request) => {
     const { data, error } = await supabase
       .from("nfs_reservations")
       .select(
-        "id, status, payment_status, check_in, check_out, adults, children, total_amount, payment_currency, created_at, nfs_properties(public_title, city, country, images)"
+        "id, status, payment_status, check_in, check_out, adults, children, total_amount, payment_currency, created_at, guest_first_name, guest_last_name, guest_email, nfs_properties(public_title, city, country, images)"
       )
       .eq("guest_email", email)
       .order("created_at", { ascending: false });

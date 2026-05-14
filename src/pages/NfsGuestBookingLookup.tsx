@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Search, MapPin, Calendar, AlertCircle } from "lucide-react";
+import { Search, MapPin, Calendar, AlertCircle, Download } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { NfsStatusBadge } from "@/components/nfs/NfsStatusBadge";
 import { NfsEmptyState } from "@/components/nfs/NfsEmptyState";
+import { NfsInvoice } from "@/components/nfs/NfsInvoice";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 
@@ -21,6 +22,9 @@ interface GuestReservation {
   total_amount: number;
   payment_currency: string;
   created_at: string;
+  guest_first_name?: string | null;
+  guest_last_name?: string | null;
+  guest_email?: string | null;
   nfs_properties?: {
     public_title?: string;
     city?: string;
@@ -67,6 +71,7 @@ export default function NfsGuestBookingLookup() {
   const [searchEmail, setSearchEmail] = useState<string | undefined>(
     urlEmail ? urlEmail.trim().toLowerCase() : undefined
   );
+  const [printingId, setPrintingId] = useState<string | null>(null);
 
   // Auto-search when email comes from URL (e.g. clicked from confirmation email)
   useEffect(() => {
@@ -76,6 +81,19 @@ export default function NfsGuestBookingLookup() {
   }, [urlEmail]);
 
   const { data: results, isLoading, error } = useGuestLookup(searchEmail);
+
+  // Trigger print after the selected invoice has been rendered
+  useEffect(() => {
+    if (!printingId) return;
+    const afterPrint = () => setPrintingId(null);
+    window.addEventListener("afterprint", afterPrint);
+    // Wait one frame so the hidden invoice paints before printing
+    const t = window.setTimeout(() => window.print(), 50);
+    return () => {
+      window.removeEventListener("afterprint", afterPrint);
+      window.clearTimeout(t);
+    };
+  }, [printingId]);
 
   const handleSearch = () => {
     if (email.trim()) {
@@ -87,6 +105,15 @@ export default function NfsGuestBookingLookup() {
 
   const currencySymbol = (c: string) =>
     ({ GBP: "£", USD: "$", EUR: "€", AED: "AED ", SGD: "S$" }[c] ?? c);
+
+  const nightsBetween = (a: string, b: string) => {
+    const start = new Date(a).getTime();
+    const end = new Date(b).getTime();
+    if (Number.isNaN(start) || Number.isNaN(end)) return 0;
+    return Math.max(1, Math.round((end - start) / (1000 * 60 * 60 * 24)));
+  };
+
+  const printingReservation = results?.find((r) => r.id === printingId);
 
   return (
     <div data-feature="NFSTAY__LOOKUP" className="max-w-lg mx-auto px-4 pt-16 pb-20">
@@ -183,10 +210,41 @@ export default function NfsGuestBookingLookup() {
                   <p className="text-xs text-muted-foreground font-mono mt-0.5">
                     Ref: {r.id.slice(0, 8).toUpperCase()}
                   </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPrintingId(r.id)}
+                    data-testid={`invoice-download-${r.id}`}
+                    className="rounded-lg gap-1.5 mt-2 h-8 text-xs"
+                  >
+                    <Download className="w-3 h-3" />
+                    Download invoice
+                  </Button>
                 </div>
               </div>
             );
           })}
+        </div>
+      )}
+
+      {printingReservation && (
+        <div className="hidden print:block">
+          <NfsInvoice
+            reservationId={printingReservation.id}
+            guestName={`${printingReservation.guest_first_name ?? ''} ${printingReservation.guest_last_name ?? ''}`.trim() || 'Guest'}
+            guestEmail={printingReservation.guest_email ?? searchEmail ?? undefined}
+            propertyTitle={printingReservation.nfs_properties?.public_title ?? 'Property'}
+            propertyCity={printingReservation.nfs_properties?.city ?? ''}
+            propertyCountry={printingReservation.nfs_properties?.country ?? ''}
+            checkIn={printingReservation.check_in}
+            checkOut={printingReservation.check_out}
+            nights={nightsBetween(printingReservation.check_in, printingReservation.check_out)}
+            adults={printingReservation.adults}
+            children={printingReservation.children}
+            total={printingReservation.total_amount}
+            currencySymbol={currencySymbol(printingReservation.payment_currency)}
+            status={printingReservation.status}
+          />
         </div>
       )}
     </div>
