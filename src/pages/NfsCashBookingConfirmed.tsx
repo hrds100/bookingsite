@@ -2,15 +2,23 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Clock } from "lucide-react";
 import { NfsLogo } from "@/components/nfs/NfsLogo";
+import { NfsInvoice } from "@/components/nfs/NfsInvoice";
 import { useTranslation } from "react-i18next";
 import { useWhiteLabel } from "@/contexts/WhiteLabelContext";
 
 interface CashBookingData {
   ref: string;
   propertyTitle: string;
+  propertyCity?: string;
+  propertyCountry?: string;
+  guestName?: string;
+  guestEmail?: string;
   checkIn: string;
   checkOut: string;
   guests: number;
+  adults?: number;
+  children?: number;
+  nights?: number;
   total: number;
   currency: string;
   currencySymbol: string;
@@ -33,6 +41,15 @@ export default function NfsCashBookingConfirmed() {
     }
   }, []);
 
+  const computedNights = (() => {
+    if (!data) return 0;
+    if (data.nights && data.nights > 0) return data.nights;
+    const a = new Date(data.checkIn).getTime();
+    const b = new Date(data.checkOut).getTime();
+    if (Number.isNaN(a) || Number.isNaN(b)) return 0;
+    return Math.max(1, Math.round((b - a) / (1000 * 60 * 60 * 24)));
+  })();
+
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4 py-16">
       <div className="max-w-md w-full text-center">
@@ -54,7 +71,7 @@ export default function NfsCashBookingConfirmed() {
         <p className="text-sm text-muted-foreground mb-8">{t('cash_confirmed.subtitle')}</p>
 
         {data && (
-          <div className="bg-card border border-border rounded-2xl p-6 text-left space-y-3 mb-8">
+          <div className="bg-card border border-border rounded-2xl p-6 text-left space-y-3 mb-8 print:hidden">
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">{t('cash_confirmed.ref')}</span>
               <span className="font-mono font-semibold text-foreground">{data.ref}</span>
@@ -83,9 +100,31 @@ export default function NfsCashBookingConfirmed() {
           </div>
         )}
 
+        {data && (
+          <div className="text-left mb-8">
+            <NfsInvoice
+              reservationId={data.ref}
+              guestName={data.guestName ?? 'Guest'}
+              guestEmail={data.guestEmail}
+              propertyTitle={data.propertyTitle}
+              propertyCity={data.propertyCity}
+              propertyCountry={data.propertyCountry}
+              checkIn={data.checkIn}
+              checkOut={data.checkOut}
+              nights={computedNights}
+              adults={data.adults ?? data.guests}
+              children={data.children ?? 0}
+              total={data.total}
+              currencySymbol={data.currencySymbol}
+              paymentMethod="cash"
+              brandName={isWhiteLabel && operator ? operator.brand_name : 'NFStay'}
+            />
+          </div>
+        )}
+
         <Link
           to="/"
-          className="inline-block bg-primary-gradient text-white font-semibold py-3 px-8 rounded-full hover:opacity-90 transition-all"
+          className="inline-block bg-primary-gradient text-white font-semibold py-3 px-8 rounded-full hover:opacity-90 transition-all print:hidden"
         >
           {t('cash_confirmed.back')}
         </Link>

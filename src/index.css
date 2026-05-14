@@ -90,3 +90,25 @@
     background: linear-gradient(270deg, hsl(var(--primary) / 0.7) 0%, hsl(var(--primary)) 100%);
   }
 }
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  [data-print-invoice],
+  [data-print-invoice] * {
+    visibility: visible;
+  }
+  [data-print-invoice] {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    padding: 24px;
+    color: #000;
+    background: #fff;
+  }
+  @page {
+    margin: 16mm;
+  }
+}

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { MapPin, Calendar, Users, Lock, AlertTriangle, Clock } from "lucide-react";
+import { MapPin, Calendar, Users, Lock, AlertTriangle, Clock, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -137,8 +137,29 @@ export default function NfsCheckoutPage() {
     }
   };
 
+  const handleBack = () => {
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else if (intent.propertyId) {
+      navigate(`/property/${intent.propertyId}`);
+    } else {
+      navigate('/search');
+    }
+  };
+
   return (
     <div data-feature="NFSTAY__CHECKOUT" className="max-w-5xl mx-auto px-4 py-8">
+      <button
+        type="button"
+        onClick={handleBack}
+        data-testid="checkout-back"
+        className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors mb-4"
+        aria-label="Go back"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        Back
+      </button>
+
       {/* Expiry banner */}
       {timeLeft > 0 && timeLeft < 10 * 60 * 1000 && (
         <div className="bg-[hsl(38_92%_50%/0.1)] border border-warning/30 rounded-xl p-3 mb-6 flex items-center gap-2">

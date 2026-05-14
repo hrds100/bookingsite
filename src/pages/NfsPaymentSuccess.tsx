@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { CheckCircle, Clock, MapPin, Calendar, Users, Loader2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { NfsInvoice } from "@/components/nfs/NfsInvoice";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 
@@ -85,7 +86,7 @@ export default function NfsPaymentSuccess() {
   }
 
   return (
-    <div data-feature="NFSTAY__SUCCESS" className="min-h-screen bg-background flex items-start justify-center pt-16 px-4">
+    <div data-feature="NFSTAY__SUCCESS" className="min-h-screen bg-background flex items-start justify-center pt-16 px-4 pb-16">
       <div className="max-w-md w-full space-y-6">
         <div data-feature="NFSTAY__SUCCESS_MESSAGE" className="text-center">
           {!reservation ? (
@@ -122,7 +123,7 @@ export default function NfsPaymentSuccess() {
         </div>
 
         {reservation && (
-          <div data-feature="NFSTAY__SUCCESS_SUMMARY" className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
+          <div data-feature="NFSTAY__SUCCESS_SUMMARY" className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm print:hidden">
             {reservation.propertyImage && (
               <img src={reservation.propertyImage} alt={reservation.propertyTitle} className="h-40 w-full object-cover" />
             )}
@@ -151,7 +152,27 @@ export default function NfsPaymentSuccess() {
           </div>
         )}
 
-        <div className="space-y-3">
+        {reservation && (
+          <NfsInvoice
+            reservationId={reservation.id}
+            guestName={`${reservation.guestFirstName ?? ''} ${reservation.guestLastName ?? ''}`.trim()}
+            guestEmail={reservation.guestEmail}
+            propertyTitle={reservation.propertyTitle}
+            propertyCity={reservation.propertyCity}
+            propertyCountry={reservation.propertyCountry}
+            checkIn={reservation.checkIn}
+            checkOut={reservation.checkOut}
+            nights={reservation.nights}
+            adults={reservation.adults}
+            children={reservation.children}
+            total={reservation.total}
+            currencySymbol={reservation.currencySymbol}
+            paymentMethod="card"
+            status={reservation.status}
+          />
+        )}
+
+        <div className="space-y-3 print:hidden">
           <Button variant="outline" className="w-full rounded-xl" onClick={() => navigate('/booking')}>
             View Booking Details
           </Button>
