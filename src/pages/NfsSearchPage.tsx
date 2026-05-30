@@ -61,6 +61,9 @@ export default function NfsSearchPage() {
   const operatorDomains = useNfsOperatorDomains();
 
   const query = searchParams.get('query') || '';
+  const hasDateFilter = !!checkIn && !!checkOut && checkIn < checkOut;
+
+  const { data: unavailableIds } = useUnavailablePropertyIds(checkIn, checkOut);
 
   // Availability filter: derive ISO date strings from dateRange (single source of truth).
   // dateRange is updated either by the in-page picker or the useEffect that syncs from URL.
